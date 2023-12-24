@@ -1,33 +1,23 @@
-# Mikrotik SMS Notifier
+# SuperNotifier
 
-Notify using SMS service via LTE modem on a Mikrotik router.
-
-Sends to multiple notify targets, where each target is a phone number, 
-optionally using E.164 international style.
+Simplified and complicated notifications, including multi-channel notifications, chimes and template based emails
 
 ## Setup
 
-A username and password is required on the Mikrotik router. 
 
 Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 ```yaml
-- name: Mikrotik SMS
-  platform: mikrotik_sms
-  host: 192.168.88.200
-  username: !secret mikrotik_user
-  password: !secret mikrotik_password
-  port: lte1
+- name: SuperNotifier
+  platform: supernotifier
+  alexa_targets:
+    - media_player.bedroom
+    - media_player.kitchen
+  alexa_show_targets:
+    - media_player.bedroom
+  sms_targets:
+    - +447675818181
+  apple_targets:
+    - apple_devices
+
 ```
-
-With the user and password added to the HomeAssistant `secrets.yaml` file
-
-Optionally an `smscentre` can also be configured.
-
-## Options
-
-In the notification data section, `type` and `channel` can optionally be specified.
-See the Mikrotik documentation for understanding of those.
-
-## Reference
-https://wiki.mikrotik.com/wiki/Manual:Tools/Sms# hass_supernotify
