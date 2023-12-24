@@ -1,7 +1,7 @@
 {
     "domain":"supernotify",
     "name":"Supernotifier",
-    "version":"0.1.1",
+    "version":"0.1.2",
     "requirements":[
     ],
     "iot_class":"local_push",
