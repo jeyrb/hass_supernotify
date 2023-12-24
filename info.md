@@ -1,1 +1,1 @@
-SMS service using Mikrotik API to send via LTE modem.
+Supercharged email, apple, chime, sms and Alexa notifications
