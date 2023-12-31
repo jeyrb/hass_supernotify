@@ -454,7 +454,6 @@ class SuperNotificationService(BaseNotificationService):
                     service = 'turn_on'
                 service_data = {
                     'entity_id': chime_entity_id,
-                    'data': data
                 }
                 if chime_repeat == 1:
                     self.hass.services.call(
