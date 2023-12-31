@@ -1,0 +1,8 @@
+{
+    "services": {
+        "reload": {
+            "description": "Reloads supernotify services.",
+            "name": "Reload"
+        }
+    }
+}

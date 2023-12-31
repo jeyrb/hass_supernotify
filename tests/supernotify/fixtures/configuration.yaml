@@ -1,0 +1,49 @@
+notify:
+  - name: SuperNotifier_reloaded
+    platform: supernotify
+    services:
+      email: smtp
+      sms: mikrotik_sms
+    chime_devices:
+      - script.chime_ding_dong
+      - switch.chime_sax
+    alexa_devices:
+      - media_player.kitchen_2
+      - media_player.bedroom
+      - media_player.hall_flex
+      - media_player.old_kitchen_flex
+      - media_player.studio
+    alexa_show_devices:
+      - media_player.kitchen_2
+    recipients:
+      - person: person.new_home_owner
+        email: jrb@jeymail.net
+        mobile: 
+          number: "+447989408889"
+          apple_devices:
+            - mobile_app.new_iphone
+      - person: person.bidey_in
+        mobile:
+          number: "+4489393013834"
+
+    actions:
+      - identifier: action-1
+        title: Example Mobile Action
+        icon: "sfsymbols:bell"
+        uri: http://10.111.10.111:8123
+        activationMode: foreground
+        authenticationRequired: false
+        destructive: false
+        behavior: default
+        textInputButtonTitle: Input Button Title
+        textInputPlaceholder: Input Placeholder Text
+      - identifier: "ALARM_PANEL_DISARM"
+        title: "Disarm Alarm Panel"
+        icon: "sfsymbols:bell.slash"
+      - identifier: "ALARM_PANEL_RESET"
+        title: "Arm Alarm Panel for at Home"
+        icon: "sfsymbols:bell"
+      - identifier: "ALARM_PANEL_AWAY"
+        title: "Arm Alarm Panel for Going Away"
+        icon: "sfsymbols:airplane"
+
