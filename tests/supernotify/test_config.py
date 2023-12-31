@@ -64,13 +64,14 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert not hass.services.has_service(notify.DOMAIN, DOMAIN)
     uut = hass.data['notify_services']['supernotify'][0]
     assert len(uut.recipients) == 2
-    assert len(uut.alexa_devices) == 5
+    assert len(uut.methods) == 6
     await hass.services.async_call(
             notify.DOMAIN,
             'supernotifier_reloaded',
             {'title':'my title','message':'unit test'},
             blocking=True,
         )
+
    
 async def test_empty_config(hass: HomeAssistant) -> None:
 

@@ -1,21 +1,29 @@
 notify:
   - name: SuperNotifier_reloaded
     platform: supernotify
-    services:
-      email: smtp
-      sms: mikrotik_sms
-      alexa: alexa
-    chime_devices:
-      - script.chime_ding_dong
-      - switch.chime_sax
-    alexa_devices:
-      - media_player.kitchen_2
-      - media_player.bedroom
-      - media_player.hall_flex
-      - media_player.old_kitchen_flex
-      - media_player.studio
-    alexa_show_devices:
-      - media_player.kitchen_2
+    templates: config/templates/supernotify
+    methods:
+      - method: email
+        service: notify.smtp
+        template: default.html.j2 
+      - method: sms
+        service: notify.mikrotik_sms
+      - method: alexa
+        service: notify.alexa
+        entities:
+          - media_player.kitchen_2
+          - media_player.bedroom
+          - media_player.hall_flex
+          - media_player.old_kitchen_flex
+          - media_player.studio
+      - method: apple_push
+      - method: media
+        entities:
+          - media_player.kitchen_2
+      - method: chime
+        entities:
+          - script.chime_ding_dong
+          - switch.chime_sax
     recipients:
       - person: person.new_home_owner
         email: jrb@jeymail.net
@@ -47,4 +55,10 @@ notify:
       - identifier: "ALARM_PANEL_AWAY"
         title: "Arm Alarm Panel for Going Away"
         icon: "sfsymbols:airplane"
+    links:
+      - url: http://frigate
+        icon: "mdi:camera"
+        name: Frigate
+        description: Frigate CCTV
+
 
