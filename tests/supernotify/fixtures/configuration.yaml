@@ -4,6 +4,7 @@ notify:
     services:
       email: smtp
       sms: mikrotik_sms
+      alexa: alexa
     chime_devices:
       - script.chime_ding_dong
       - switch.chime_sax

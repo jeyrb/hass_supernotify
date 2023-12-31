@@ -17,6 +17,7 @@ CONF_PERSON = 'person'
 CONF_SERVICES = 'services'
 CONF_SERVICE_SMS = 'sms'
 CONF_SERVICE_EMAIL = 'email'
+CONF_SERVICE_ALEXA = 'alexa'
 CONF_MOBILE = 'mobile'
 CONF_PHONE_NUMBER = 'phone_number'
 

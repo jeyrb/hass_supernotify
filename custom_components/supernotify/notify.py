@@ -31,6 +31,7 @@ from . import (
     CONF_SERVICES,
     CONF_SERVICE_EMAIL,
     CONF_SERVICE_SMS,
+    CONF_SERVICE_ALEXA,
     CONF_PHONE_NUMBER,
     CONF_PERSON,
     CONF_MOBILE,
@@ -57,7 +58,7 @@ RECIPIENT_SCHEMA = {
 }
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional(CONF_SERVICES, default={}): {vol.Exclusive(CONF_SERVICE_EMAIL, CONF_SERVICE_SMS): cv.string},
+        vol.Optional(CONF_SERVICES, default={}): {vol.Exclusive(CONF_SERVICE_EMAIL, CONF_SERVICE_SMS, CONF_SERVICE_ALEXA): cv.string},
         vol.Optional(CONF_CHIME_TARGETS, default=[]): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(CONF_ALEXA_TARGETS, default=[]): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(CONF_ALEXA_SHOW_TARGETS, default=[]): vol.All(cv.ensure_list, [cv.entity_id]),
@@ -108,7 +109,7 @@ class SuperNotificationService(BaseNotificationService):
         self.recipients = recipients
         self.actions = mobile_actions
         self.services = services or {}
-        self.all_methods = ['chime', 'alexa', 'apple']
+        self.all_methods = ['chime', 'apple']
         if services.get(CONF_SERVICE_EMAIL):
             self.all_methods.append('email')
         else:
@@ -118,6 +119,10 @@ class SuperNotificationService(BaseNotificationService):
             self.all_methods.append('sms')
         else:
             _LOGGER.info('SUPERNOTIFY Disabling sms since no service defined')
+        if services.get(CONF_SERVICE_ALEXA):
+            self.all_methods.append('alexa')
+        else:
+            _LOGGER.info('SUPERNOTIFY Disabling Alexa since no service defined')
 
     def send_message(self, message="", **kwargs):
         """Send a message via chosen method."""
@@ -327,9 +332,9 @@ class SuperNotificationService(BaseNotificationService):
         if data:
             service_data['data'].update(data)
         try:
-            self.services.call("notify", "alexa", service_data=service_data)
+            self.hass.services.call("notify", "alexa", service_data=service_data)
         except Exception as e:
-            _LOGGER.error('Failed to notify via Alex (m=%s): %s' %
+            _LOGGER.error('Failed to notify via Alexa (m=%s): %s' %
                           (message, e))
         if self.alexa_show_devices and image_url:
             image_url = image_url.replace(
@@ -350,7 +355,7 @@ class SuperNotificationService(BaseNotificationService):
                     )
             except Exception as e:
                 _LOGGER.error(
-                    'SUPERNOTIFY Failed to notify via Alex Show (url=%s): %s' % (image_url, e))
+                    'SUPERNOTIFY Failed to notify via Alexa Show (url=%s): %s' % (image_url, e))
 
     def on_notify_sms(self, title, message, target=None, data=None):
         _LOGGER.info('SUPERNOTIFY notify_sms: %s' % title)
