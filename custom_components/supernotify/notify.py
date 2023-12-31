@@ -53,7 +53,7 @@ MOBILE_SCHEMA = {
 RECIPIENT_SCHEMA = {
     vol.Required(CONF_PERSON): cv.entity_id,
     vol.Optional(CONF_EMAIL): cv.string,
-    vol.Optional(CONF_MOBILE):  vol.All(cv.ensure_list, [MOBILE_SCHEMA])
+    vol.Optional(CONF_MOBILE):  MOBILE_SCHEMA
 }
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -153,7 +153,7 @@ class SuperNotificationService(BaseNotificationService):
                 case "sms":
                     try:
                         self.on_notify_sms(
-                            title, message, targetdata=data.get('sms', None))
+                            title, message, target=target, data=data.get('sms', None))
                     except Exception as e:
                         _LOGGER.warning(
                             'SUPERNOTIFY Failed to sms %s: %s' % (target, e))
@@ -207,7 +207,7 @@ class SuperNotificationService(BaseNotificationService):
         if not target:
             target = []
             for recipient in self.recipients:
-                target.extend(recipient['mobile']['apple_devices'])
+                target.extend(recipient.get('mobile',{}).get('apple_devices',[]))
 
         title = title or ''
         _LOGGER.info('SUPERNOTIFY notify_apple: %s -> %s' % (title, target))
@@ -324,7 +324,8 @@ class SuperNotificationService(BaseNotificationService):
             'data': {"type": "announce"},
             'target': target
         }
-        service_data['data'].update(data)
+        if data:
+            service_data['data'].update(data)
         try:
             self.services.call("notify", "alexa", service_data=service_data)
         except Exception as e:
@@ -358,7 +359,7 @@ class SuperNotificationService(BaseNotificationService):
         if not target:
             target = []
             for recipient in self.recipients:
-                target.append(recipient['mobile']['number'])
+                target.append(recipient.get('mobile',{}).get('number'))
         combined = '%s %s' % (title, message)
         service_data = {
             'message': combined[:158],

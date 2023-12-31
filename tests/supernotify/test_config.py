@@ -72,5 +72,30 @@ async def test_reload(hass: HomeAssistant) -> None:
             blocking=True,
         )
    
+async def test_empty_config(hass: HomeAssistant) -> None:
+
+    assert await async_setup_component(
+        hass,
+        notify.DOMAIN,
+        {
+            notify.DOMAIN: [
+                {
+                    "name": DOMAIN,
+                    "platform": DOMAIN
+                },
+            ]
+        },
+    )
+
+    await hass.async_block_till_done()
+
+    assert hass.services.has_service(notify.DOMAIN, DOMAIN)
+    await hass.services.async_call(
+            notify.DOMAIN,
+            DOMAIN,
+            {'title':'my title','message':'unit test'},
+            blocking=True,
+        )
+   
 
     
