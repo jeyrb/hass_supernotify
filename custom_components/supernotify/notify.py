@@ -412,6 +412,12 @@ class SuperNotificationService(BaseNotificationService):
                     addresses.append(t)
                 else:
                     _LOGGER.warning('SUPERNOTIFY Invalid email address %s', t)
+                    
+        service_data = {
+                "title": title,
+                "message": message,
+                "data": data
+            }
         try:
             if template:
                 template_path = os.path.join(self.templates, "email")
@@ -436,11 +442,7 @@ class SuperNotificationService(BaseNotificationService):
                 html = template_obj.render(alert=alert)
                 if not html:
                     self.error("Empty result from template %s" % template)
-            service_data = {
-                "title": title,
-                "message": message,
-                "data": data
-            }
+
             if html:
                 service_data["data"]["html"] = html
         except Exception as e:
@@ -454,7 +456,7 @@ class SuperNotificationService(BaseNotificationService):
             return html
         except Exception as e:
             _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via mail (m=%s): %s", message, e)
+                "SUPERNOTIFY Failed to notify via mail (m=%s,addr=%s): %s", message, addresses, e)
 
     def on_notify_alexa(self, message, config=None, target=None, image_url=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
