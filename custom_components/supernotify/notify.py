@@ -232,10 +232,7 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_CHIME:
                 try:
                     self.on_notify_chime(
-                        target,
-                        data.get(
-                            "chime_repeat", 1),
-                        data.get("chime_interval", 3),
+                        target=target,
                         data=data.get("chime", None),
                         config=delivery_config)
                 except Exception as e:
@@ -372,12 +369,6 @@ class SuperNotificationService(BaseNotificationService):
             data["actions"].append({"action": "silence-%s" % camera_entity_id,
                                     "title": "Stop camera notifications for %s" % camera_entity_id,
                                     "destructive": "true"})
-        for action in self.actions:
-            data["actions"].append({"action": action["action"],
-                                    "title": action.get("title", action["action"]),
-                                    "icon": action.get("icon"),
-                                    "destructive": action.get("destructive", False)
-                                    })
         data["actions"].extend(self.actions)
         service_data = {
             "title": title,
@@ -390,7 +381,7 @@ class SuperNotificationService(BaseNotificationService):
                                         service_data=service_data)
             except Exception as e:
                 _LOGGER.error(
-                    "SUPERNOTIFY Apple push failure (m=%s): %s" % (message, e))
+                    "SUPERNOTIFY Apple push failure (m=%s): %s", message, e, ext_info=1)
         _LOGGER.info("SUPERNOTIFY iOS Push t=%s m=%s d=%s",
                      title, message, data)
 
@@ -564,10 +555,11 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)
 
-    def on_notify_chime(self, config=None, target=None, chime_repeat=1,
-                        chime_interval=3, data=None):
+    def on_notify_chime(self, config=None, target=None, data=None):
         config = config or {}
         entities = config.get(CONF_ENTITIES, []) if not target else target
+        chime_repeat=data.get("chime_repeat", 1)
+        chime_interval=data.get("chime_interval", 3)
         data = data or {}
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", entities)
         for chime_entity_id in entities:
