@@ -3,27 +3,50 @@ notify:
     platform: supernotify
     templates: config/templates/supernotify
     methods:
-      - method: email
+      email:
         service: notify.smtp
-        template: default.html.j2 
-      - method: sms
+      sms:
         service: notify.mikrotik_sms
-      - method: alexa
+      alexa:
         service: notify.alexa
+      media:
+        service: media_player.play_media
+    delivery:
+      html_email:
+        method: email
+        template: default.html.j2 
+        priority:
+          - critical
+          - high
+          - medium
+          - low
+      text_message:    
+        method: sms
+        occupancy: only_out
+        priority:
+          - critical
+          - high
+      alexa_announce:
+        method: alexa
         entities:
           - media_player.kitchen_2
           - media_player.bedroom
           - media_player.hall_flex
           - media_player.old_kitchen_flex
           - media_player.studio
-      - method: apple_push
-      - method: media
+        occupancy: any_in
+      apple_push:
+        method: apple_push
+      alexa_show:
+        method: media
         entities:
           - media_player.kitchen_2
-      - method: chime
+      play_chimes:
+        method: chime
         entities:
           - script.chime_ding_dong
           - switch.chime_sax
+        occupancy: any_in
     recipients:
       - person: person.new_home_owner
         email: jrb@jeymail.net
@@ -34,6 +57,10 @@ notify:
       - person: person.bidey_in
         mobile:
           number: "+4489393013834"
+    overrides:
+      image_url:
+        base: http://10.1.1.100
+        replace: https://myhomeserver.org/images
 
     actions:
       - identifier: action-1

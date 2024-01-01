@@ -8,24 +8,58 @@ Simplified and complicated notifications, including multi-channel notifications,
 Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 ```yaml
-- name: SuperNotifier
-  platform: supernotifier
-      services:
-      email: smtp
-      sms: mikrotik_sms
-    chime_devices:
-      - script.chime_ding_dong
-      - switch.chime_sax
-    alexa_devices:
-      - media_player.bedroom
-      - media_player.studio
-    alexa_show_devices:
-      - media_player.kitchen_2
+notify:
+  - name: SuperNotifier_reloaded
+    platform: supernotify
+    templates: config/templates/supernotify
+    methods:
+      email:
+        service: notify.smtp
+      sms:
+        service: notify.mikrotik_sms
+      alexa:
+        service: notify.alexa
+      media:
+        service: media_player.play_media
+    delivery:
+      html_email:
+        method: email
+        template: default.html.j2 
+        priority:
+          - critical
+          - high
+          - medium
+          - low
+      text_message:    
+        method: sms
+        occupancy: only_out
+        priority:
+          - critical
+          - high
+      alexa_announce:
+        method: alexa
+        entities:
+          - media_player.kitchen
+          - media_player.bedroom
+          - media_player.studio
+        occupancy: any_in
+      apple_push:
+        method: apple_push
+      alexa_show:
+        method: media
+        entities:
+          - media_player.kitchen
+      play_chimes:
+        method: chime
+        entities:
+          - script.chime_ding_dong
+          - switch.chime_sax
+        occupancy: any_in
     recipients:
       - person: person.new_home_owner
-        email: me@homemail.net
-        mobile:
-          number: "+4477777000111"
+        email: me@home.net
+        mobile: 
+          number: "+44797940404"
           apple_devices:
             - mobile_app.new_iphone
       - person: person.bidey_in
@@ -43,14 +77,25 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
         behavior: default
         textInputButtonTitle: Input Button Title
         textInputPlaceholder: Input Placeholder Text
-
-
+      - identifier: "ALARM_PANEL_DISARM"
+        title: "Disarm Alarm Panel"
+        icon: "sfsymbols:bell.slash"
+      - identifier: "ALARM_PANEL_RESET"
+        title: "Arm Alarm Panel for at Home"
+        icon: "sfsymbols:bell"
+      - identifier: "ALARM_PANEL_AWAY"
+        title: "Arm Alarm Panel for Going Away"
+        icon: "sfsymbols:airplane"
+    links:
+      - url: http://frigate
+        icon: "mdi:camera"
+        name: Frigate
+        description: Frigate CCTV
 ```
 
 TODO:
 
-* Auto notify for multiple channels
 * Migrate driveway camera handling incl PTZ
-* Delivery priority to translate to push priority for apple
 * Configurable links for email
 * Add mobile action definition
+* Rate limiting

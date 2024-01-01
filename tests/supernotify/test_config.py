@@ -1,18 +1,16 @@
-import pytest
+import pathlib
 from unittest.mock import AsyncMock, Mock, patch
-from homeassistant import config as conf_util
+
 import pytest
 
-from homeassistant import config_entries
+from homeassistant import config as conf_util, config as hass_config, config_entries
 import homeassistant.components.notify as notify
 from homeassistant.components.supernotify import DOMAIN
 from homeassistant.const import SERVICE_RELOAD
-from tests.common import MockConfigEntry
-from homeassistant.setup import async_setup_component
 from homeassistant.core import HomeAssistant
-from tests.common import get_fixture_path
-from homeassistant import config as hass_config
-import pathlib
+from homeassistant.setup import async_setup_component
+
+from tests.common import MockConfigEntry, get_fixture_path
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "fixtures", "configuration.yaml"
@@ -64,7 +62,8 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert not hass.services.has_service(notify.DOMAIN, DOMAIN)
     uut = hass.data['notify_services']['supernotify'][0]
     assert len(uut.recipients) == 2
-    assert len(uut.methods) == 6
+    assert len(uut.methods) == 4
+    assert len(uut.deliveries) == 6
     await hass.services.async_call(
             notify.DOMAIN,
             'supernotifier_reloaded',
@@ -99,4 +98,3 @@ async def test_empty_config(hass: HomeAssistant) -> None:
         )
    
 
-    
