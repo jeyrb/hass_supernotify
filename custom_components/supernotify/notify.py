@@ -238,34 +238,37 @@ class SuperNotificationService(BaseNotificationService):
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to chime %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to chime %s: %s", delivery, e)
             if method == METHOD_SMS:
                 try:
                     self.on_notify_sms(
-                        title, message, target=target, data=data.get("sms", None), config=delivery_config)
+                        title, message, target=target, data=data.get(delivery, {}), config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to sms %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to sms %s: %s", delivery, e)
             if method == METHOD_ALEXA:
                 try:
                     self.on_notify_alexa(
-                        message, data=data.get("alexa", None), config=delivery_config)
+                        message, data=data.get(delivery, {}), 
+                        config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to call alexa %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to call alexa %s: %s", delivery, e)
             if method == METHOD_MEDIA:
                 try:
                     self.on_notify_media_player(
-                        message, image_url=snapshot_url, data=data.get("media", None), config=delivery_config)
+                        message, image_url=snapshot_url, 
+                        data=data.get(delivery, {}), 
+                        config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to call media player %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to call media player %s: %s", delivery, e)
             if method == METHOD_EMAIL:
                 try:
                     self.on_notify_email(message,
@@ -273,12 +276,13 @@ class SuperNotificationService(BaseNotificationService):
                                          html=data.get(
                                              "html"),
                                          template=data.get("template"),
-                                         data=data.get("email", None), config=delivery_config)
+                                         data=data.get(delivery, {}), 
+                                         config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to email %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to email %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
                     self.on_notify_apple(title, message, target,
@@ -292,13 +296,13 @@ class SuperNotificationService(BaseNotificationService):
                                          app_url_title=data.get(
                                              "app_url_title"),
                                          camera_entity_id=camera_entity_id,
-                                         data=data.get("apple", None),
+                                         data=data.get(delivery, {}}),
                                          config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to push to apple %s: %s" % (target, e))
+                        "SUPERNOTIFY Failed to push to apple %s: %s", target, e)
         return stats_methods, stats_errors
 
     def on_notify_apple(self, title, message, target=(),
