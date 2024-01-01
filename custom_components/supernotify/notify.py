@@ -381,7 +381,7 @@ class SuperNotificationService(BaseNotificationService):
                                         service_data=service_data)
             except Exception as e:
                 _LOGGER.error(
-                    "SUPERNOTIFY Apple push failure (m=%s): %s", message, e, ext_info=1)
+                    "SUPERNOTIFY Apple push failure (m=%s): %s", message, e, ext_info=True)
         _LOGGER.info("SUPERNOTIFY iOS Push t=%s m=%s d=%s",
                      title, message, data)
 
@@ -444,7 +444,7 @@ class SuperNotificationService(BaseNotificationService):
             return html
         except Exception as e:
             _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via mail (m=%s): %s", message, e)
+                "SUPERNOTIFY Failed to notify via mail (m=%s): %s", message, e, ext_info=True)
 
     def on_notify_alexa(self, message, config=None, target=None, image_url=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
@@ -468,7 +468,7 @@ class SuperNotificationService(BaseNotificationService):
             self.hass.services.call(
                 domain, service, service_data=service_data)
         except Exception as e:
-            _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e)
+            _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e, ext_info=True)
 
     def on_notify_media_player(self, message, config=None, target=None, image_url=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify media player: %s", message)
@@ -511,7 +511,7 @@ class SuperNotificationService(BaseNotificationService):
                 )
         except Exception as e:
             _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via media player (url=%s): %s", image_url, e)
+                "SUPERNOTIFY Failed to notify via media player (url=%s): %s", image_url, e, ext_info=True)
 
     def on_notify_sms(self, title, message, config=None, target=None, data=None):
         """Send an SMS notification."""
@@ -553,7 +553,7 @@ class SuperNotificationService(BaseNotificationService):
             )
         except Exception as e:
             _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)
+                "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e, ext_info=True)
 
     def on_notify_chime(self, config=None, target=None, data=None):
         config = config or {}
@@ -583,7 +583,7 @@ class SuperNotificationService(BaseNotificationService):
                     raise NotImplementedError("Repeat not implemented")
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s",
-                              chime_entity_id, e)
+                              chime_entity_id, e, ext_info=True)
 
     def filter_recipients(self, occupancy):
         at_home = []
