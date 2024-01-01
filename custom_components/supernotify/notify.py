@@ -130,7 +130,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
         vol.Optional(CONF_LINKS, default=[]):
             vol.All(cv.ensure_list, [LINK_SCHEMA]),
-        vol.Optional(CONF_OVERRIDES,default={}): {cv.string : OVERRIDE_SCHEMA}
+        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA}
     }
 )
 
@@ -149,7 +149,7 @@ def get_service(hass, config, discovery_info=None):
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, ()),
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
-        }, 
+        },
     )
     setup_reload_service(hass, DOMAIN, PLATFORMS)
     return SuperNotificationService(hass,
@@ -233,7 +233,7 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_chime(
                         target=target,
-                        data=data.get("chime", None),
+                        data=data.get("chime", {}),
                         config=delivery_config)
                 except Exception as e:
                     stats_errors += 1
@@ -242,7 +242,9 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_SMS:
                 try:
                     self.on_notify_sms(
-                        title, message, target=target, data=data.get(delivery, {}), config=delivery_config)
+                        title, message, target=target,
+                        data=data.get(delivery, {}),
+                        config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
                     stats_errors += 1
@@ -251,7 +253,8 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_ALEXA:
                 try:
                     self.on_notify_alexa(
-                        message, data=data.get(delivery, {}), 
+                        message,
+                        data=data.get(delivery, {}),
                         config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
@@ -261,8 +264,9 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_MEDIA:
                 try:
                     self.on_notify_media_player(
-                        message, image_url=snapshot_url, 
-                        data=data.get(delivery, {}), 
+                        message,
+                        snapshot_url=snapshot_url,
+                        data=data.get(delivery, {}),
                         config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
@@ -273,10 +277,8 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_email(message,
                                          title=title,
-                                         html=data.get(
-                                             "html"),
-                                         template=data.get("template"),
-                                         data=data.get(delivery, {}), 
+                                         snapshot_url=snapshot_url,
+                                         data=data.get(delivery, {}),
                                          config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
@@ -296,7 +298,7 @@ class SuperNotificationService(BaseNotificationService):
                                          app_url_title=data.get(
                                              "app_url_title"),
                                          camera_entity_id=camera_entity_id,
-                                         data=data.get(delivery, {}}),
+                                         data=data.get(delivery, {}),
                                          config=delivery_config)
                     stats_methods += 1
                 except Exception as e:
@@ -309,7 +311,6 @@ class SuperNotificationService(BaseNotificationService):
                         category="general",
                         config=None,
                         priority=PRIORITY_MEDIUM,
-                        device=None,
                         snapshot_url=None, clip_url=None,
                         app_url=None, app_url_title=None,
                         camera_entity_id=None,
@@ -389,14 +390,20 @@ class SuperNotificationService(BaseNotificationService):
         _LOGGER.info("SUPERNOTIFY iOS Push t=%s m=%s d=%s",
                      title, message, data)
 
-    def on_notify_email(self, message, title=None, config=None, target=None, html=None, template=None, data=None):
+    def on_notify_email(self, message, title=None,
+                        snapshot_url=None,
+                        priority=None,
+                        config=None, target=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_email: %s", title)
         config = config or {}
-        template = template or config.get(CONF_TEMPLATE)
+        template = config.get(CONF_TEMPLATE)
         data = data or {}
+        html = data.get("html")
+        template = data.get("template")
         addresses = []
         if not target:
-            selected_recipients = self.filter_recipients(config.get(CONF_OCCUPANCY, OCCUPANCY_ALL)) 
+            selected_recipients = self.filter_recipients(
+                config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
             addresses = [recipient.get(
                 "email") for recipient in selected_recipients if recipient.get("email")]
             if len(addresses) == 0:
@@ -416,12 +423,12 @@ class SuperNotificationService(BaseNotificationService):
                     addresses.append(t)
                 else:
                     _LOGGER.warning('SUPERNOTIFY Invalid email address %s', t)
-                    
+
         service_data = {
-                "title": title,
-                "message": message,
-                "data": data
-            }
+            "title": title,
+            "message": message,
+            "data": data
+        }
         try:
             if template:
                 template_path = os.path.join(self.templates, "email")
@@ -429,18 +436,19 @@ class SuperNotificationService(BaseNotificationService):
                          "message": message,
                          "subheading": "Home Assistant Notification",
                          "site": "Barrs of Cloak",
-                         "level": "WARNING",
+                         "priority": priority,
                          "details_url": "https://home.barrsofcloak.org",
                          "server": {
                              "url": "https://home.barrsofcloak.org:8123",
                              "domain": "home.barrsofcloak.org"
 
-                         },
-                         "img": {
-                             "text": "Driveway CCTV capture",
-                             "url": "http://10.111.10.100/cctv/Driveway/20231125085811471_SL13UKK_VEHICLE_DETECTION.jpg"
                          }
                          }
+                if snapshot_url:
+                    alert['img'] = {
+                        "text": "Snapshot Image",
+                        "url": snapshot_url
+                    }
                 env = Environment(loader=FileSystemLoader(template_path))
                 template_obj = env.get_template(template)
                 html = template_obj.render(alert=alert)
@@ -462,7 +470,7 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via mail (m=%s,addr=%s): %s", message, addresses, e)
 
-    def on_notify_alexa(self, message, config=None, target=None, image_url=None, data=None):
+    def on_notify_alexa(self, message, config=None, target=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = config or {}
         if target is None:
@@ -486,7 +494,7 @@ class SuperNotificationService(BaseNotificationService):
         except Exception as e:
             _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e)
 
-    def on_notify_media_player(self, message, config=None, target=None, image_url=None, data=None):
+    def on_notify_media_player(self, message, config=None, target=None, snapshot_url=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify media player: %s", message)
         config = config or {}
         if target is None:
@@ -494,18 +502,18 @@ class SuperNotificationService(BaseNotificationService):
         if target is None:
             _LOGGER.debug("SUPERNOTIFY skipping media player, no targets")
             return
-        if image_url is None:
+        if snapshot_url is None:
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
             return
 
-        if image_url:
-            override_config = self.overrides.get('image_url')
-            if override_config:
-                new_url = image_url.replace(
-                    override_config[CONF_OVERRIDE_BASE],override_config[CONF_OVERRIDE_REPLACE])
-                _LOGGER.debug("SUPERNOTIFY Overriding image url from %s to %s", image_url, new_url)
-                image_url = new_url
-                
+        override_config = self.overrides.get('image_url')
+        if override_config:
+            new_url = snapshot_url.replace(
+                override_config[CONF_OVERRIDE_BASE], override_config[CONF_OVERRIDE_REPLACE])
+            _LOGGER.debug(
+                "SUPERNOTIFY Overriding image url from %s to %s", snapshot_url, new_url)
+            image_url = new_url
+
         service_data = {
             "message": message,
             "data": {
@@ -516,7 +524,7 @@ class SuperNotificationService(BaseNotificationService):
         }
         if data:
             service_data["data"].update(data)
-            
+
         try:
             domain, service = self.methods.get(
                 METHOD_MEDIA, {}).get(CONF_SERVICE, "media_player.play_media").split(".", 1)
@@ -575,8 +583,8 @@ class SuperNotificationService(BaseNotificationService):
         config = config or {}
         data = data or {}
         entities = config.get(CONF_ENTITIES, []) if not target else target
-        chime_repeat=data.get("chime_repeat", 1)
-        chime_interval=data.get("chime_interval", 3)
+        chime_repeat = data.get("chime_repeat", 1)
+        chime_interval = data.get("chime_interval", 3)
         data = data or {}
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", entities)
         for chime_entity_id in entities:
