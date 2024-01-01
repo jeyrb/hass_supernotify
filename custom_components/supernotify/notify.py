@@ -443,7 +443,10 @@ class SuperNotificationService(BaseNotificationService):
             }
             if html:
                 service_data["data"]["html"] = html
-
+        except Exception as e:
+            _LOGGER.error(
+                "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
+        try:
             domain, service = self.methods.get(METHOD_EMAIL).get(
                 CONF_SERVICE).split(".", 1)
             self.hass.services.call(
