@@ -1,19 +1,11 @@
 notify:
   - name: SuperNotifier_reloaded
     platform: supernotify
-    templates: config/templates/supernotify
-    methods:
-      email:
-        service: notify.smtp
-      sms:
-        service: notify.mikrotik_sms
-      alexa:
-        service: notify.alexa
-      media:
-        service: media_player.play_media
+    templates: config/templates/supernotify        
     delivery:
       html_email:
         method: email
+        service: notify.smtp
         template: default.html.j2 
         priority:
           - critical
@@ -22,12 +14,14 @@ notify:
           - low
       text_message:    
         method: sms
+        service: notify.mikrotik_sms
         occupancy: only_out
         priority:
           - critical
           - high
       alexa_announce:
         method: alexa
+        service: notify.alexa
         entities:
           - media_player.kitchen_2
           - media_player.bedroom
@@ -39,6 +33,7 @@ notify:
         method: apple_push
       alexa_show:
         method: media
+        service: media_player.play_media
         entities:
           - media_player.kitchen_2
       play_chimes:

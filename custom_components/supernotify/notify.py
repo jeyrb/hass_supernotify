@@ -33,7 +33,6 @@ from . import (
     CONF_DELIVERY,
     CONF_LINKS,
     CONF_METHOD,
-    CONF_METHODS,
     CONF_MOBILE,
     CONF_OCCUPANCY,
     CONF_OVERRIDE_BASE,
@@ -91,6 +90,7 @@ RECIPIENT_SCHEMA = {
 }
 DELIVERY_SCHEMA = {
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
+    vol.Optional(CONF_SERVICE): cv.service,
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list,
@@ -105,24 +105,10 @@ OVERRIDE_SCHEMA = {
     vol.Required(CONF_OVERRIDE_REPLACE): cv.string
 }
 
-
-METHOD_SCHEMA = {
-    vol.Optional(METHOD_EMAIL, default={CONF_SERVICE: "notify.smtp"}):
-        {CONF_SERVICE: cv.service},
-    vol.Optional(METHOD_SMS, default={}):
-        {CONF_SERVICE: cv.service},
-    vol.Optional(METHOD_ALEXA, default={CONF_SERVICE: "notify.alexa"}):
-        {CONF_SERVICE: cv.service},
-    vol.Optional(METHOD_MEDIA, default={CONF_SERVICE: "media_player.play_media"}):
-        {CONF_SERVICE: cv.service},
-}
-
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_TEMPLATES, default=TEMPLATE_DIR):
             cv.path,
-        vol.Optional(CONF_METHODS, default={}): METHOD_SCHEMA,
         vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
         vol.Optional(CONF_ACTIONS, default=[]):
             vol.All(cv.ensure_list, [PUSH_ACTION_SCHEMA]),
@@ -142,7 +128,6 @@ def get_service(hass, config, discovery_info=None):
         "%s.configured" % DOMAIN,
         True,
         {
-            CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_DELIVERY: config.get(CONF_DELIVERY, {}),
             CONF_LINKS: config.get(CONF_LINKS, ()),
             CONF_TEMPLATES: config.get(CONF_TEMPLATES),
@@ -153,7 +138,6 @@ def get_service(hass, config, discovery_info=None):
     )
     setup_reload_service(hass, DOMAIN, PLATFORMS)
     return SuperNotificationService(hass,
-                                    methods=config[CONF_METHODS],
                                     deliveries=config[CONF_DELIVERY],
                                     templates=config[CONF_TEMPLATES],
                                     recipients=config[CONF_RECIPIENTS],
@@ -167,7 +151,6 @@ class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
 
     def __init__(self, hass,
-                 methods=None,
                  deliveries=None,
                  templates=None,
                  recipients=(),
@@ -181,19 +164,18 @@ class SuperNotificationService(BaseNotificationService):
         self.actions = mobile_actions
         self.links = links
         self.overrides = overrides or {}
-        self.methods = methods or {}
         deliveries = deliveries or {}
-        invalid_deliveries = [k for k, d in deliveries.items() if
+        invalid_deliveries = [ k for k, d in deliveries.items() if
                               d["method"] in MANDATORY_METHOD and
-                              not methods.get(d["method"], {}).get(CONF_SERVICE)]
+                              not d.get(CONF_SERVICE) ]
         if invalid_deliveries:
-            _LOGGER.warning("SUPERNOTIFY no methods defined for "
+            _LOGGER.warning("SUPERNOTIFY no services defined for "
                             "deliveries %s - DISABLING", invalid_deliveries)
         self.deliveries = {k: d for k, d in deliveries.items()
                            if k not in invalid_deliveries}
         self.people = {r["person"]: r for r in recipients}
-        _LOGGER.info("SUPERNOTIFY configured methods %s",
-                     ";".join(self.methods.keys()))
+        _LOGGER.info("SUPERNOTIFY configured deliveries %s",
+                     ";".join(self.deliveries.keys()))
         if templates and not os.path.exists(templates):
             _LOGGER.warning("SUPERNOTIFY template directory not found at %s",
                             templates)
@@ -219,7 +201,7 @@ class SuperNotificationService(BaseNotificationService):
                 d for d in override_delivery if d in self.deliveries]
         camera_entity_id = data.get("camera_entity_id")
 
-        stats_methods = stats_errors = 0
+        stats_delivieries = stats_errors = 0
 
         for delivery in deliveries:
             delivery_config = self.deliveries.get(delivery, {})
@@ -245,7 +227,7 @@ class SuperNotificationService(BaseNotificationService):
                         title, message, target=target,
                         data=data.get(delivery, {}),
                         config=delivery_config)
-                    stats_methods += 1
+                    stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
@@ -256,7 +238,7 @@ class SuperNotificationService(BaseNotificationService):
                         message,
                         data=data.get(delivery, {}),
                         config=delivery_config)
-                    stats_methods += 1
+                    stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
@@ -268,7 +250,7 @@ class SuperNotificationService(BaseNotificationService):
                         snapshot_url=snapshot_url,
                         data=data.get(delivery, {}),
                         config=delivery_config)
-                    stats_methods += 1
+                    stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
@@ -280,7 +262,7 @@ class SuperNotificationService(BaseNotificationService):
                                          snapshot_url=snapshot_url,
                                          data=data.get(delivery, {}),
                                          config=delivery_config)
-                    stats_methods += 1
+                    stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
@@ -300,12 +282,19 @@ class SuperNotificationService(BaseNotificationService):
                                          camera_entity_id=camera_entity_id,
                                          data=data.get(delivery, {}),
                                          config=delivery_config)
-                    stats_methods += 1
+                    stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
                         "SUPERNOTIFY Failed to push to apple %s: %s", target, e)
-        return stats_methods, stats_errors
+        return stats_delivieries, stats_errors
+    
+    def first_delivery_for_method(self, method):
+        ''' Fall back for custom deliveries '''
+        for delivery in self.deliveries:
+            if self.deliveries.get(delivery, {}).get("method") == method:
+                return self.deliveries[delivery]
+        return {}
 
     def on_notify_apple(self, title, message, target=(),
                         category="general",
@@ -315,7 +304,7 @@ class SuperNotificationService(BaseNotificationService):
                         app_url=None, app_url_title=None,
                         camera_entity_id=None,
                         data=None):
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_APPLE_PUSH)
         mobile_devices = []
         if not target:
             target = []
@@ -395,7 +384,7 @@ class SuperNotificationService(BaseNotificationService):
                         priority=None,
                         config=None, target=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_email: %s", title)
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_EMAIL)
         template = config.get(CONF_TEMPLATE)
         data = data or {}
         html = data.get("html")
@@ -461,8 +450,7 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.error(
                 "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
         try:
-            domain, service = self.methods.get(METHOD_EMAIL).get(
-                CONF_SERVICE).split(".", 1)
+            domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
                 domain, service, target=addresses, service_data=service_data)
             return html
@@ -472,7 +460,7 @@ class SuperNotificationService(BaseNotificationService):
 
     def on_notify_alexa(self, message, config=None, target=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_ALEXA)
         if target is None:
             target = config.get(CONF_ENTITIES, [])
         if target is None:
@@ -487,8 +475,7 @@ class SuperNotificationService(BaseNotificationService):
         if data:
             service_data["data"].update(data)
         try:
-            domain, service = self.methods.get(
-                METHOD_ALEXA).get(CONF_SERVICE).split(".", 1)
+            domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
                 domain, service, service_data=service_data)
         except Exception as e:
@@ -496,7 +483,7 @@ class SuperNotificationService(BaseNotificationService):
 
     def on_notify_media_player(self, message, config=None, target=None, snapshot_url=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify media player: %s", message)
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_MEDIA)
         if target is None:
             target = config.get(CONF_ENTITIES, [])
         if target is None:
@@ -526,8 +513,7 @@ class SuperNotificationService(BaseNotificationService):
             service_data["data"].update(data)
 
         try:
-            domain, service = self.methods.get(
-                METHOD_MEDIA, {}).get(CONF_SERVICE, "media_player.play_media").split(".", 1)
+            domain, service = config.get(CONF_SERVICE, "media_player.play_media").split(".", 1)
             if image_url.startswith("https:"):
                 self.hass.services.call(
                     domain, service,
@@ -540,7 +526,7 @@ class SuperNotificationService(BaseNotificationService):
     def on_notify_sms(self, title, message, config=None, target=None, data=None):
         """Send an SMS notification."""
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_SMS)
         data = data or {}
         mobile_numbers = []
         if not target:
@@ -569,8 +555,7 @@ class SuperNotificationService(BaseNotificationService):
             "target": mobile_numbers
         }
         try:
-            domain, service = self.methods.get(
-                METHOD_SMS).get(CONF_SERVICE).split(".", 1)
+            domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
                 domain, service,
                 service_data=service_data
@@ -580,7 +565,7 @@ class SuperNotificationService(BaseNotificationService):
                 "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)
 
     def on_notify_chime(self, config=None, target=None, data=None):
-        config = config or {}
+        config = config or self.first_delivery_for_method(METHOD_CHIME)
         data = data or {}
         entities = config.get(CONF_ENTITIES, []) if not target else target
         chime_repeat = data.get("chime_repeat", 1)
