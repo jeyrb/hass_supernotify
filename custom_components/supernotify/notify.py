@@ -516,14 +516,12 @@ class SuperNotificationService(BaseNotificationService):
             image_url = new_url
 
         service_data = {
-            ATTR_DATA: {
-                "media_content_id": image_url,
-                "media_content_type": "image"
-            },
+            "media_content_id": image_url,
+            "media_content_type": "image",
             'entity_id': target
         }
         if data.get('data'):
-            service_data['extra'].update(data.get('data'))
+            service_data['extra']=data.get('data')
 
         try:
             domain, service = config.get(
