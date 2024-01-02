@@ -4,10 +4,10 @@ from homeassistant.components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRI
 from homeassistant.components.supernotify.notify import SuperNotificationService
 
 DELIVERY = {
-    "email": {"method": "email","service": "notify.smtp"},
-    "text": {"method": "sms","service": "notify.sms"},
+    "email": {"method": "email", "service": "notify.smtp"},
+    "text": {"method": "sms", "service": "notify.sms"},
     "chime": {"method": "chime", "entities": ["switch.bell_1", "script.siren_2"]},
-    "alexa": {"method":"alexa", "service":"notify.alexa"}
+    "alexa": {"method": "alexa", "service": "notify.alexa"}
 }
 
 RECIPIENTS = [
@@ -66,19 +66,21 @@ async def test_on_notify_apple_push() -> None:
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     uut.on_notify_apple("testing", "hello there")
     hass.services.call.assert_called_with("notify", "mobile_app.new_iphone",
-                                          service_data={"title": "testing", 
-                                                        "message": "hello there", 
+                                          service_data={"title": "testing",
+                                                        "message": "hello there",
                                                         "data": {"actions": [], "push": {"interruption-level": "active"}, "group": "general-appd"}})
+
 
 async def test_on_notify_email() -> None:
     """Test on_notify_email."""
     hass = Mock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
-    uut.on_notify_email("hello there",title="testing")
+    uut.on_notify_email("hello there", title="testing")
     hass.services.call.assert_called_with("notify", "smtp",
-                                          target=['me@tester.net'], 
+                                          target=['me@tester.net'],
                                           service_data={'title': 'testing', 'message': 'hello there', 'data': {}})
+
 
 async def test_on_notify_alexa() -> None:
     """Test on_notify_alexa."""
@@ -89,18 +91,20 @@ async def test_on_notify_alexa() -> None:
     hass.services.call.assert_called_with("notify", "alexa",
                                           service_data={'message': 'hello there', 'data': {'type': 'announce'}, 'target': []})
 
+
 async def test_on_notify_media() -> None:
     """Test on_notify_media_player """
     hass = Mock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS,
-        overrides={'image_url':{CONF_OVERRIDE_BASE:'http://10.10.10.10/ftp',CONF_OVERRIDE_REPLACE:"https://myserver"}})
-    uut.on_notify_media_player("hello there",snapshot_url="http://10.10.10.10/ftp/pic.jpeg",target=["media_player.kitchen"])
+        overrides={'image_url': {CONF_OVERRIDE_BASE: 'http://10.10.10.10/ftp', CONF_OVERRIDE_REPLACE: "https://myserver"}})
+    uut.on_notify_media_player(
+        "hello there", snapshot_url="http://10.10.10.10/ftp/pic.jpeg", target=["media_player.kitchen"])
     hass.services.call.assert_called_with("media_player", "play_media",
-                                           service_data={'message': 'hello there', 
-                                                         'data': {'media_content_id': 'https://myserver/pic.jpeg', 'media_content_type': 'image'}, 'target': ['media_player.kitchen']})
+                                          service_data={'message': 'hello there',
+                                                        'data': {'media_content_id': 'https://myserver/pic.jpeg', 'media_content_type': 'image'}, 'target': ['media_player.kitchen']})
 
-    
+
 async def test_filter_recipients() -> None:
     """Test filter_recipients."""
     hass = Mock()

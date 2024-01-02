@@ -1,21 +1,4 @@
 reload:
-deliver:
-  target:
-    entity:
-      domain: person
-  fields:
-    title:
-      required: false
-      selector:
-        text:
-    message:
-      required: false
-      selector:
-        text:
-    delivery:
-      required: false
-      selector:
-        text:
-        multiple: true
+
 
 

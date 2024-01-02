@@ -165,9 +165,9 @@ class SuperNotificationService(BaseNotificationService):
         self.links = links
         self.overrides = overrides or {}
         deliveries = deliveries or {}
-        invalid_deliveries = [ k for k, d in deliveries.items() if
+        invalid_deliveries = [k for k, d in deliveries.items() if
                               d["method"] in MANDATORY_METHOD and
-                              not d.get(CONF_SERVICE) ]
+                              not d.get(CONF_SERVICE)]
         if invalid_deliveries:
             _LOGGER.warning("SUPERNOTIFY no services defined for "
                             "deliveries %s - DISABLING", invalid_deliveries)
@@ -200,7 +200,8 @@ class SuperNotificationService(BaseNotificationService):
             deliveries = [
                 d for d in override_delivery if d in self.deliveries]
             if override_delivery != deliveries:
-                _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s", override_delivery, deliveries)
+                _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s",
+                             override_delivery, deliveries)
         camera_entity_id = data.get("camera_entity_id")
 
         stats_delivieries = stats_errors = 0
@@ -226,7 +227,7 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_SMS:
                 try:
                     self.on_notify_sms(
-                        title, message, 
+                        title, message,
                         target=target,
                         data=data.get(delivery, {}),
                         config=delivery_config)
@@ -251,7 +252,7 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_media_player(
                         message,
-                        target=target
+                        target=target,
                         snapshot_url=snapshot_url,
                         data=data.get(delivery, {}),
                         config=delivery_config)
@@ -275,7 +276,7 @@ class SuperNotificationService(BaseNotificationService):
                         "SUPERNOTIFY Failed to call email %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
-                    self.on_notify_apple(title, message, 
+                    self.on_notify_apple(title, message,
                                          target=target,
                                          category=data.get(
                                              "category", "general"),
@@ -295,7 +296,7 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning(
                         "SUPERNOTIFY Failed to push to apple %s: %s", target, e)
         return stats_delivieries, stats_errors
-    
+
     def first_delivery_for_method(self, method):
         ''' Fall back for custom deliveries '''
         for delivery in self.deliveries:
@@ -397,7 +398,7 @@ class SuperNotificationService(BaseNotificationService):
         template = config.get(CONF_TEMPLATE)
         data = data or {}
         html = data.get("html")
-        template = data.get("template",config.get("template"))
+        template = data.get("template", config.get("template"))
         addresses = []
         if not target:
             selected_recipients = self.filter_recipients(
@@ -418,8 +419,8 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning('SUPERNOTIFY Invalid email address %s', t)
 
         service_data = {
-            'message'   :   message,
-            ATTR_TARGET :   addresses
+            'message':   message,
+            ATTR_TARGET:   addresses
         }
         if title:
             service_data['title'] = title
@@ -462,9 +463,10 @@ class SuperNotificationService(BaseNotificationService):
                 "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
-            _LOGGER.debug("SUPERNOTIFY notify_email: %s/%s <<%s>>", domain, service, service_data)
+            _LOGGER.debug("SUPERNOTIFY notify_email: %s/%s <<%s>>",
+                          domain, service, service_data)
             self.hass.services.call(
-                domain, service, 
+                domain, service,
                 service_data=service_data)
             return html
         except Exception as e:
@@ -526,7 +528,8 @@ class SuperNotificationService(BaseNotificationService):
             service_data[ATTR_DATA].update(data.get('data'))
 
         try:
-            domain, service = config.get(CONF_SERVICE, "media_player.play_media").split(".", 1)
+            domain, service = config.get(
+                CONF_SERVICE, "media_player.play_media").split(".", 1)
             if image_url.startswith("https:"):
                 self.hass.services.call(
                     domain, service,
@@ -567,7 +570,7 @@ class SuperNotificationService(BaseNotificationService):
             ATTR_TARGET: mobile_numbers
         }
         if data.get('data'):
-            service_data[ATTR_DATA]=data.get('data')
+            service_data[ATTR_DATA] = data.get('data')
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
