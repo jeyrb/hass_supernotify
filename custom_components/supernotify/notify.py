@@ -184,7 +184,7 @@ class SuperNotificationService(BaseNotificationService):
     def send_message(self, message="", **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
-        target = kwargs.get(ATTR_TARGET)
+        target = kwargs.get(ATTR_TARGET) or []
         priority = kwargs.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         if isinstance(target, str):
             target = [target]
@@ -199,6 +199,7 @@ class SuperNotificationService(BaseNotificationService):
         else:
             deliveries = [
                 d for d in override_delivery if d in self.deliveries]
+            _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s", override_delivery, deliveries)
         camera_entity_id = data.get("camera_entity_id")
 
         stats_delivieries = stats_errors = 0
@@ -266,7 +267,7 @@ class SuperNotificationService(BaseNotificationService):
                 except Exception as e:
                     stats_errors += 1
                     _LOGGER.warning(
-                        "SUPERNOTIFY Failed to email %s: %s", target, e)
+                        "SUPERNOTIFY Failed to call email %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
                     self.on_notify_apple(title, message, target,
@@ -398,16 +399,11 @@ class SuperNotificationService(BaseNotificationService):
             if len(addresses) == 0:
                 addresses is None  # default to SMTP platform default recipients
         else:
-            target = [target] if isinstance(target, str) else target
             for t in target:
                 if t in self.people:
-                    try:
-                        email = self.people[t].get("email")
-                        if email:
-                            addresses.append(email)
-                    except Exception as _:
-                        _LOGGER.debug(
-                            "SUPERNOTIFY skipping target without email address %s", t)
+                    email = self.people[t].get("email")
+                    if email:
+                        addresses.append(email)
                 elif '@' in t:
                     addresses.append(t)
                 else:
