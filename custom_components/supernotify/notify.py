@@ -226,7 +226,8 @@ class SuperNotificationService(BaseNotificationService):
             if method == METHOD_SMS:
                 try:
                     self.on_notify_sms(
-                        title, message, target=target,
+                        title, message, 
+                        target=target,
                         data=data.get(delivery, {}),
                         config=delivery_config)
                     stats_delivieries += 1
@@ -238,6 +239,7 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_alexa(
                         message,
+                        target=target,
                         data=data.get(delivery, {}),
                         config=delivery_config)
                     stats_delivieries += 1
@@ -249,6 +251,7 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_media_player(
                         message,
+                        target=target
                         snapshot_url=snapshot_url,
                         data=data.get(delivery, {}),
                         config=delivery_config)
@@ -261,6 +264,7 @@ class SuperNotificationService(BaseNotificationService):
                 try:
                     self.on_notify_email(message,
                                          title=title,
+                                         target=target,
                                          snapshot_url=snapshot_url,
                                          data=data.get(delivery, {}),
                                          config=delivery_config)
@@ -271,7 +275,8 @@ class SuperNotificationService(BaseNotificationService):
                         "SUPERNOTIFY Failed to call email %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
-                    self.on_notify_apple(title, message, target,
+                    self.on_notify_apple(title, message, 
+                                         target=target,
                                          category=data.get(
                                              "category", "general"),
                                          priority=priority,
@@ -298,7 +303,7 @@ class SuperNotificationService(BaseNotificationService):
                 return self.deliveries[delivery]
         return {}
 
-    def on_notify_apple(self, title, message, target=(),
+    def on_notify_apple(self, title, message, target=None,
                         category="general",
                         config=None,
                         priority=PRIORITY_MEDIUM,
@@ -392,7 +397,7 @@ class SuperNotificationService(BaseNotificationService):
         template = config.get(CONF_TEMPLATE)
         data = data or {}
         html = data.get("html")
-        template = data.get("template")
+        template = data.get("template",config.get("template"))
         addresses = []
         if not target:
             selected_recipients = self.filter_recipients(
@@ -457,7 +462,7 @@ class SuperNotificationService(BaseNotificationService):
                 "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
-            _LOGGER.debug("SUPERNOTIFY notify_email: %s %s %s <<%s>>", domain, service, addresses, service_data)
+            _LOGGER.debug("SUPERNOTIFY notify_email: %s/%s <<%s>>", domain, service, service_data)
             self.hass.services.call(
                 domain, service, 
                 service_data=service_data)
