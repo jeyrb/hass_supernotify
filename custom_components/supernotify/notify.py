@@ -331,7 +331,7 @@ class SuperNotificationService(BaseNotificationService):
         title = title or ""
         _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, target)
 
-        data = data or {}
+        data = data.get(ATTR_DATA) or {}
         if priority == PRIORITY_CRITICAL:
             push_priority = "critical"
         elif priority == PRIORITY_HIGH:
@@ -373,11 +373,10 @@ class SuperNotificationService(BaseNotificationService):
                                     "destructive": "true"})
         data["actions"].extend(self.actions)
         service_data = {
-            "title": title,
+            ATTR_TITLE: title,
             "message": message,
+            ATTR_DATA: data
         }
-        if data.get("data"):
-            service_data["data"] = data.get("data")
         for apple_target in mobile_devices:
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s", apple_target, service_data)
