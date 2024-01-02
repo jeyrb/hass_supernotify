@@ -380,6 +380,7 @@ class SuperNotificationService(BaseNotificationService):
             service_data["data"] = data.get("data")
         for apple_target in mobile_devices:
             try:
+                _LOGGER.debug("SUPERNOTIFY notify/%s %s", apple_target, service_data)
                 self.hass.services.call("notify", apple_target,
                                         service_data=service_data)
             except Exception as e:
@@ -463,8 +464,6 @@ class SuperNotificationService(BaseNotificationService):
                 "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
-            _LOGGER.debug("SUPERNOTIFY notify_email: %s/%s <<%s>>",
-                          domain, service, service_data)
             self.hass.services.call(
                 domain, service,
                 service_data=service_data)
@@ -517,15 +516,14 @@ class SuperNotificationService(BaseNotificationService):
             image_url = new_url
 
         service_data = {
-            "message": message,
             ATTR_DATA: {
                 "media_content_id": image_url,
                 "media_content_type": "image"
             },
-            ATTR_TARGET: target
+            'entity_id': target
         }
         if data.get('data'):
-            service_data[ATTR_DATA].update(data.get('data'))
+            service_data['extra'].update(data.get('data'))
 
         try:
             domain, service = config.get(
