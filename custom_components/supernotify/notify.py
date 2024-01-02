@@ -199,7 +199,8 @@ class SuperNotificationService(BaseNotificationService):
         else:
             deliveries = [
                 d for d in override_delivery if d in self.deliveries]
-            _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s", override_delivery, deliveries)
+            if override_delivery != deliveries:
+                _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s", override_delivery, deliveries)
         camera_entity_id = data.get("camera_entity_id")
 
         stats_delivieries = stats_errors = 0
@@ -208,7 +209,7 @@ class SuperNotificationService(BaseNotificationService):
             delivery_config = self.deliveries.get(delivery, {})
             if priority not in delivery_config[ATTR_PRIORITY]:
                 _LOGGER.debug(
-                    "SUPERNOTIFY Skipping delivery % and priority %s", delivery, priority)
+                    "SUPERNOTIFY Skipping delivery %s and priority %s", delivery, priority)
                 continue
             method = self.deliveries[delivery]["method"]
 
@@ -368,8 +369,9 @@ class SuperNotificationService(BaseNotificationService):
         service_data = {
             "title": title,
             "message": message,
-            "data": data
         }
+        if data.get("data"):
+            service_data["data"] = data.get("data")
         for apple_target in mobile_devices:
             try:
                 self.hass.services.call("notify", apple_target,
@@ -381,10 +383,11 @@ class SuperNotificationService(BaseNotificationService):
                      title, message, data)
 
     def on_notify_email(self, message, title=None,
+                        image_paths=None,
                         snapshot_url=None,
                         priority=None,
                         config=None, target=None, data=None):
-        _LOGGER.info("SUPERNOTIFY notify_email: %s", title)
+        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, target)
         config = config or self.first_delivery_for_method(METHOD_EMAIL)
         template = config.get(CONF_TEMPLATE)
         data = data or {}
@@ -410,12 +413,19 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning('SUPERNOTIFY Invalid email address %s', t)
 
         service_data = {
-            "title": title,
-            "message": message,
-            "data": data
+            'message'   :   message,
+            ATTR_TARGET :   addresses
         }
+        if title:
+            service_data['title'] = title
+        if data.get('data'):
+            service_data[ATTR_DATA] = data.get('data')
         try:
-            if template:
+            if not template:
+                if image_paths:
+                    service_data.setdefault("data", {})
+                    service_data["data"]["images"] = image_paths
+            else:
                 template_path = os.path.join(self.templates, "email")
                 alert = {"title": title,
                          "message": message,
@@ -439,16 +449,18 @@ class SuperNotificationService(BaseNotificationService):
                 html = template_obj.render(alert=alert)
                 if not html:
                     self.error("Empty result from template %s" % template)
-
-            if html:
-                service_data["data"]["html"] = html
+                else:
+                    service_data.setdefault("data", {})
+                    service_data["data"]["html"] = html
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
+            _LOGGER.debug("SUPERNOTIFY notify_email: %s %s %s <<%s>>", domain, service, addresses, service_data)
             self.hass.services.call(
-                domain, service, target=addresses, service_data=service_data)
+                domain, service, 
+                service_data=service_data)
             return html
         except Exception as e:
             _LOGGER.error(
@@ -465,11 +477,11 @@ class SuperNotificationService(BaseNotificationService):
 
         service_data = {
             "message": message,
-            "data": {"type": "announce"},
-            "target": target
+            ATTR_DATA: {"type": "announce"},
+            ATTR_TARGET: target
         }
-        if data:
-            service_data["data"].update(data)
+        if data.get('data'):
+            service_data[ATTR_DATA].update(data.get('data'))
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
@@ -499,14 +511,14 @@ class SuperNotificationService(BaseNotificationService):
 
         service_data = {
             "message": message,
-            "data": {
+            ATTR_DATA: {
                 "media_content_id": image_url,
                 "media_content_type": "image"
             },
-            "target": target
+            ATTR_TARGET: target
         }
-        if data:
-            service_data["data"].update(data)
+        if data.get('data'):
+            service_data[ATTR_DATA].update(data.get('data'))
 
         try:
             domain, service = config.get(CONF_SERVICE, "media_player.play_media").split(".", 1)
@@ -547,9 +559,10 @@ class SuperNotificationService(BaseNotificationService):
         combined = f"{title} {message}"
         service_data = {
             "message": combined[:158],
-            "data": data,
-            "target": mobile_numbers
+            ATTR_TARGET: mobile_numbers
         }
+        if data.get('data'):
+            service_data[ATTR_DATA]=data.get('data')
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
