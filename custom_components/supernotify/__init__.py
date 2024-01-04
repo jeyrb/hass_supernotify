@@ -39,6 +39,11 @@ OCCUPANCY_ONLY_IN = "only_in"
 OCCUPANCY_ONLY_OUT = "only_out"
 
 ATTR_PRIORITY = "priority"
+ATTR_SCENARIO = "scenario"
+ATTR_NOTIFICATION_ID = "notification_id"
+
+ATTR_DELIVERY_PRIORITY = "delivery_priority"
+ATTR_DELIVERY_SCENARIO = "delivery_scenario"
 
 OCCUPANCY_VALUES = [OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT,
                     OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT,
@@ -58,8 +63,10 @@ METHOD_ALEXA = "alexa"
 METHOD_APPLE_PUSH = "apple_push"
 METHOD_MEDIA = "media"
 METHOD_CHIME = "chime"
+METHOD_PERSISTENT = "persistent"
 METHOD_VALUES = [METHOD_SMS, METHOD_ALEXA, METHOD_APPLE_PUSH,
-                 METHOD_CHIME, METHOD_EMAIL, METHOD_MEDIA]
+                 METHOD_CHIME, METHOD_EMAIL, METHOD_MEDIA,
+                 METHOD_PERSISTENT]
 
 
 _LOGGER = logging.getLogger(__name__)

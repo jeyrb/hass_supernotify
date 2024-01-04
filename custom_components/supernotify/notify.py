@@ -14,26 +14,24 @@ from homeassistant.components.notify import (
     BaseNotificationService,
 )
 from homeassistant.const import (
+    CONF_CONDITION,
     CONF_DESCRIPTION,
     CONF_EMAIL,
     CONF_ENTITIES,
     CONF_ICON,
     CONF_NAME,
     CONF_PLATFORM,
-    CONF_CONDITION,
     CONF_SERVICE,
     CONF_URL,
     Platform,
 )
-from homeassistant.helpers import (
-    condition,
-    config_validation as cv,
-)
-from homeassistant import setup
-from homeassistant.helpers.reload import setup_reload_service
+from homeassistant.helpers import condition, config_validation as cv
+from homeassistant.helpers.reload import async_setup_reload_service
 
 from . import (
+    ATTR_NOTIFICATION_ID,
     ATTR_PRIORITY,
+    ATTR_SCENARIO,
     CONF_ACTIONS,
     CONF_APPLE_TARGETS,
     CONF_DELIVERY,
@@ -50,12 +48,15 @@ from . import (
     CONF_RECIPIENTS,
     CONF_TEMPLATE,
     CONF_TEMPLATES,
+    ATTR_DELIVERY_PRIORITY,
+    ATTR_DELIVERY_SCENARIO,
     DOMAIN,
     METHOD_ALEXA,
     METHOD_APPLE_PUSH,
     METHOD_CHIME,
     METHOD_EMAIL,
     METHOD_MEDIA,
+    METHOD_PERSISTENT,
     METHOD_SMS,
     METHOD_VALUES,
     OCCUPANCY_ALL,
@@ -130,7 +131,11 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 MANDATORY_METHOD = [METHOD_EMAIL, METHOD_ALEXA, METHOD_SMS]
 
 
-def get_service(hass, config, discovery_info=None):
+async def async_get_service(hass, config, discovery_info=None):
+    for delivery in config.get(CONF_DELIVERY, ()).values():
+        if CONF_CONDITION in delivery:
+            await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
+
     hass.states.async_set(
         "%s.configured" % DOMAIN,
         True,
@@ -143,9 +148,10 @@ def get_service(hass, config, discovery_info=None):
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
         },
     )
-    hass.states.async_set("%s.delivery_priority" % DOMAIN, False, {})
-
-    setup_reload_service(hass, DOMAIN, PLATFORMS)
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), False, {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIO)), False, {})
+    
+    await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     return SuperNotificationService(hass,
                                     deliveries=config[CONF_DELIVERY],
                                     templates=config[CONF_TEMPLATES],
@@ -199,6 +205,7 @@ class SuperNotificationService(BaseNotificationService):
         data = kwargs.get(ATTR_DATA) or {}
         title = kwargs.get(ATTR_TITLE)
         priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        scenario = data.get(ATTR_SCENARIO)
 
         snapshot_url = data.get("snapshot_url")
         clip_url = data.get("clip_url")
@@ -214,7 +221,8 @@ class SuperNotificationService(BaseNotificationService):
         camera_entity_id = data.get("camera_entity_id")
 
         stats_delivieries = stats_errors = 0
-        self.setup_condition_inputs("delivery_priority", priority)
+        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
+        self.setup_condition_inputs(ATTR_DELIVERY_SCENARIO, scenario)
 
         for delivery in deliveries:
             delivery_config = self.deliveries.get(delivery, {})
@@ -284,6 +292,17 @@ class SuperNotificationService(BaseNotificationService):
                     stats_errors += 1
                     _LOGGER.warning(
                         "SUPERNOTIFY Failed to call email %s: %s", target, e)
+            if method == METHOD_PERSISTENT:
+                try:
+                    self.on_notify_persistent(message,
+                                              title=title,
+                                              data=data.get(delivery, {}),
+                                              config=delivery_config)
+                    stats_delivieries += 1
+                except Exception as e:
+                    stats_errors += 1
+                    _LOGGER.warning(
+                        "SUPERNOTIFY Failed to call persistent notification %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
                     self.on_notify_apple(title, message,
@@ -483,6 +502,25 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via mail (m=%s,addr=%s): %s", message, addresses, e)
 
+    def on_notify_persistent(self, message, config=None, data=None, title=None):
+        _LOGGER.info("SUPERNOTIFY notify_persistent: %s", message)
+        config = config or self.first_delivery_for_method(METHOD_PERSISTENT)
+        notification_id = data.get(
+            ATTR_NOTIFICATION_ID, config.get(ATTR_NOTIFICATION_ID))
+        service_data = {
+            "title": title,
+            "message": message,
+            "notification_id": notification_id
+        }
+        try:
+            domain, service = config.get(
+                CONF_SERVICE, "notify.persistent_notification").split(".", 1)
+            self.hass.services.call(
+                domain, service, service_data=service_data)
+        except Exception as e:
+            _LOGGER.error(
+                "Failed to notify via persistent notification (m=%s): %s", message, e)
+
     def on_notify_alexa(self, message, config=None, target=None, data=None):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = config or self.first_delivery_for_method(METHOD_ALEXA)
@@ -658,17 +696,16 @@ class SuperNotificationService(BaseNotificationService):
             return True
         else:
             try:
-                conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
-                # config = await condition.async_validate_condition_config(self.hass, conditions)
+                conditions = cv.CONDITION_SCHEMA(
+                    delivery_config.get(CONF_CONDITION))
                 test = asyncio.run_coroutine_threadsafe(
                     condition.async_from_config(
                         self.hass, conditions), self.hass.loop
                 ).result()
                 return test(self.hass)
             except Exception as e:
-                _LOGGER.error('SUPERNOTIFY Condition eval failed: %s', e)
+                _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
                 raise
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.set("%s.%s" % (DOMAIN, field), value)
-

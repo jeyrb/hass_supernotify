@@ -1,6 +1,7 @@
 # SuperNotifier
 
-Simplified and complicated notifications, including multi-channel notifications, chimes and template based emails
+Simplified and complicated notifications, including multi-channel notifications, conditional notifications, mobile
+actions, chimes and template based HTML emails
 
 ## Setup
 
