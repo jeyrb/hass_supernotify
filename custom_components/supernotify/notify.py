@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os.path
 
@@ -19,11 +20,16 @@ from homeassistant.const import (
     CONF_ICON,
     CONF_NAME,
     CONF_PLATFORM,
+    CONF_CONDITION,
     CONF_SERVICE,
     CONF_URL,
     Platform,
 )
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import (
+    condition,
+    config_validation as cv,
+)
+from homeassistant import setup
 from homeassistant.helpers.reload import setup_reload_service
 
 from . import (
@@ -98,7 +104,8 @@ DELIVERY_SCHEMA = {
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
-        vol.In(OCCUPANCY_VALUES)
+        vol.In(OCCUPANCY_VALUES),
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
 }
 OVERRIDE_SCHEMA = {
     vol.Required(CONF_OVERRIDE_BASE): cv.string,
@@ -136,6 +143,8 @@ def get_service(hass, config, discovery_info=None):
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
         },
     )
+    hass.states.async_set("%s.delivery_priority" % DOMAIN, False, {})
+
     setup_reload_service(hass, DOMAIN, PLATFORMS)
     return SuperNotificationService(hass,
                                     deliveries=config[CONF_DELIVERY],
@@ -185,11 +194,11 @@ class SuperNotificationService(BaseNotificationService):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
         target = kwargs.get(ATTR_TARGET) or []
-        priority = kwargs.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         if isinstance(target, str):
             target = [target]
         data = kwargs.get(ATTR_DATA) or {}
         title = kwargs.get(ATTR_TITLE)
+        priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
 
         snapshot_url = data.get("snapshot_url")
         clip_url = data.get("clip_url")
@@ -205,12 +214,13 @@ class SuperNotificationService(BaseNotificationService):
         camera_entity_id = data.get("camera_entity_id")
 
         stats_delivieries = stats_errors = 0
+        self.setup_condition_inputs("delivery_priority", priority)
 
         for delivery in deliveries:
             delivery_config = self.deliveries.get(delivery, {})
-            if priority not in delivery_config[ATTR_PRIORITY]:
+            if not self.evaluate_delivery_conditions(delivery_config):
                 _LOGGER.debug(
-                    "SUPERNOTIFY Skipping delivery %s and priority %s", delivery, priority)
+                    "SUPERNOTIFY Skipping delivery %s based on conditions", delivery)
                 continue
             method = self.deliveries[delivery]["method"]
 
@@ -298,7 +308,7 @@ class SuperNotificationService(BaseNotificationService):
         return stats_delivieries, stats_errors
 
     def first_delivery_for_method(self, method):
-        ''' Fall back for custom deliveries '''
+        '''Fall back for custom deliveries'''
         for delivery in self.deliveries:
             if self.deliveries.get(delivery, {}).get("method") == method:
                 return self.deliveries[delivery]
@@ -331,7 +341,7 @@ class SuperNotificationService(BaseNotificationService):
         title = title or ""
         _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, target)
 
-        data = data.get(ATTR_DATA) or {}
+        data = data and data.get(ATTR_DATA) or {}
         if priority == PRIORITY_CRITICAL:
             push_priority = "critical"
         elif priority == PRIORITY_HIGH:
@@ -379,7 +389,8 @@ class SuperNotificationService(BaseNotificationService):
         }
         for apple_target in mobile_devices:
             try:
-                _LOGGER.debug("SUPERNOTIFY notify/%s %s", apple_target, service_data)
+                _LOGGER.debug("SUPERNOTIFY notify/%s %s",
+                              apple_target, service_data)
                 self.hass.services.call("notify", apple_target,
                                         service_data=service_data)
             except Exception as e:
@@ -413,19 +424,19 @@ class SuperNotificationService(BaseNotificationService):
                     email = self.people[t].get("email")
                     if email:
                         addresses.append(email)
-                elif '@' in t:
+                elif "@" in t:
                     addresses.append(t)
                 else:
-                    _LOGGER.warning('SUPERNOTIFY Invalid email address %s', t)
+                    _LOGGER.warning("SUPERNOTIFY Invalid email address %s", t)
 
         service_data = {
-            'message':   message,
+            "message":   message,
             ATTR_TARGET:   addresses
         }
         if title:
-            service_data['title'] = title
-        if data.get('data'):
-            service_data[ATTR_DATA] = data.get('data')
+            service_data["title"] = title
+        if data and data.get("data"):
+            service_data[ATTR_DATA] = data.get("data")
         try:
             if not template:
                 if image_paths:
@@ -438,6 +449,7 @@ class SuperNotificationService(BaseNotificationService):
                          "subheading": "Home Assistant Notification",
                          "site": "Barrs of Cloak",
                          "priority": priority,
+                         "img": None,
                          "details_url": "https://home.barrsofcloak.org",
                          "server": {
                              "url": "https://home.barrsofcloak.org:8123",
@@ -446,7 +458,7 @@ class SuperNotificationService(BaseNotificationService):
                          }
                          }
                 if snapshot_url:
-                    alert['img'] = {
+                    alert["img"] = {
                         "text": "Snapshot Image",
                         "url": snapshot_url
                     }
@@ -485,8 +497,8 @@ class SuperNotificationService(BaseNotificationService):
             ATTR_DATA: {"type": "announce"},
             ATTR_TARGET: target
         }
-        if data.get('data'):
-            service_data[ATTR_DATA].update(data.get('data'))
+        if data and data.get("data"):
+            service_data[ATTR_DATA].update(data.get("data"))
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
@@ -506,7 +518,7 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
             return
 
-        override_config = self.overrides.get('image_url')
+        override_config = self.overrides.get("image_url")
         if override_config:
             new_url = snapshot_url.replace(
                 override_config[CONF_OVERRIDE_BASE], override_config[CONF_OVERRIDE_REPLACE])
@@ -517,10 +529,10 @@ class SuperNotificationService(BaseNotificationService):
         service_data = {
             "media_content_id": image_url,
             "media_content_type": "image",
-            'entity_id': target
+            "entity_id": target
         }
-        if data.get('data'):
-            service_data['extra']=data.get('data')
+        if data and data.get("data"):
+            service_data["extra"] = data.get("data")
 
         try:
             domain, service = config.get(
@@ -564,8 +576,8 @@ class SuperNotificationService(BaseNotificationService):
             "message": combined[:158],
             ATTR_TARGET: mobile_numbers
         }
-        if data.get('data'):
-            service_data[ATTR_DATA] = data.get('data')
+        if data and data.get("data"):
+            service_data[ATTR_DATA] = data.get("data")
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             self.hass.services.call(
@@ -640,3 +652,23 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.warning(
                 "SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
             return []
+
+    def evaluate_delivery_conditions(self, delivery_config):
+        if CONF_CONDITION not in delivery_config:
+            return True
+        else:
+            try:
+                conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
+                # config = await condition.async_validate_condition_config(self.hass, conditions)
+                test = asyncio.run_coroutine_threadsafe(
+                    condition.async_from_config(
+                        self.hass, conditions), self.hass.loop
+                ).result()
+                return test(self.hass)
+            except Exception as e:
+                _LOGGER.error('SUPERNOTIFY Condition eval failed: %s', e)
+                raise
+
+    def setup_condition_inputs(self, field, value):
+        self.hass.states.set("%s.%s" % (DOMAIN, field), value)
+

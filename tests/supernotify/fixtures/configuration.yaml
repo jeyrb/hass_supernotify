@@ -6,7 +6,22 @@ notify:
       html_email:
         method: email
         service: notify.smtp
-        template: default.html.j2 
+        template: default.html.j2
+        condition:
+          condition: or
+          conditions:
+            - condition: state
+              entity_id: alarm_control_panel.home_alarm_control
+              state:
+                - armed_away
+                - armed_home
+                - armed_night
+            - condition: state
+              entity_id: input_select.supernotify_priority
+              state:
+                - critical
+                - high
+            
         priority:
           - critical
           - high
@@ -42,6 +57,7 @@ notify:
           - script.chime_ding_dong
           - switch.chime_sax
         occupancy: any_in
+
     recipients:
       - person: person.new_home_owner
         email: jrb@jeymail.net

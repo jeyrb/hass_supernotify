@@ -37,14 +37,16 @@ async def test_on_notify_sms() -> None:
     # Call with no target
     uut.on_notify_sms("title", "message")
     hass.services.call.assert_called_with("notify", "sms", service_data={
-                                          "message": "title message", "data": {}, "target": ["+447989408889", "+4489393013834"]})
+                                          "message": "title message", 
+                                          "target": ["+447989408889", "+4489393013834"]})
 
     hass.reset_mock()
     # Call with target
     target = ["+440900876534", "person.new_home_owner"]
     uut.on_notify_sms("title", "message", target=target)
     hass.services.call.assert_called_with("notify", "sms", service_data={
-                                          "message": "title message", "data": {}, "target": ["+440900876534", "+447989408889"]})
+                                          "message": "title message",
+                                          "target": ["+440900876534", "+447989408889"]})
 
 
 async def test_on_notify_chime() -> None:
@@ -78,8 +80,9 @@ async def test_on_notify_email() -> None:
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     uut.on_notify_email("hello there", title="testing")
     hass.services.call.assert_called_with("notify", "smtp",
-                                          target=['me@tester.net'],
-                                          service_data={'title': 'testing', 'message': 'hello there', 'data': {}})
+                                          service_data={
+                                              'target':['me@tester.net'],
+                                              'title': 'testing', 'message': 'hello there'})
 
 
 async def test_on_notify_alexa() -> None:
@@ -101,8 +104,10 @@ async def test_on_notify_media() -> None:
     uut.on_notify_media_player(
         "hello there", snapshot_url="http://10.10.10.10/ftp/pic.jpeg", target=["media_player.kitchen"])
     hass.services.call.assert_called_with("media_player", "play_media",
-                                          service_data={'message': 'hello there',
-                                                        'data': {'media_content_id': 'https://myserver/pic.jpeg', 'media_content_type': 'image'}, 'target': ['media_player.kitchen']})
+                                          service_data={'entity_id': ['media_player.kitchen'],
+                                                        'media_content_id': 'https://myserver/pic.jpeg',
+                                                        'media_content_type': 'image'}
+                                                        )
 
 
 async def test_filter_recipients() -> None:
@@ -125,3 +130,4 @@ async def test_filter_recipients() -> None:
         "only_out")} == {"person.new_home_owner"}
     assert {r["person"]
             for r in uut.filter_recipients("only_in")} == {"person.bidey_in"}
+
