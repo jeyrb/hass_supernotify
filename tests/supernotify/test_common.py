@@ -1,18 +1,7 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import CONF_PERSON, METHOD_ALEXA
+from homeassistant.components.supernotify import CONF_PERSON
 from homeassistant.components.supernotify.common import DeliveryMethod, SuperNotificationContext
-from homeassistant.components.supernotify.methods.apple_push import (
-    ApplePushDeliveryMethod,
-)
-from homeassistant.const import (
-    CONF_DEFAULT,
-    CONF_EMAIL,
-    CONF_ENTITIES,
-    CONF_METHOD,
-    CONF_SERVICE,
-)
-
 
 class DummyDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):

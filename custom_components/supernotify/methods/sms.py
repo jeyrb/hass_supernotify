@@ -2,11 +2,7 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.components.supernotify import (
-    CONF_MOBILE,
-    CONF_PHONE_NUMBER,
-    METHOD_SMS
-)
+from homeassistant.components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS
 from homeassistant.components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
