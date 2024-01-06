@@ -243,6 +243,7 @@ class SuperNotificationService(BaseNotificationService):
                                              title=title,
                                              target=target,
                                              scenarios=scenarios,
+                                             priority=priority,
                                              data=data.get(
                                                  delivery, {}),
                                              config=delivery_config)
