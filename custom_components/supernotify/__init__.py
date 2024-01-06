@@ -28,6 +28,7 @@ CONF_MOBILE = "mobile"
 CONF_PHONE_NUMBER = "phone_number"
 CONF_PRIORITY = "priority"
 CONF_OCCUPANCY = "occupancy"
+CONF_SCENARIOS = "scenarios"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -39,11 +40,12 @@ OCCUPANCY_ONLY_IN = "only_in"
 OCCUPANCY_ONLY_OUT = "only_out"
 
 ATTR_PRIORITY = "priority"
-ATTR_SCENARIO = "scenario"
+ATTR_SCENARIOS = "scenarios"
+ATTR_DELIVERY = "delivery"
 ATTR_NOTIFICATION_ID = "notification_id"
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
-ATTR_DELIVERY_SCENARIO = "delivery_scenario"
+ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
 
 OCCUPANCY_VALUES = [OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT,
                     OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT,

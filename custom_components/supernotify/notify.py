@@ -1,37 +1,8 @@
-import asyncio
-import logging
-import os.path
-
-from jinja2 import Environment, FileSystemLoader
-import voluptuous as vol
-
-from homeassistant.components.ios import PUSH_ACTION_SCHEMA
-from homeassistant.components.notify import (
-    ATTR_DATA,
-    ATTR_TARGET,
-    ATTR_TITLE,
-    PLATFORM_SCHEMA,
-    BaseNotificationService,
-)
-from homeassistant.const import (
-    CONF_CONDITION,
-    CONF_DESCRIPTION,
-    CONF_EMAIL,
-    CONF_ENTITIES,
-    CONF_ICON,
-    CONF_NAME,
-    CONF_PLATFORM,
-    CONF_SERVICE,
-    CONF_URL,
-    Platform,
-)
-from homeassistant.helpers import condition, config_validation as cv
-from homeassistant.helpers.reload import async_setup_reload_service
-
 from . import (
     ATTR_NOTIFICATION_ID,
     ATTR_PRIORITY,
-    ATTR_SCENARIO,
+    ATTR_DELIVERY,
+    ATTR_SCENARIOS,
     CONF_ACTIONS,
     CONF_APPLE_TARGETS,
     CONF_DELIVERY,
@@ -43,13 +14,13 @@ from . import (
     CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
     CONF_PERSON,
-    CONF_PHONE_NUMBER,
     CONF_PRIORITY,
     CONF_RECIPIENTS,
     CONF_TEMPLATE,
     CONF_TEMPLATES,
+    CONF_PHONE_NUMBER,
     ATTR_DELIVERY_PRIORITY,
-    ATTR_DELIVERY_SCENARIO,
+    ATTR_DELIVERY_SCENARIOS,
     DOMAIN,
     METHOD_ALEXA,
     METHOD_APPLE_PUSH,
@@ -74,6 +45,43 @@ from . import (
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
 )
+from homeassistant.helpers.reload import async_setup_reload_service
+from homeassistant.helpers import condition, config_validation as cv
+from homeassistant.const import (
+    CONF_CONDITION,
+    CONF_DEFAULT,
+    CONF_DESCRIPTION,
+    CONF_EMAIL,
+    CONF_ENTITIES,
+    CONF_ICON,
+    CONF_NAME,
+    CONF_PLATFORM,
+    CONF_SERVICE,
+    CONF_TARGET,
+    CONF_URL,
+    Platform,
+)
+from homeassistant.components.notify import (
+    ATTR_DATA,
+    ATTR_TARGET,
+    ATTR_TITLE,
+    PLATFORM_SCHEMA,
+    BaseNotificationService,
+)
+from .common import SuperNotificationContext
+from .methods.email import EmailDeliveryMethod
+from homeassistant.components.ios import PUSH_ACTION_SCHEMA
+import asyncio
+import logging
+import os.path
+import re
+
+from jinja2 import Environment, FileSystemLoader
+import voluptuous as vol
+
+RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +101,7 @@ LINK_SCHEMA = {
 RECIPIENT_SCHEMA = {
     vol.Required(CONF_PERSON): cv.entity_id,
     vol.Optional(CONF_EMAIL): cv.string,
+    vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_MOBILE):  MOBILE_SCHEMA
 }
 DELIVERY_SCHEMA = {
@@ -100,6 +109,7 @@ DELIVERY_SCHEMA = {
     vol.Optional(CONF_SERVICE): cv.service,
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
+    vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list,
                                          [cv.entity_id]),
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
@@ -129,6 +139,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 MANDATORY_METHOD = [METHOD_EMAIL, METHOD_ALEXA, METHOD_SMS]
+METHODS = {
+    METHOD_EMAIL: EmailDeliveryMethod
+}
 
 
 async def async_get_service(hass, config, discovery_info=None):
@@ -148,9 +161,9 @@ async def async_get_service(hass, config, discovery_info=None):
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
         },
     )
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), False, {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIO)), False, {})
-    
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), [], {})
+
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     return SuperNotificationService(hass,
                                     deliveries=config[CONF_DELIVERY],
@@ -174,6 +187,11 @@ class SuperNotificationService(BaseNotificationService):
                  overrides=None):
         """Initialize the service."""
         self.hass = hass
+
+        hass_url = hass.config.external_url or self.hass.config.internal_url
+        context = SuperNotificationContext(
+            hass_url, hass.config.location_name, links, recipients, mobile_actions, templates)
+
         self.recipients = recipients
         self.templates = templates
         self.actions = mobile_actions
@@ -196,6 +214,10 @@ class SuperNotificationService(BaseNotificationService):
                             templates)
             self.templates = None
 
+        self.methods = {}
+        for method in METHODS:
+            self.methods[method] = METHODS[method](hass, context, deliveries)
+
     def send_message(self, message="", **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
@@ -205,11 +227,11 @@ class SuperNotificationService(BaseNotificationService):
         data = kwargs.get(ATTR_DATA) or {}
         title = kwargs.get(ATTR_TITLE)
         priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
-        scenario = data.get(ATTR_SCENARIO)
+        scenarios = data.get(ATTR_SCENARIOS) or []
 
         snapshot_url = data.get("snapshot_url")
         clip_url = data.get("clip_url")
-        override_delivery = data.get("delivery")
+        override_delivery = data.get(ATTR_DELIVERY)
         if not override_delivery:
             deliveries = self.deliveries.keys()
         else:
@@ -222,13 +244,22 @@ class SuperNotificationService(BaseNotificationService):
 
         stats_delivieries = stats_errors = 0
         self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
-        self.setup_condition_inputs(ATTR_DELIVERY_SCENARIO, scenario)
+        self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
 
         for delivery in deliveries:
             delivery_config = self.deliveries.get(delivery, {})
+            if CONF_PRIORITY in delivery_config and priority not in delivery_config[CONF_PRIORITY]:
+                _LOGGER.debug(
+                    "SUPERNOTIFY Skipping delivery %s based on priority (%s)", delivery, priority)
+                continue
             if not self.evaluate_delivery_conditions(delivery_config):
                 _LOGGER.debug(
                     "SUPERNOTIFY Skipping delivery %s based on conditions", delivery)
+                continue
+            delivery_scenarios = delivery_config.get(ATTR_SCENARIOS)
+            if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
+                _LOGGER.debug(
+                    "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
                 continue
             method = self.deliveries[delivery]["method"]
 
@@ -244,9 +275,11 @@ class SuperNotificationService(BaseNotificationService):
                         "SUPERNOTIFY Failed to chime %s: %s", delivery, e)
             if method == METHOD_SMS:
                 try:
+                    recipients = self.select_recipients(
+                        delivery_config, target)
                     self.on_notify_sms(
                         title, message,
-                        target=target,
+                        recipients=recipients,
                         data=data.get(delivery, {}),
                         config=delivery_config)
                     stats_delivieries += 1
@@ -281,12 +314,13 @@ class SuperNotificationService(BaseNotificationService):
                         "SUPERNOTIFY Failed to call media player %s: %s", delivery, e)
             if method == METHOD_EMAIL:
                 try:
-                    self.on_notify_email(message,
-                                         title=title,
-                                         target=target,
-                                         snapshot_url=snapshot_url,
-                                         data=data.get(delivery, {}),
-                                         config=delivery_config)
+                    self.methods[METHOD_EMAIL].deliver(message=message,
+                                                       title=title,
+                                                       target=target,
+                                                       scenarios=scenarios,
+                                                       data=data.get(delivery,{}),
+                                                       config=delivery_config)
+
                     stats_delivieries += 1
                 except Exception as e:
                     stats_errors += 1
@@ -305,8 +339,10 @@ class SuperNotificationService(BaseNotificationService):
                         "SUPERNOTIFY Failed to call persistent notification %s: %s", target, e)
             if method == METHOD_APPLE_PUSH:
                 try:
+                    recipients = self.select_recipients(
+                        delivery_config, target)
                     self.on_notify_apple(title, message,
-                                         target=target,
+                                         recipients=recipients,
                                          category=data.get(
                                              "category", "general"),
                                          priority=priority,
@@ -333,32 +369,29 @@ class SuperNotificationService(BaseNotificationService):
                 return self.deliveries[delivery]
         return {}
 
-    def on_notify_apple(self, title, message, target=None,
+    def on_notify_apple(self, title, message,
                         category="general",
                         config=None,
+                        recipients=None,
                         priority=PRIORITY_MEDIUM,
                         snapshot_url=None, clip_url=None,
                         app_url=None, app_url_title=None,
                         camera_entity_id=None,
                         data=None):
         config = config or self.first_delivery_for_method(METHOD_APPLE_PUSH)
+        recipients = recipients or []
         mobile_devices = []
-        if not target:
-            target = []
-            for recipient in self.filter_recipients(config.get("occupancy", OCCUPANCY_ALL)):
+        for recipient in recipients:
+            if "mobile" in recipient:
                 mobile_devices.extend(recipient.get(
                     "mobile", {}).get("apple_devices", []))
-        else:
-            target = [target] if isinstance(target, str) else target
-            for t in target:
-                if t in self.people:
-                    mobile_devices.extend(self.people[t].get(
-                        "mobile", {}).get("apple_devices", []))
-                else:
-                    mobile_devices.append(t)
+            elif ATTR_TARGET in recipient:
+                target = recipient.get(ATTR_TARGET)
+                if target and target.startswith('mobile_app.'):
+                    recipients.append(target)
 
         title = title or ""
-        _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, target)
+        _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, recipients)
 
         data = data and data.get(ATTR_DATA) or {}
         if priority == PRIORITY_CRITICAL:
@@ -421,32 +454,27 @@ class SuperNotificationService(BaseNotificationService):
     def on_notify_email(self, message, title=None,
                         image_paths=None,
                         snapshot_url=None,
+                        scenarios=None,
                         priority=None,
-                        config=None, target=None, data=None):
-        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, target)
+                        config=None, recipients=None, data=None):
+        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, recipients)
         config = config or self.first_delivery_for_method(METHOD_EMAIL)
         template = config.get(CONF_TEMPLATE)
         data = data or {}
+        scenarios = scenarios or []
         html = data.get("html")
         template = data.get("template", config.get("template"))
+        recipients = recipients or []
         addresses = []
-        if not target:
-            selected_recipients = self.filter_recipients(
-                config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
-            addresses = [recipient.get(
-                "email") for recipient in selected_recipients if recipient.get("email")]
-            if len(addresses) == 0:
-                addresses is None  # default to SMTP platform default recipients
-        else:
-            for t in target:
-                if t in self.people:
-                    email = self.people[t].get("email")
-                    if email:
-                        addresses.append(email)
-                elif "@" in t:
-                    addresses.append(t)
-                else:
-                    _LOGGER.warning("SUPERNOTIFY Invalid email address %s", t)
+        for recipient in recipients:
+            if recipient.get("email"):
+                addresses.append(recipient.get("email"))
+            elif ATTR_TARGET in recipient:
+                target = recipient.get(ATTR_TARGET)
+                if '@' in target:
+                    addresses.append(target)
+        if len(addresses) == 0:
+            addresses is None  # default to SMTP platform default recipients
 
         service_data = {
             "message":   message,
@@ -466,13 +494,13 @@ class SuperNotificationService(BaseNotificationService):
                 alert = {"title": title,
                          "message": message,
                          "subheading": "Home Assistant Notification",
-                         "site": "Barrs of Cloak",
+                         "site": self.hass_name,
                          "priority": priority,
                          "img": None,
                          "details_url": "https://home.barrsofcloak.org",
                          "server": {
-                             "url": "https://home.barrsofcloak.org:8123",
-                             "domain": "home.barrsofcloak.org"
+                             "url": self.hass_url,
+                             "domain":  "home.barrsofcloak.org"
 
                          }
                          }
@@ -584,30 +612,21 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via media player (url=%s): %s", image_url, e)
 
-    def on_notify_sms(self, title, message, config=None, target=None, data=None):
+    def on_notify_sms(self, title, message, config=None, recipients=None, data=None):
         """Send an SMS notification."""
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
         config = config or self.first_delivery_for_method(METHOD_SMS)
         data = data or {}
+        recipients = recipients or []
         mobile_numbers = []
-        if not target:
-            for recipient in self.filter_recipients(config.get("occupancy", OCCUPANCY_ALL)):
-                mobile_numbers.append(
-                    recipient.get("mobile", {}).get("number"))
-        else:
-            for t in target:
-                if t in self.people:
-                    try:
-                        mobile_numbers.append(
-                            self.people[t]["mobile"]["number"])
-                    except Exception as _:
-                        _LOGGER.debug(
-                            "SUPERNOTIFY skipping target without mobile number %s", t)
-                elif t and not t.startswith("person."):
-                    mobile_numbers.append(t)
-                else:
-                    _LOGGER.debug(
-                        "SUPERNOTIFY skipping unknown target %s", t)
+        for recipient in recipients:
+            if CONF_MOBILE in recipient:
+                mobile_numbers.append(recipient.get(
+                    CONF_MOBILE, {}).get(CONF_PHONE_NUMBER))
+            elif CONF_TARGET in recipient:
+                target = recipient.get(CONF_TARGET)
+                if re.fullmatch(RE_VALID_PHONE, target):
+                    mobile_numbers.append(target)
 
         combined = f"{title} {message}"
         service_data = {
@@ -709,3 +728,16 @@ class SuperNotificationService(BaseNotificationService):
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.set("%s.%s" % (DOMAIN, field), value)
+
+    def select_recipients(self, delivery_config, target):
+        recipients = []
+        if not target:
+            recipients = self.filter_recipients(
+                delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
+        else:
+            for t in target:
+                if t in self.people:
+                    recipients.append(self.people[t])
+                else:
+                    recipients.append({ATTR_TARGET: t})
+        return recipients

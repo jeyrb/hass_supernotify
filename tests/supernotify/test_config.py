@@ -35,7 +35,7 @@ async def test_reload(hass: HomeAssistant) -> None:
                             'person': 'person.house_owner',
                             'email' : 'test@testing.com',
                             'mobile': {
-                                'number': '+4497177848484',
+                                'phone_number': '+4497177848484',
                                 'devices': [
                                     'mobile_app.owner_phone'
                                 ]

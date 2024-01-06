@@ -1,20 +1,22 @@
 from unittest.mock import Mock
-from homeassistant.components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE
+from homeassistant.components.supernotify import CONF_PHONE_NUMBER, ATTR_DELIVERY, ATTR_SCENARIOS, CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_METHOD, CONF_SCENARIOS, METHOD_ALEXA, METHOD_EMAIL, METHOD_CHIME, METHOD_PERSISTENT, METHOD_SMS
+from homeassistant.const import CONF_SERVICE, CONF_TARGET
 
 from homeassistant.components.supernotify.notify import SuperNotificationService
 
 DELIVERY = {
-    "email": {"method": "email", "service": "notify.smtp"},
-    "text": {"method": "sms", "service": "notify.sms"},
-    "chime": {"method": "chime", "entities": ["switch.bell_1", "script.siren_2"]},
-    "alexa": {"method": "alexa", "service": "notify.alexa"}
+    "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
+    "text": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.sms"},
+    "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
+    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
+    "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SCENARIOS: ["scenario1", "scenario2"]}
 }
 
 RECIPIENTS = [
     {"person": "person.new_home_owner",
         "email": "me@tester.net",
         "mobile": {
-            "number": "+447989408889",
+            CONF_PHONE_NUMBER: "+447989408889",
             "apple_devices": [
                 "mobile_app.new_iphone"
             ]
@@ -23,7 +25,7 @@ RECIPIENTS = [
     {
         "person": "person.bidey_in",
         "mobile": {
-            "number": "+4489393013834"
+            CONF_PHONE_NUMBER: "+4489393013834"
         }
     }
 ]
@@ -33,20 +35,21 @@ async def test_on_notify_sms() -> None:
     """Test on_notify_sms."""
     hass = Mock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY, recipients=RECIPIENTS)
+        hass, deliveries=DELIVERY)
     # Call with no target
-    uut.on_notify_sms("title", "message")
+    uut.on_notify_sms("title", "message", recipients=RECIPIENTS)
     hass.services.call.assert_called_with("notify", "sms", service_data={
-                                          "message": "title message", 
+                                          "message": "title message",
                                           "target": ["+447989408889", "+4489393013834"]})
 
     hass.reset_mock()
     # Call with target
     target = ["+440900876534", "person.new_home_owner"]
-    uut.on_notify_sms("title", "message", target=target)
+    uut.on_notify_sms("title", "message", recipients=[
+                      {CONF_TARGET: "+440900876534"}, RECIPIENTS[1]])
     hass.services.call.assert_called_with("notify", "sms", service_data={
                                           "message": "title message",
-                                          "target": ["+440900876534", "+447989408889"]})
+                                          "target": ["+440900876534", "+4489393013834"]})
 
 
 async def test_on_notify_chime() -> None:
@@ -65,8 +68,8 @@ async def test_on_notify_apple_push() -> None:
     """Test on_notify_apple_push."""
     hass = Mock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY, recipients=RECIPIENTS)
-    uut.on_notify_apple("testing", "hello there")
+        hass, deliveries=DELIVERY)
+    uut.on_notify_apple("testing", "hello there", recipients=RECIPIENTS)
     hass.services.call.assert_called_with("notify", "mobile_app.new_iphone",
                                           service_data={"title": "testing",
                                                         "message": "hello there",
@@ -77,12 +80,12 @@ async def test_on_notify_email() -> None:
     """Test on_notify_email."""
     hass = Mock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY, recipients=RECIPIENTS)
-    uut.on_notify_email("hello there", title="testing")
+        hass, deliveries=DELIVERY)
+    uut.on_notify_email("hello there", title="testing", recipients=RECIPIENTS)
     hass.services.call.assert_called_with("notify", "smtp",
                                           service_data={
-                                              'target':['me@tester.net'],
-                                              'title': 'testing', 'message': 'hello there'})
+                                              "target": ["me@tester.net"],
+                                              "title": "testing", "message": "hello there"})
 
 
 async def test_on_notify_alexa() -> None:
@@ -92,7 +95,7 @@ async def test_on_notify_alexa() -> None:
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     uut.on_notify_alexa("hello there")
     hass.services.call.assert_called_with("notify", "alexa",
-                                          service_data={'message': 'hello there', 'data': {'type': 'announce'}, 'target': []})
+                                          service_data={"message": "hello there", "data": {"type": "announce"}, "target": []})
 
 
 async def test_on_notify_media() -> None:
@@ -100,14 +103,32 @@ async def test_on_notify_media() -> None:
     hass = Mock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS,
-        overrides={'image_url': {CONF_OVERRIDE_BASE: 'http://10.10.10.10/ftp', CONF_OVERRIDE_REPLACE: "https://myserver"}})
+        overrides={"image_url": {CONF_OVERRIDE_BASE: "http://10.10.10.10/ftp", CONF_OVERRIDE_REPLACE: "https://myserver"}})
     uut.on_notify_media_player(
         "hello there", snapshot_url="http://10.10.10.10/ftp/pic.jpeg", target=["media_player.kitchen"])
     hass.services.call.assert_called_with("media_player", "play_media",
-                                          service_data={'entity_id': ['media_player.kitchen'],
-                                                        'media_content_id': 'https://myserver/pic.jpeg',
-                                                        'media_content_type': 'image'}
-                                                        )
+                                          service_data={"entity_id": ["media_player.kitchen"],
+                                                        "media_content_id": "https://myserver/pic.jpeg",
+                                                        "media_content_type": "image"}
+                                          )
+
+
+async def test_send_message_with_scenario_mismatch() -> None:
+    hass = Mock()
+    hass.states = Mock()
+    uut = SuperNotificationService(
+        hass, deliveries=DELIVERY)
+    uut.send_message(title="test_title", message="testing 123",
+                     data={ATTR_DELIVERY: ["pigeon", "persistent"]},
+                     recipients=RECIPIENTS)
+    hass.services.call.assert_not_called()
+    uut.send_message(title="test_title", message="testing 123",
+                     data={ATTR_DELIVERY: [
+                         "pigeon", "persistent"], ATTR_SCENARIOS: ["scenario1"]},
+                     recipients=RECIPIENTS)
+    hass.services.call.assert_called_with("notify", "persistent_notification",
+                                          service_data={"title": "test_title", "message": "testing 123",
+                                                        "notification_id": None})
 
 
 async def test_filter_recipients() -> None:
@@ -130,4 +151,3 @@ async def test_filter_recipients() -> None:
         "only_out")} == {"person.new_home_owner"}
     assert {r["person"]
             for r in uut.filter_recipients("only_in")} == {"person.bidey_in"}
-
