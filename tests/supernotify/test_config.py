@@ -65,7 +65,16 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert not hass.services.has_service(notify.DOMAIN, DOMAIN)
     uut = hass.data['notify_services']['supernotify'][0]
     assert len(uut.recipients) == 2
+  
+    assert "html_email" in uut.deliveries
+    assert "text_message" in uut.deliveries
+    assert "alexa_announce" in uut.deliveries
+    assert "apple_push" in uut.deliveries
+    assert "alexa_show" in uut.deliveries
+    assert "play_chimes" in uut.deliveries
+    
     assert len(uut.deliveries) == 6
+
     await hass.services.async_call(
             notify.DOMAIN,
             'supernotifier_reloaded',

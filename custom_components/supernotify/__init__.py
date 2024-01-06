@@ -7,10 +7,6 @@ DOMAIN = "supernotify"
 
 PLATFORMS = ["notify"]
 
-CONF_ALEXA_SHOW_TARGETS = "alexa_show_devices"
-CONF_ALEXA_TARGETS = "alexa_devices"
-CONF_CHIME_TARGETS = "chime_devices"
-CONF_APPLE_TARGETS = "apple_devices"
 CONF_ACTIONS = "actions"
 CONF_RECIPIENTS = "recipients"
 CONF_RECIPIENT = "recipients"

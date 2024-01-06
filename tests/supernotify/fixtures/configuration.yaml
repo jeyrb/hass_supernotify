@@ -61,13 +61,13 @@ notify:
     recipients:
       - person: person.new_home_owner
         email: jrb@jeymail.net
-        mobile: 
-          phone_number: "+447989408889"
-          apple_devices:
+        phone_number: "+447989408889"
+        apple_push: 
+          
+          entities:
             - mobile_app.new_iphone
       - person: person.bidey_in
-        mobile:
-          phone_number: "+4489393013834"
+        phone_number: "+4489393013834"
     overrides:
       image_url:
         base: http://10.1.1.100

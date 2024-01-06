@@ -2,8 +2,8 @@ import logging
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 import os.path
 from jinja2 import Environment, FileSystemLoader
-from homeassistant.components.supernotify import CONF_OCCUPANCY, CONF_TEMPLATE, METHOD_EMAIL, OCCUPANCY_ALL
-from homeassistant.const import CONF_SERVICE
+from homeassistant.components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
+from homeassistant.const import CONF_SERVICE, CONF_TARGET
 from homeassistant.components.supernotify.common import DeliveryMethod
 import re
 RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
@@ -23,7 +23,8 @@ class EmailDeliveryMethod(DeliveryMethod):
                        priority=None,
                        config=None,
                        recipients=None,
-                       data=None):
+                       data=None,
+                       **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, recipients)
         config = config or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
@@ -36,8 +37,8 @@ class EmailDeliveryMethod(DeliveryMethod):
         for recipient in recipients:
             if recipient.get("email"):
                 addresses.append(recipient.get("email"))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
+            elif CONF_TARGET in recipient:
+                target = recipient.get(CONF_TARGET)
                 if re.fullmatch(RE_VALID_EMAIL, target):
                     addresses.append(target)
 

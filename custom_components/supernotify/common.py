@@ -2,22 +2,26 @@ from abc import abstractmethod
 import logging
 
 from homeassistant.components.notify import ATTR_TARGET
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 from homeassistant.core import HomeAssistant
 
-from . import CONF_OCCUPANCY, OCCUPANCY_ALL, OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT, OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT, OCCUPANCY_NONE, OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT
+from . import CONF_OCCUPANCY, CONF_PERSON, OCCUPANCY_ALL, OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT, OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT, OCCUPANCY_NONE, OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class SuperNotificationContext:
-    def __init__(self, hass_url, hass_name, links, recipients, mobile_actions, templates):
+    def __init__(self, hass_url: str = None, hass_name: str = None,
+                 links=(), recipients=(),
+                 mobile_actions=(),
+                 templates=()):
         self.hass_url = hass_url
         self.hass_name = hass_name
         self.links = links
         self.recipients = recipients
         self.mobile_actions = mobile_actions
         self.templates = templates
+        self.people = {r[CONF_PERSON]: r for r in recipients}
 
 
 class DeliveryMethod:
@@ -33,19 +37,31 @@ class DeliveryMethod:
         self.method = method
         self.service_required = service_required
         self.default_delivery = None
+        self.valid_deliveries = {}
+        self.invalid_deliveries = {}
         if deliveries:
-            for d in deliveries.values():
-                if d.get(CONF_METHOD) == method and d.get(CONF_DEFAULT):
-                    self.default_delivery = d
-                    break
+            for d, dc in deliveries.items():
+                if dc and dc.get(CONF_METHOD) == method:
+                    if not self.service_required or dc.get(CONF_SERVICE):
+                        self.valid_deliveries[d] = dc
+                        if dc.get(CONF_DEFAULT):
+                            self.default_delivery = dc
+                    else:
+                        self.invalid_deliveries[d]=dc
 
     def deliver(self, message=None, title=None, config=None,
-                target=None, data=None):
+                scenarios=None,
+                target=None, 
+                priority=None, 
+                data=None):
         config = config or self.default_delivery
-
+        data = data or {}
         self._delivery_impl(message=message,
                             title=title,
                             recipients=self.select_recipients(config, target),
+                            priority=priority,
+                            scenarios=scenarios,
+                            data=data,
                             config=config)
 
     @abstractmethod
@@ -56,8 +72,8 @@ class DeliveryMethod:
         recipients = []
         if target:
             for t in target:
-                if t in self.context.recipients:
-                    recipients.append(self.context.recipients[t])
+                if t in self.context.people:
+                    recipients.append(self.context.people[t])
                 else:
                     recipients.append({ATTR_TARGET: t})
         elif delivery_config:
