@@ -1,11 +1,13 @@
 from abc import abstractmethod
+import asyncio
+from homeassistant.helpers import condition, config_validation as cv
 import logging
 
 from homeassistant.components.notify import ATTR_TARGET
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
+from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 from homeassistant.core import HomeAssistant
 
-from . import CONF_OCCUPANCY, CONF_PERSON, OCCUPANCY_ALL, OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT, OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT, OCCUPANCY_NONE, OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT
+from . import ATTR_SCENARIOS, CONF_OCCUPANCY, CONF_PERSON, CONF_PRIORITY, OCCUPANCY_ALL, OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT, OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT, OCCUPANCY_NONE, OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,8 +56,22 @@ class DeliveryMethod:
                 target=None, 
                 priority=None, 
                 data=None):
-        config = config or self.default_delivery
+        config = config or self.default_delivery or {}
         data = data or {}
+        delivery_priorities=config.get(CONF_PRIORITY) or ()
+        if priority and delivery_priorities and priority not in delivery_priorities:
+            _LOGGER.debug(
+                "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, priority)
+            return
+        if not self.evaluate_delivery_conditions(config):
+            _LOGGER.debug(
+                    "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
+            return
+        delivery_scenarios = config.get(ATTR_SCENARIOS)
+        if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
+            _LOGGER.debug(
+                    "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
+            return
         self._delivery_impl(message=message,
                             title=title,
                             recipients=self.select_recipients(config, target),
@@ -117,3 +133,19 @@ class DeliveryMethod:
             _LOGGER.warning(
                 "SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
             return []
+
+    def evaluate_delivery_conditions(self, delivery_config):
+        if CONF_CONDITION not in delivery_config:
+            return True
+        else:
+            try:
+                conditions = cv.CONDITION_SCHEMA(
+                    delivery_config.get(CONF_CONDITION))
+                test = asyncio.run_coroutine_threadsafe(
+                    condition.async_from_config(
+                        self.hass, conditions), self.hass.loop
+                ).result()
+                return test(self.hass)
+            except Exception as e:
+                _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
+                raise
