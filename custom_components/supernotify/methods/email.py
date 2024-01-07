@@ -66,10 +66,9 @@ class EmailDeliveryMethod(DeliveryMethod):
                          "priority": priority,
                          "scenarios": scenarios,
                          "img": None,
-                         "details_url": "https://home.barrsofcloak.org",
                          "server": {
                              "url": self.context.hass_url,
-                             "domain":  "home.barrsofcloak.org"
+                             "name":  "Home Assistant"
 
                          }
                          }

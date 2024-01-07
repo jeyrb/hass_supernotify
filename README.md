@@ -28,7 +28,47 @@ for sending only to people in or out of the property
     scenarios:
       - home_security
       - garden
-``````
+```
+
+## Delivery Methods
+
+### Apple Push
+
+Send a push message out, with option for camera integration, mobile actions, and
+translate general priority to Apple specific push priority
+
+### Chime
+
+Provide a list of `switch`, `media_player` or `script` entities to use for chimes
+and it will call the `switch.turn_on`, `script.turn_on` or `media_player.play_media`
+services automatically for each.
+
+### SMS
+
+Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS
+
+### Generic
+
+Use to call any service and pass `target` and `data` elements.
+
+### Email
+
+Can be used for plain or HTML template emails, and handle images as attachments
+or HTML embed
+
+### Media Image
+
+Show an image on a media player, e.g. an Alexa Show where that actually works
+
+### Alexa Announce
+
+Announce a message on an Alexa Echo device using the `alexa_media_player` integration
+
+### Persistent
+
+Place a notification on Home Assistant application screen
+
+
 
 ## Setup
 
