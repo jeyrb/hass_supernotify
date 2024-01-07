@@ -3,6 +3,33 @@
 Simplified and complicated notifications, including multi-channel notifications, conditional notifications, mobile
 actions, chimes and template based HTML emails
 
+## Features
+
+* Send out notifications on multiple channels from one call, removing repetitive config and code from automations
+* Conditional notification using standard Home Assistant `condition` config
+* Streamlined conditionals for selecting channels per priority and scenario, or
+for sending only to people in or out of the property
+* Use `person` for all notification configuration, regardless of channel, using a unified Person model currently missing from Home Assistant
+* HTML email templates, using Jinja2, with a general default template supplied
+* Single set up of mobile actions across multiple notifications
+* Defaulting of targets and data in static config, and overridable at notification time
+* Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
+
+## Usage
+
+```yaml
+  - service: notify.supernotifier
+    title: Security Notification
+    message: '{{state_attr(sensor,"friendly_name")}} triggered'
+    target: 
+      - person.jim_bob
+      - person.neighbour
+    priority: high
+    scenarios:
+      - home_security
+      - garden
+``````
+
 ## Setup
 
 Register this GitHub repo as a custom repo 
@@ -12,21 +39,13 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 ```yaml
 notify:
-  - name: SuperNotifier_reloaded
+  - name: my_supernotifer
     platform: supernotify
-    templates: config/templates/supernotify
-    methods:
-      email:
-        service: notify.smtp
-      sms:
-        service: notify.mikrotik_sms
-      alexa:
-        service: notify.alexa
-      media:
-        service: media_player.play_media
+    templates: config/templates/supernotify        
     delivery:
       html_email:
         method: email
+        service: notify.smtp
         template: default.html.j2 
         priority:
           - critical
@@ -35,12 +54,25 @@ notify:
           - low
       text_message:    
         method: sms
+        service: notify.mikrotik_sms
         occupancy: only_out
-        priority:
-          - critical
-          - high
+        condition:
+          condition: or
+          conditions:
+            - condition: state
+              entity_id: alarm_control_panel.home_alarm_control
+              state:
+                - armed_away
+                - armed_home
+                - armed_night
+            - condition: state
+              entity_id: input_select.supernotify_priority
+              state:
+                - critical
+                - high    
       alexa_announce:
         method: alexa
+        service: notify.alexa
         entities:
           - media_player.kitchen
           - media_player.bedroom
@@ -50,6 +82,7 @@ notify:
         method: apple_push
       alexa_show:
         method: media
+        service: media_player.play_media
         entities:
           - media_player.kitchen
       play_chimes:
@@ -58,13 +91,23 @@ notify:
           - script.chime_ding_dong
           - switch.chime_sax
         occupancy: any_in
+      slack:
+        method: generic
+        service: notify.custom_slack
+        target:
+            - slack.channel_1
+        data:
+            - API_KEY: !secret SLACK_API_KEY
     recipients:
       - person: person.new_home_owner
         email: me@home.net
-        mobile: 
-          number: "+44797940404"
-          apple_devices:
-            - mobile_app.new_iphone
+        phone_number: "+44797940404"
+        apple_push:
+            entities:
+                - mobile_app.new_iphone
+        alexa:
+            entities:
+                - media_player.echo_workshop
       - person: person.bidey_in
         mobile:
           number: "+4489393013834"
