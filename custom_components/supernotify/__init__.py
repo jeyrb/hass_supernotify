@@ -9,7 +9,6 @@ PLATFORMS = ["notify"]
 
 CONF_ACTIONS = "actions"
 CONF_RECIPIENTS = "recipients"
-CONF_RECIPIENT = "recipients"
 CONF_TEMPLATES = "templates"
 CONF_TEMPLATE = "template"
 CONF_LINKS = "links"
