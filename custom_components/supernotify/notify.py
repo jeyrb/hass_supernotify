@@ -11,6 +11,7 @@ from homeassistant.components.notify import (
     PLATFORM_SCHEMA,
     BaseNotificationService,
 )
+from homeassistant.components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import (
     CONF_CONDITION,
     CONF_DEFAULT,
@@ -53,6 +54,7 @@ from . import (
     METHOD_APPLE_PUSH,
     METHOD_CHIME,
     METHOD_EMAIL,
+    METHOD_GENERIC,
     METHOD_MEDIA,
     METHOD_PERSISTENT,
     METHOD_SMS,
@@ -133,7 +135,8 @@ METHODS = {
     METHOD_APPLE_PUSH:  ApplePushDeliveryMethod,
     METHOD_MEDIA:       MediaPlayerImageDeliveryMethod,
     METHOD_CHIME:       ChimeDeliveryMethod,
-    METHOD_PERSISTENT:  PersistentDeliveryMethod
+    METHOD_PERSISTENT:  PersistentDeliveryMethod,
+    METHOD_GENERIC:     GenericDeliveryMethod
 }
 
 

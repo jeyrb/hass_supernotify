@@ -49,28 +49,31 @@ class DeliveryMethod:
                         if dc.get(CONF_DEFAULT):
                             self.default_delivery = dc
                     else:
-                        self.invalid_deliveries[d]=dc
+                        self.invalid_deliveries[d] = dc
 
-    def deliver(self, message=None, title=None, config=None,
+    def deliver(self, 
+                message=None,
+                title=None,
+                config=None,
                 scenarios=None,
-                target=None, 
-                priority=None, 
+                target=None,
+                priority=None,
                 data=None):
         config = config or self.default_delivery or {}
         data = data or {}
-        delivery_priorities=config.get(CONF_PRIORITY) or ()
+        delivery_priorities = config.get(CONF_PRIORITY) or ()
         if priority and delivery_priorities and priority not in delivery_priorities:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, priority)
             return
         if not self.evaluate_delivery_conditions(config):
             _LOGGER.debug(
-                    "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
+                "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
             _LOGGER.debug(
-                    "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
+                "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
             return
         self._delivery_impl(message=message,
                             title=title,
