@@ -7,6 +7,7 @@ actions, chimes and template based HTML emails
 
 * Send out notifications on multiple channels from one call, removing repetitive config and code from automations
 * Conditional notification using standard Home Assistant `condition` config
+* Reuse chunks of conditional logic as scenarios across multiple notifications
 * Streamlined conditionals for selecting channels per priority and scenario, or
 for sending only to people in or out of the property
 * Use `person` for all notification configuration, regardless of channel, using a unified Person model currently missing from Home Assistant
