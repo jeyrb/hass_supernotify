@@ -5,6 +5,8 @@ actions, chimes and template based HTML emails
 
 ## Setup
 
+Register this GitHub repo as a custom repo 
+un your [HACS]( https://hacs.xyz) configuration. 
 
 Configure in the main Home Assistant config yaml, or an included notify.yaml
 
