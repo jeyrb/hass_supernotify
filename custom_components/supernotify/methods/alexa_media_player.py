@@ -18,26 +18,19 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_ALEXA, True, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_ALEXA, target)
+    
     def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        data=None,
                        **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = config or self.default_delivery
-        media_players = []
-        for recipient in recipients:
-            if METHOD_ALEXA in recipient:
-                media_players.append(recipient.get(
-                    METHOD_ALEXA, {}).get(CONF_ENTITIES))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
-                if re.fullmatch(RE_VALID_ALEXA, target):
-                    media_players.append(target)
+        media_players = targets or []
 
-        if not media_players:
-            media_players = config.get(CONF_ENTITIES, [])
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return

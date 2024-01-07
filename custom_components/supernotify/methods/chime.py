@@ -1,10 +1,10 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from homeassistant.components.supernotify import METHOD_CHIME
 from homeassistant.components.supernotify.common import DeliveryMethod
-from homeassistant.const import CONF_ENTITIES
+from homeassistant.const import ATTR_DATE, CONF_ENTITIES
 
 RE_VALID_CHIME = r"(switch|script)\.[A-Za-z0-9_]+"
 
@@ -15,42 +15,41 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_CHIME, False, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_CHIME, target)
+    
     def _delivery_impl(self,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        data=None,
                        **kwargs):
         config = config or {}
         data = data or {}
-        entities = []
-        for recipient in recipients:
-            if METHOD_CHIME in recipient:
-                entities.append(recipient.get(
-                    METHOD_CHIME, {}).get(CONF_ENTITIES))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
-                if re.fullmatch(RE_VALID_CHIME, target):
-                    entities.append(target)
-        if not entities:
-            entities = config.get(CONF_ENTITIES, [])
+        targets = targets or []
+
         chime_repeat = data.get("chime_repeat", 1)
         chime_interval = data.get("chime_interval", 3)
+        chime_tune = data.get("chime_tune")
         data = data or {}
-        _LOGGER.info("SUPERNOTIFY notify_chime: %s", entities)
-        for chime_entity_id in entities:
-            _LOGGER.debug("SUPERNOTIFY chime %s", entities)
+        _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
+        for chime_entity_id in targets:
+            _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
             try:
                 sequence = []  # TODO replace appdaemon sequencing
-                chime_type = chime_entity_id.split(".")[0]
-                if chime_type == "script":
-                    domain = "script"
-                    service = "turn_on"
-                else:
-                    domain = "switch"
-                    service = "turn_on"
+                domain = chime_entity_id.split(".")[0]
                 service_data = {
-                    "entity_id": chime_entity_id,
+                    ATTR_TARGET: {
+                        "entity_id": chime_entity_id
+                    }
                 }
+                if data:
+                    service_data[ATTR_DATA] = data
+                if domain in ("switch", "script"):
+                    service = "turn_on"
+                elif domain == "media_player":
+                    service = "play_media"
+                    service_data[ATTR_DATA]["media_content_type"] = "sound"
+                    service_data[ATTR_DATA]["media_content_id"] = chime_tune
                 if chime_repeat == 1:
                     self.hass.services.call(
                         domain, service, service_data=service_data)

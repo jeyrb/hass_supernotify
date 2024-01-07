@@ -3,7 +3,7 @@ from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 import os.path
 from jinja2 import Environment, FileSystemLoader
 from homeassistant.components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
-from homeassistant.const import CONF_SERVICE, CONF_TARGET
+from homeassistant.const import CONF_EMAIL, CONF_SERVICE, CONF_TARGET
 from homeassistant.components.supernotify.common import DeliveryMethod
 import re
 RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
@@ -15,6 +15,13 @@ class EmailDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__( METHOD_EMAIL, True, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_EMAIL, target)
+    
+    def recipient_target(self, recipient):
+        email = recipient.get(CONF_EMAIL)
+        return [email] if email else []
+    
     def _delivery_impl(self, message=None,
                        title=None,
                        image_paths=None,
@@ -22,25 +29,17 @@ class EmailDeliveryMethod(DeliveryMethod):
                        scenarios=None,
                        priority=None,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        data=None,
                        **kwargs):
-        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, recipients)
+        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, targets)
         config = config or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
-        recipients = recipients or {}
         data = data or {}
         scenarios = scenarios or []
         html = data.get("html")
         template = data.get("template", config.get("template"))
-        addresses = []
-        for recipient in recipients:
-            if recipient.get("email"):
-                addresses.append(recipient.get("email"))
-            elif CONF_TARGET in recipient:
-                target = recipient.get(CONF_TARGET)
-                if re.fullmatch(RE_VALID_EMAIL, target):
-                    addresses.append(target)
+        addresses = targets or []
 
         service_data = {
             "message":   message,

@@ -91,6 +91,18 @@ notify:
           - script.chime_ding_dong
           - switch.chime_sax
         occupancy: any_in
+      sleigh_bells:
+        method: chime
+        target:
+          - media_player.echo_lobby
+        data:
+          chime_tune: christmas_05
+        condition: 
+          condition: template
+          alias: Xmas
+          value_template: >
+            {% set n = now() %}
+            {{ n.month == 12 and 15 <= n.day }}
       slack:
         method: generic
         service: notify.custom_slack
@@ -102,12 +114,17 @@ notify:
       - person: person.new_home_owner
         email: me@home.net
         phone_number: "+44797940404"
-        apple_push:
-            entities:
-                - mobile_app.new_iphone
-        alexa:
-            entities:
-                - media_player.echo_workshop
+        delivery:
+            apple_push:
+                entities:
+                    - mobile_app.new_iphone
+                data:
+                  push:
+                    sound:
+                      name: default
+            alexa:
+                entities:
+                    - media_player.echo_workshop
       - person: person.bidey_in
         mobile:
           number: "+4489393013834"

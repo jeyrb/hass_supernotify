@@ -20,8 +20,7 @@ notify:
               entity_id: input_select.supernotify_priority
               state:
                 - critical
-                - high
-            
+                - high     
         priority:
           - critical
           - high
@@ -37,7 +36,7 @@ notify:
       alexa_announce:
         method: alexa
         service: notify.alexa
-        entities:
+        target:
           - media_player.kitchen_2
           - media_player.bedroom
           - media_player.hall_flex
@@ -49,23 +48,50 @@ notify:
       alexa_show:
         method: media
         service: media_player.play_media
-        entities:
+        target:
           - media_player.kitchen_2
       play_chimes:
         method: chime
-        entities:
+        target:
           - script.chime_ding_dong
           - switch.chime_sax
+          - media_player.echo_lobby
         occupancy: any_in
-
+      doorbell:
+        method: chime
+        target:
+          - media_player.echo_lobby
+        data:
+          chime_tune: amzn_sfx_doorbell_chime_01
+        scenarios:
+          - doorbell
+      sleigh_bells:
+        method: chime
+        target:
+          - media_player.echo_lobby
+        data:
+          chime_tune: christmas_05
+        condition: 
+          condition: template
+          alias: Xmas
+          value_template: >
+            {% set n = now() %}
+            {{ n.month == 12 and 15 <= n.day }}
     recipients:
       - person: person.new_home_owner
         email: jrb@jeymail.net
         phone_number: "+447989408889"
-        apple_push: 
-          
-          entities:
-            - mobile_app.new_iphone
+        deliveries:
+          apple_push: 
+            target:
+              - mobile_app.new_iphone
+            data:
+              push:
+                sound:
+                  name: default
+          alexa_announce:
+            target:
+              - media_player.echo_study
       - person: person.bidey_in
         phone_number: "+4489393013834"
     overrides:

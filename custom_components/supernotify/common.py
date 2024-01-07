@@ -1,13 +1,34 @@
 from abc import abstractmethod
 import asyncio
-from homeassistant.helpers import condition, config_validation as cv
 import logging
 
 from homeassistant.components.notify import ATTR_TARGET
-from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
+from homeassistant.const import (
+    CONF_CONDITION,
+    CONF_DEFAULT,
+    CONF_ENTITIES,
+    CONF_METHOD,
+    CONF_SERVICE,
+    CONF_TARGET,
+)
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import condition, config_validation as cv
 
-from . import ATTR_SCENARIOS, CONF_OCCUPANCY, CONF_PERSON, CONF_PRIORITY, OCCUPANCY_ALL, OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT, OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT, OCCUPANCY_NONE, OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT
+from . import (
+    ATTR_SCENARIOS,
+    CONF_DELIVERY,
+    CONF_OCCUPANCY,
+    CONF_PERSON,
+    CONF_PRIORITY,
+    OCCUPANCY_ALL,
+    OCCUPANCY_ALL_IN,
+    OCCUPANCY_ALL_OUT,
+    OCCUPANCY_ANY_IN,
+    OCCUPANCY_ANY_OUT,
+    OCCUPANCY_NONE,
+    OCCUPANCY_ONLY_IN,
+    OCCUPANCY_ONLY_OUT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +72,7 @@ class DeliveryMethod:
                     else:
                         self.invalid_deliveries[d] = dc
 
-    def deliver(self, 
+    def deliver(self,
                 message=None,
                 title=None,
                 config=None,
@@ -70,6 +91,7 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
+        targets = self.build_targets(config, target)
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
             _LOGGER.debug(
@@ -77,7 +99,7 @@ class DeliveryMethod:
             return
         self._delivery_impl(message=message,
                             title=title,
-                            recipients=self.select_recipients(config, target),
+                            targets=targets,
                             priority=priority,
                             scenarios=scenarios,
                             data=data,
@@ -87,35 +109,74 @@ class DeliveryMethod:
     def _delivery_impl(message=None, title=None, config=None):
         pass
 
-    def select_recipients(self, delivery_config, target):
+    def select_target(self, target):
+        return True
+
+    def recipient_target(self, recipient):
+        return []
+
+    def build_targets(self, delivery_config, target):
         recipients = []
         if target:
+            # first priority is explicit target set on notify call, which overrides everything else
             for t in target:
                 if t in self.context.people:
                     recipients.append(self.context.people[t])
                 else:
                     recipients.append({ATTR_TARGET: t})
+        elif delivery_config and CONF_ENTITIES in delivery_config:
+            # second priority is explicit entities on delivery
+            recipients = [{ATTR_TARGET: e}
+                          for e in delivery_config.get(CONF_ENTITIES)]
+        elif delivery_config and CONF_TARGET in delivery_config:
+            # thirdt priority is explicit target on delivery
+            recipients = [{ATTR_TARGET: e}
+                          for e in delivery_config.get(CONF_TARGET)]
         elif delivery_config:
+            # If target not specified on service call or delivery, then use the list of recipients
             recipients = self.filter_recipients(
                 delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
         else:
             _LOGGER.debug("SUPERNOTIFY Neither target not recipients defined")
+        # now the list of recipients determined, resolve this to target addresses or entities
+        targets = []
+        for recipient in recipients:
+            # reuse standard recipient attributes like email or phone
+            self._safe_extend(targets, self.recipient_target(recipient))
+            # use entities or targets set at a method level for recipient
+            if CONF_DELIVERY in recipient and self.name in recipient.get(CONF_DELIVERY, {}):
+                recp_meth_cust = recipient.get(
+                    CONF_DELIVERY, {}).get(self.name, {})
+                self._safe_extend(
+                    targets, recp_meth_cust.get(CONF_ENTITIES, []))
+                self._safe_extend(targets, recp_meth_cust.get(CONF_TARGET, []))
+            elif ATTR_TARGET in recipient:
+                # non person recipient
+                self._safe_extend(targets, recipient.get(ATTR_TARGET))
 
-        return recipients
+        targets = [t for t in targets if self.select_target(t)]
+        return targets
+
+    def _safe_extend(self, target, extension):
+        if isinstance(extension, (list, tuple)):
+            target.extend(extension)
+        elif extension:
+            target.append(extension)
+        return target
 
     def filter_recipients(self, occupancy):
         at_home = []
         away = []
-        try:
-            for r in self.context.recipients:
+        for r in self.context.recipients:
+            try:
                 tracker = self.hass.states.get(r["person"])
                 if tracker is not None and tracker.state == "home":
                     at_home.append(r)
                 else:
                     away.append(r)
-        except Exception as e:
-            _LOGGER.warning(
-                "Unable to determine occupied status for %s: %s", r["person"], e)
+            except Exception as e:
+                _LOGGER.warning(
+                    "Unable to determine occupied status for %s: %s", r["person"], e)
         if occupancy == OCCUPANCY_ALL_IN:
             return self.context.recipients if len(away) == 0 else []
         elif occupancy == OCCUPANCY_ALL_OUT:

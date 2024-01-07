@@ -21,15 +21,17 @@ class ApplePushDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_APPLE_PUSH, False, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_MOBILE_APP, target)
+    
     def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        priority=PRIORITY_MEDIUM,
                        data=None,
                        **kwargs):
         config = config or {}
-        recipients = recipients or []
         app_url = data.get("app_url")
         app_url_title = data.get("app_url_title")
         camera_entity_id = data.get("camera_entity_id")
@@ -37,18 +39,8 @@ class ApplePushDeliveryMethod(DeliveryMethod):
         snapshot_url = data.get("snapshot_url")
         category = data.get("category", "general")
 
-        mobile_devices = []
-        for recipient in recipients:
-            if METHOD_APPLE_PUSH in recipient:
-                mobile_devices.extend(recipient.get(
-                    METHOD_APPLE_PUSH, {}).get(CONF_ENTITIES, []))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
-                if target and re.fullmatch(RE_VALID_MOBILE_APP, target):
-                    mobile_devices.append(target)
-
         title = title or ""
-        _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, recipients)
+        _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, targets)
 
         data = data and data.get(ATTR_DATA) or {}
 
@@ -98,7 +90,7 @@ class ApplePushDeliveryMethod(DeliveryMethod):
             "message": message,
             ATTR_DATA: data
         }
-        for apple_target in mobile_devices:
+        for apple_target in targets:
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
                               apple_target, service_data)

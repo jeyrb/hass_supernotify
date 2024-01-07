@@ -36,10 +36,12 @@ from . import (
     ATTR_PRIORITY,
     ATTR_SCENARIOS,
     CONF_ACTIONS,
+    CONF_DATA,
     CONF_DELIVERY,
     CONF_LINKS,
     CONF_METHOD,
     CONF_OCCUPANCY,
+    CONF_OPTIONS,
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
@@ -78,8 +80,10 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.NOTIFY]
 TEMPLATE_DIR = "/config/templates/supernotify"
 
-METHOD_CUSTOMIZE_SCHEMA = {
+RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = {
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_DATA): dict
 }
 LINK_SCHEMA = {
     vol.Required(CONF_URL): cv.url,
@@ -92,7 +96,7 @@ RECIPIENT_SCHEMA = {
     vol.Optional(CONF_EMAIL): cv.string,
     vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
-    vol.Optional(CONF_METHOD, default={}):  {cv.string: METHOD_CUSTOMIZE_SCHEMA}
+    vol.Optional(CONF_DELIVERY,default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
 }
 DELIVERY_SCHEMA = {
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
@@ -100,8 +104,9 @@ DELIVERY_SCHEMA = {
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list,
-                                         [cv.entity_id]),
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_DATA): dict,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):

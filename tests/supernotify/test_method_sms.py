@@ -20,10 +20,11 @@ async def test_deliver() -> None:
                                           service_data={
                                               "target": ["+447979123456"],
                                               "message": "testing hello there"})
-    
     hass.reset_mock()
-    uut.deliver("mixed target", title="testing",target=['person.tester1','+19876123456'])
+    uut.deliver("explicit target", title="testing", target=["+19876123456"])
     hass.services.call.assert_called_with("notify", "smsify",
                                           service_data={
-                                              "target": ["+447979123456","+19876123456"],
-                                              "message": "testing mixed target"})
+                                              "target": ["+19876123456"],
+                                              "message": "testing explicit target"})
+    
+    

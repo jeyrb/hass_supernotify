@@ -19,25 +19,18 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_MEDIA, False, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
+    
     def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        data=None,
                        **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_media: %s", message)
         config = config or self.default_delivery
-        media_players = []
-        for recipient in recipients:
-            if METHOD_MEDIA in recipient:
-                media_players.append(recipient.get(
-                    METHOD_MEDIA, {}).get(CONF_ENTITIES))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
-                if re.fullmatch(RE_VALID_MEDIA_PLAYER, target):
-                    media_players.append(target)
-        if not media_players:
-            media_players = config.get(CONF_ENTITIES, [])
+        media_players = targets or []
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping media show, no targets")
             return

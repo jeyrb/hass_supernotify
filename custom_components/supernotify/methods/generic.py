@@ -17,16 +17,16 @@ class GenericDeliveryMethod(DeliveryMethod):
                        message=None,
                        config=None,
                        data=None,
-                       recipients=None,
+                       targets=None,
                        **kwargs):
         config = config or {}
         data = data or {}
-        recipients = recipients or []
+        targets = targets or []
 
         service_data = {
             "title":    title,
             "message":  message,
-            "target":   [ r[ATTR_TARGET] for r in recipients],
+            "target":   targets,
             "data":     data
         }
 

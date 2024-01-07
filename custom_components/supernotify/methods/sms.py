@@ -14,24 +14,23 @@ class SMSDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__( METHOD_SMS, True, *args, **kwargs)
 
+    def select_target(self, target):
+        return re.fullmatch(RE_VALID_PHONE, target)
+
+    def recipient_target(self, recipient):
+        phone = recipient.get(CONF_PHONE_NUMBER)
+        return [phone] if phone else []
+    
     def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
-                       recipients=None,
+                       targets=None,
                        data=None,
                        **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
         config = config or self.default_delivery
         data = data or {}
-        recipients = recipients or []
-        mobile_numbers = []
-        for recipient in recipients:
-            if CONF_PHONE_NUMBER in recipient:
-                mobile_numbers.append(recipient.get(CONF_PHONE_NUMBER))
-            elif ATTR_TARGET in recipient:
-                target = recipient.get(ATTR_TARGET)
-                if re.fullmatch(RE_VALID_PHONE, target):
-                    mobile_numbers.append(target)
+        mobile_numbers = targets or []
 
         combined = f"{title} {message}"
         service_data = {

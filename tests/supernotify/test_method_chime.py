@@ -17,6 +17,6 @@ async def test_deliver() -> None:
 
     uut.deliver()
     hass.services.call.assert_any_call("script", "turn_on", service_data={
-                                       "entity_id": "script.siren_2"})
+                                       "target":{"entity_id": "script.siren_2"}})
     hass.services.call.assert_any_call("switch", "turn_on", service_data={
-                                       "entity_id": "switch.bell_1"})
+                                       "target":{"entity_id": "switch.bell_1"}})
