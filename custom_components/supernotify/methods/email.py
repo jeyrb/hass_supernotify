@@ -22,7 +22,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
     
-    def _delivery_impl(self, message=None,
+    async def _delivery_impl(self, message=None,
                        title=None,
                        image_paths=None,
                        snapshot_url=None,

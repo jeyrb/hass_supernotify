@@ -24,7 +24,7 @@ class ApplePushDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MOBILE_APP, target)
     
-    def _delivery_impl(self, message=None,
+    async def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
                        targets=None,

@@ -12,7 +12,7 @@ async def test_on_notify_apple_push() -> None:
     context = SuperNotificationContext()
 
     uut = ApplePushDeliveryMethod(hass,context,{})
-    uut.deliver(title="testing", message="hello there",target=["mobile_app.new_iphone"])
+    await uut.deliver(title="testing", message="hello there",target=["mobile_app.new_iphone"])
     hass.services.call.assert_called_with("notify", "mobile_app.new_iphone",
                                           service_data={"title": "testing",
                                                         "message": "hello there",

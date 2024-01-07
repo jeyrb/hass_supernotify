@@ -15,8 +15,7 @@ FIXTURE = pathlib.Path(__file__).parent.joinpath(
 
 async def test_reload(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", {})
-    hass.states.async_set("input_select.supernotify_priority","high")
-
+    hass.states.async_set("input_select.supernotify_priority", "high")
 
     assert await async_setup_component(
         hass,

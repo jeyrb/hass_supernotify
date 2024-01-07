@@ -106,6 +106,31 @@ notify:
       image_url:
         base: http://10.1.1.100
         replace: https://myhomeserver.org/images
+    scenarios:
+      ordinary_day:
+        alias: nothing special
+        condition:
+          condition: and
+          conditions:
+            - not:
+                - condition: state
+                  entity_id: alarm_control_panel.home_alarm_control
+                  state: disarmed
+            - condition: time
+              after: "21:30:00"
+              before: "06:30:00"
+      mostly:
+        alias: nothing special
+        condition:
+          condition: and
+          conditions:
+            - not:
+                - condition: state
+                  entity_id: alarm_control_panel.home_alarm_control
+                  state: unknown
+            - condition: time
+              after: "06:30:00"
+              before: "21:30:00"
 
     actions:
       - identifier: action-1

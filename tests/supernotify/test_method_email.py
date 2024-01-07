@@ -15,13 +15,13 @@ async def test_deliver() -> None:
     uut = EmailDeliveryMethod(
         hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True }})
 
-    uut.deliver("hello there", title="testing")
+    await uut.deliver("hello there", title="testing")
     hass.services.call.assert_called_with("notify", "smtp",
                                           service_data={
                                               "target": ["tester1@assert.com"],
                                               "title": "testing", "message": "hello there"})
     hass.reset_mock()
-    uut.deliver("hello there", title="testing",target=['tester9@assert.com'])
+    await uut.deliver("hello there", title="testing",target=['tester9@assert.com'])
     hass.services.call.assert_called_with("notify", "smtp",
                                           service_data={
                                               "target": ["tester9@assert.com"],

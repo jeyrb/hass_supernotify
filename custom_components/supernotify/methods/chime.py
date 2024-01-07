@@ -18,7 +18,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
     
-    def _delivery_impl(self,
+    async def _delivery_impl(self,
                        config=None,
                        targets=None,
                        data=None,
@@ -51,7 +51,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     service_data[ATTR_DATA]["media_content_type"] = "sound"
                     service_data[ATTR_DATA]["media_content_id"] = chime_tune
                 if chime_repeat == 1:
-                    self.hass.services.call(
+                    await self.hass.services.async_call(
                         domain, service, service_data=service_data)
                 else:
                     raise NotImplementedError("Repeat not implemented")

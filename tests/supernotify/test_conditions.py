@@ -1,5 +1,4 @@
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 from homeassistant.helpers import (
     condition,
     config_validation as cv,

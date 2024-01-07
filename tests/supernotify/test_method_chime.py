@@ -15,8 +15,8 @@ async def test_deliver() -> None:
                                   CONF_DEFAULT: True,
                                   CONF_ENTITIES: ["switch.bell_1", "script.siren_2"]}})
 
-    uut.deliver()
-    hass.services.call.assert_any_call("script", "turn_on", service_data={
+    await uut.deliver()
+    hass.services.async_call.assert_any_call("script", "turn_on", service_data={
                                        "target":{"entity_id": "script.siren_2"}})
-    hass.services.call.assert_any_call("switch", "turn_on", service_data={
+    hass.services.async_call.assert_any_call("switch", "turn_on", service_data={
                                        "target":{"entity_id": "switch.bell_1"}})

@@ -72,7 +72,7 @@ class DeliveryMethod:
                     else:
                         self.invalid_deliveries[d] = dc
 
-    def deliver(self,
+    async def deliver(self,
                 message=None,
                 title=None,
                 config=None,
@@ -87,7 +87,7 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, priority)
             return
-        if not self.evaluate_delivery_conditions(config):
+        if not await self.evaluate_delivery_conditions(config):
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
@@ -97,7 +97,7 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
             return
-        self._delivery_impl(message=message,
+        await self._delivery_impl(message=message,
                             title=title,
                             targets=targets,
                             priority=priority,
@@ -198,17 +198,14 @@ class DeliveryMethod:
                 "SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
             return []
 
-    def evaluate_delivery_conditions(self, delivery_config):
+    async def evaluate_delivery_conditions(self, delivery_config):
         if CONF_CONDITION not in delivery_config:
             return True
         else:
             try:
                 conditions = cv.CONDITION_SCHEMA(
                     delivery_config.get(CONF_CONDITION))
-                test = asyncio.run_coroutine_threadsafe(
-                    condition.async_from_config(
-                        self.hass, conditions), self.hass.loop
-                ).result()
+                test = await condition.async_from_config(self.hass, conditions)
                 return test(self.hass)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)

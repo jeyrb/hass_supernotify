@@ -14,6 +14,7 @@ for sending only to people in or out of the property
 * Single set up of mobile actions across multiple notifications
 * Defaulting of targets and data in static config, and overridable at notification time
 * Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
+* Reloadable configuration
 
 ## Usage
 
@@ -35,13 +36,18 @@ for sending only to people in or out of the property
 ### Apple Push
 
 Send a push message out, with option for camera integration, mobile actions, and
-translate general priority to Apple specific push priority
+translate general priority to Apple specific push priority. 
+
+Some functionality may also work with Android push, though has not been tested.
 
 ### Chime
 
 Provide a list of `switch`, `media_player` or `script` entities to use for chimes
 and it will call the `switch.turn_on`, `script.turn_on` or `media_player.play_media`
 services automatically for each.
+
+See https://github.com/alandtse/alexa_media_player/wiki#known-available-sounds for
+a list of known tunes that work with Alexa devices.
 
 ### SMS
 
@@ -66,9 +72,7 @@ Announce a message on an Alexa Echo device using the `alexa_media_player` integr
 
 ### Persistent
 
-Place a notification on Home Assistant application screen
-
-
+Place a notification on Home Assistant application screen.
 
 ## Setup
 

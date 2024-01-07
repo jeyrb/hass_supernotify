@@ -21,7 +21,7 @@ class SMSDeliveryMethod(DeliveryMethod):
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
     
-    def _delivery_impl(self, message=None,
+    async def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
                        targets=None,

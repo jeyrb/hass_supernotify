@@ -16,7 +16,7 @@ class PersistentDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_PERSISTENT, False, *args, **kwargs)
 
-    def _delivery_impl(self,
+    async def _delivery_impl(self,
                        title=None,
                        message=None,
                        config=None,

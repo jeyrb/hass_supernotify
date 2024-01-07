@@ -14,7 +14,7 @@ async def test_deliver() -> None:
     uut = GenericDeliveryMethod(
         hass, context, {"default": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.teleportation", CONF_DEFAULT: True}})
 
-    uut.deliver("hello there", title="testing",
+    await uut.deliver("hello there", title="testing",
                 target=["weird_generic_1", "weird_generic_2"],
                 data={"cuteness": "very"})
     hass.services.call.assert_called_with("notify", "teleportation",

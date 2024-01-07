@@ -14,7 +14,7 @@ async def test_deliver() -> None:
     uut = PersistentDeliveryMethod(
         hass, context, {})
 
-    uut.deliver("hello there", title="testing")
+    await uut.deliver("hello there", title="testing")
     hass.services.call.assert_called_with("notify", "persistent_notification",
                                           service_data={
                                               ATTR_TITLE: "testing",

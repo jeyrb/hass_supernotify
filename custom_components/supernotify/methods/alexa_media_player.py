@@ -21,7 +21,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_ALEXA, target)
     
-    def _delivery_impl(self, message=None,
+    async def _delivery_impl(self, message=None,
                        title=None,
                        config=None,
                        targets=None,
@@ -45,7 +45,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
             service_data[ATTR_DATA].update(data.get("data"))
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
-            self.hass.services.call(
+            await self.hass.services.async_call(
                 domain, service, service_data=service_data)
         except Exception as e:
             _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e)

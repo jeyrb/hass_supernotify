@@ -2,6 +2,7 @@ import logging
 import os.path
 
 import voluptuous as vol
+import asyncio
 
 from homeassistant.components.ios import PUSH_ACTION_SCHEMA
 from homeassistant.components.notify import (
@@ -13,6 +14,7 @@ from homeassistant.components.notify import (
 )
 from homeassistant.components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import (
+    CONF_ALIAS,
     CONF_CONDITION,
     CONF_DEFAULT,
     CONF_DESCRIPTION,
@@ -49,6 +51,7 @@ from . import (
     CONF_PHONE_NUMBER,
     CONF_PRIORITY,
     CONF_RECIPIENTS,
+    CONF_SCENARIOS,
     CONF_TEMPLATE,
     CONF_TEMPLATES,
     DOMAIN,
@@ -93,12 +96,18 @@ LINK_SCHEMA = {
 }
 RECIPIENT_SCHEMA = {
     vol.Required(CONF_PERSON): cv.entity_id,
+    vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_EMAIL): cv.string,
     vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
     vol.Optional(CONF_DELIVERY,default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
 }
+SCENARIO_SCHEMA = {
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
+}
 DELIVERY_SCHEMA = {
+    vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
     vol.Optional(CONF_SERVICE): cv.service,
     vol.Optional(CONF_PLATFORM): cv.string,
@@ -111,7 +120,7 @@ DELIVERY_SCHEMA = {
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
         vol.In(OCCUPANCY_VALUES),
-    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA
 }
 OVERRIDE_SCHEMA = {
     vol.Required(CONF_OVERRIDE_BASE): cv.string,
@@ -129,6 +138,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
         vol.Optional(CONF_LINKS, default=[]):
             vol.All(cv.ensure_list, [LINK_SCHEMA]),
+        vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
         vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA}
     }
 )
@@ -159,6 +169,7 @@ async def async_get_service(hass, config, discovery_info=None):
             CONF_TEMPLATES: config.get(CONF_TEMPLATES),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, ()),
+            CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
         },
     )
@@ -171,6 +182,7 @@ async def async_get_service(hass, config, discovery_info=None):
                                     templates=config[CONF_TEMPLATES],
                                     recipients=config[CONF_RECIPIENTS],
                                     mobile_actions=config[CONF_ACTIONS],
+                                    scenarios=config[CONF_SCENARIOS],
                                     links=config[CONF_LINKS],
                                     overrides=config[CONF_OVERRIDES]
                                     )
@@ -184,6 +196,7 @@ class SuperNotificationService(BaseNotificationService):
                  templates=None,
                  recipients=(),
                  mobile_actions=(),
+                 scenarios=None,
                  links=(),
                  overrides=None):
         """Initialize the service."""
@@ -197,6 +210,7 @@ class SuperNotificationService(BaseNotificationService):
         self.templates = templates
         self.actions = mobile_actions
         self.links = links
+        self.scenarios = scenarios or {}
         self.overrides = overrides or {}
         deliveries = deliveries or {}
 
@@ -218,7 +232,7 @@ class SuperNotificationService(BaseNotificationService):
         _LOGGER.info("SUPERNOTIFY configured deliveries %s",
                      ";".join(self.deliveries.keys()))
 
-    def send_message(self, message="", **kwargs):
+    async def async_send_message(self, message="", **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
         target = kwargs.get(ATTR_TARGET) or []
@@ -226,9 +240,13 @@ class SuperNotificationService(BaseNotificationService):
             target = [target]
         data = kwargs.get(ATTR_DATA) or {}
         title = kwargs.get(ATTR_TITLE)
+        
         priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
         scenarios = data.get(ATTR_SCENARIOS) or []
-
+        scenarios.extend(await self.select_scenarios())
+        self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
+        
         override_delivery = data.get(ATTR_DELIVERY)
         if not override_delivery:
             deliveries = self.deliveries
@@ -240,14 +258,14 @@ class SuperNotificationService(BaseNotificationService):
                              override_delivery, deliveries)
 
         stats_delivieries = stats_errors = 0
-        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
-        self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
+        
+        
 
         for delivery, delivery_config in deliveries.items():
             method = delivery_config["method"]
 
             try:
-                self.methods[method].deliver(message=message,
+                await self.methods[method].deliver(message=message,
                                              title=title,
                                              target=target,
                                              scenarios=scenarios,
@@ -264,4 +282,20 @@ class SuperNotificationService(BaseNotificationService):
         return stats_delivieries, stats_errors
 
     def setup_condition_inputs(self, field, value):
-        self.hass.states.set("%s.%s" % (DOMAIN, field), value)
+        self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
+        
+    async def select_scenarios(self):
+        scenarios=[]
+        for key,scenario in self.scenarios.items():
+            if CONF_CONDITION in scenario:
+                try:
+                    conditions = cv.CONDITION_SCHEMA(
+                        scenario.get(CONF_CONDITION))
+                    test = await condition.async_from_config(
+                            self.hass, conditions)
+                    if test(self.hass):
+                        scenarios.append(key)
+                except Exception as e:
+                    _LOGGER.error("SUPERNOTIFY Scenario condition eval failed: %s", e)
+        return scenarios
+
