@@ -70,8 +70,9 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert "play_chimes" in uut.deliveries
     assert "doorbell" in uut.deliveries
     assert "sleigh_bells" in uut.deliveries
+    assert "upstairs_siren" in uut.deliveries
 
-    assert len(uut.deliveries) == 8
+    assert len(uut.deliveries) == 9
 
     await hass.services.async_call(
             notify.DOMAIN,

@@ -67,7 +67,7 @@ METHOD_GENERIC = "generic"
 METHOD_PERSISTENT = "persistent"
 METHOD_VALUES = [METHOD_SMS, METHOD_ALEXA, METHOD_APPLE_PUSH,
                  METHOD_CHIME, METHOD_EMAIL, METHOD_MEDIA,
-                 METHOD_PERSISTENT]
+                 METHOD_PERSISTENT, METHOD_GENERIC]
 
 
 _LOGGER = logging.getLogger(__name__)

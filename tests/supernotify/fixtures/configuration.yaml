@@ -65,6 +65,14 @@ notify:
           chime_tune: amzn_sfx_doorbell_chime_01
         scenarios:
           - doorbell
+      upstairs_siren:
+        method: generic
+        service: mqtt.publish
+        priority:
+          - critical
+        data:
+          topic: zigbee2mqtt/Upstairs Siren/set
+          payload: '{"warning": {"duration": 30, "mode": "emergency", "strobe": true }}'
       sleigh_bells:
         method: chime
         target:
