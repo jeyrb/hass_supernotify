@@ -18,6 +18,15 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__( METHOD_EMAIL, True, *args, **kwargs)
+        self.template_path = None
+        if self.context.templates:
+            self.template_path = os.path.join(self.context.templates, "email")
+            if not os.path.exists(self.template_path):
+                self.template_path = None
+        if self.template_path == None:
+            _LOGGER.warning("SUPERNOTIFY Email templates not available")
+        else:
+            _LOGGER.debug("SUPERNOTIFY Loading email templates from %s",self.template_path)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_EMAIL, target)
@@ -57,12 +66,11 @@ class EmailDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
         try:
-            if not template:
+            if not template or not self.template_path:
                 if image_paths:
                     service_data.setdefault("data", {})
                     service_data["data"]["images"] = image_paths
-            else:
-                template_path = os.path.join(self.context.templates, "email")
+            else:      
                 alert = {"title": title,
                          "message": message,
                          "subheading": "Home Assistant Notification",
@@ -81,7 +89,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                         "text": "Snapshot Image",
                         "url": snapshot_url
                     }
-                env = Environment(loader=FileSystemLoader(template_path))
+                env = Environment(loader=FileSystemLoader(self.template_path))
                 template_obj = env.get_template(template)
                 html = template_obj.render(alert=alert)
                 if not html:
