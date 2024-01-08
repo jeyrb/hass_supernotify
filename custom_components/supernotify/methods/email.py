@@ -17,7 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class EmailDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
-        super().__init__( METHOD_EMAIL, True, *args, **kwargs)
+        super().__init__(METHOD_EMAIL, True, *args, **kwargs)
         self.template_path = None
         if self.context.templates:
             self.template_path = os.path.join(self.context.templates, "email")
@@ -26,7 +26,8 @@ class EmailDeliveryMethod(DeliveryMethod):
         if self.template_path == None:
             _LOGGER.warning("SUPERNOTIFY Email templates not available")
         else:
-            _LOGGER.debug("SUPERNOTIFY Loading email templates from %s",self.template_path)
+            _LOGGER.debug(
+                "SUPERNOTIFY Loading email templates from %s", self.template_path)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_EMAIL, target)
@@ -36,15 +37,15 @@ class EmailDeliveryMethod(DeliveryMethod):
         return [email] if email else []
 
     async def _delivery_impl(self, message=None,
-                       title=None,
-                       image_paths=None,
-                       snapshot_url=None,
-                       scenarios=None,
-                       priority=None,
-                       config=None,
-                       targets=None,
-                       data=None,
-                       **kwargs):
+                             title=None,
+                             image_paths=None,
+                             snapshot_url=None,
+                             scenarios=None,
+                             priority=None,
+                             config=None,
+                             targets=None,
+                             data=None,
+                             **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, targets)
         config = config or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
@@ -70,7 +71,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                 if image_paths:
                     service_data.setdefault("data", {})
                     service_data["data"]["images"] = image_paths
-            else:      
+            else:
                 alert = {"title": title,
                          "message": message,
                          "subheading": "Home Assistant Notification",

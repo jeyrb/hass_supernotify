@@ -73,13 +73,13 @@ class DeliveryMethod:
                         self.invalid_deliveries[d] = dc
 
     async def deliver(self,
-                message=None,
-                title=None,
-                config=None,
-                scenarios=None,
-                target=None,
-                priority=None,
-                data=None):
+                      message=None,
+                      title=None,
+                      config=None,
+                      scenarios=None,
+                      target=None,
+                      priority=None,
+                      data=None):
         config = config or self.default_delivery or {}
         data = data or {}
         delivery_priorities = config.get(CONF_PRIORITY) or ()
@@ -98,12 +98,12 @@ class DeliveryMethod:
                 "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
             return
         await self._delivery_impl(message=message,
-                            title=title,
-                            targets=targets,
-                            priority=priority,
-                            scenarios=scenarios,
-                            data=data,
-                            config=config)
+                                  title=title,
+                                  targets=targets,
+                                  priority=priority,
+                                  scenarios=scenarios,
+                                  data=data,
+                                  config=config)
 
     @abstractmethod
     async def _delivery_impl(message=None, title=None, config=None):
@@ -124,20 +124,29 @@ class DeliveryMethod:
                     recipients.append(self.context.people[t])
                 else:
                     recipients.append({ATTR_TARGET: t})
+            _LOGGER.debug(
+                "SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
         elif delivery_config and CONF_ENTITIES in delivery_config:
             # second priority is explicit entities on delivery
             recipients = [{ATTR_TARGET: e}
                           for e in delivery_config.get(CONF_ENTITIES)]
+            _LOGGER.debug(
+                "SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
+
         elif delivery_config and CONF_TARGET in delivery_config:
             # thirdt priority is explicit target on delivery
             recipients = [{ATTR_TARGET: e}
                           for e in delivery_config.get(CONF_TARGET)]
-        elif delivery_config:
+            _LOGGER.debug(
+                "SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
+
+        else:
             # If target not specified on service call or delivery, then use the list of recipients
             recipients = self.filter_recipients(
                 delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
-        else:
-            _LOGGER.debug("SUPERNOTIFY Neither target not recipients defined")
+            _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s",
+                          __name__, recipients)
+
         # now the list of recipients determined, resolve this to target addresses or entities
         targets = []
         for recipient in recipients:
@@ -154,7 +163,13 @@ class DeliveryMethod:
                 # non person recipient
                 self._safe_extend(targets, recipient.get(ATTR_TARGET))
 
+        pre_filter_count = len(targets)
         targets = [t for t in targets if self.select_target(t)]
+        if len(targets) < pre_filter_count:
+            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__, len(
+                targets)-pre_filter_count, targets)
+        if not targets:
+            _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)
         return targets
 
     def _safe_extend(self, target, extension):

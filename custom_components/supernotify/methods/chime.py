@@ -4,9 +4,8 @@ import re
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import METHOD_CHIME
 from custom_components.supernotify.common import DeliveryMethod
-from homeassistant.const import ATTR_DATE, CONF_ENTITIES
 
-RE_VALID_CHIME = r"(switch|script)\.[A-Za-z0-9_]+"
+RE_VALID_CHIME = r"(switch|script|media_player)\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
