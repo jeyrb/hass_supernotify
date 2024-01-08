@@ -2,14 +2,14 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_TITLE
-from . import (
+from custom_components.supernotify  import (
     METHOD_APPLE_PUSH,
     PRIORITY_CRITICAL,
     PRIORITY_HIGH,
     PRIORITY_LOW,
     PRIORITY_MEDIUM
 )
-from .common import DeliveryMethod
+from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_ENTITIES, CONF_SERVICE, CONF_TARGET
 
 RE_VALID_MOBILE_APP = r"mobile_app\.[A-Za-z0-9_]+"

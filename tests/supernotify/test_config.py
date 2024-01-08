@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from homeassistant import config as hass_config
 import homeassistant.components.notify as notify
-from homeassistant.components.supernotify import DOMAIN
+from custom_components.supernotify import DOMAIN
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component

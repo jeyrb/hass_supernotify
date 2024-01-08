@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import METHOD_ALEXA
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
+from custom_components.supernotify import METHOD_ALEXA
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_SERVICE
 
 DELIVERY = {

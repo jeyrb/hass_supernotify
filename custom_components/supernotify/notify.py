@@ -2,7 +2,6 @@ import logging
 import os.path
 
 import voluptuous as vol
-import asyncio
 
 from homeassistant.components.ios import PUSH_ACTION_SCHEMA
 from homeassistant.components.notify import (
@@ -43,7 +42,6 @@ from . import (
     CONF_LINKS,
     CONF_METHOD,
     CONF_OCCUPANCY,
-    CONF_OPTIONS,
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
@@ -100,7 +98,7 @@ RECIPIENT_SCHEMA = {
     vol.Optional(CONF_EMAIL): cv.string,
     vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
-    vol.Optional(CONF_DELIVERY,default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
+    vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
 }
 SCENARIO_SCHEMA = {
     vol.Optional(CONF_ALIAS): cv.string,
@@ -240,13 +238,13 @@ class SuperNotificationService(BaseNotificationService):
             target = [target]
         data = kwargs.get(ATTR_DATA) or {}
         title = kwargs.get(ATTR_TITLE)
-        
+
         priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
         scenarios = data.get(ATTR_SCENARIOS) or []
         scenarios.extend(await self.select_scenarios())
         self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
-        
+
         override_delivery = data.get(ATTR_DELIVERY)
         if not override_delivery:
             deliveries = self.deliveries
@@ -258,21 +256,19 @@ class SuperNotificationService(BaseNotificationService):
                              override_delivery, deliveries)
 
         stats_delivieries = stats_errors = 0
-        
-        
 
         for delivery, delivery_config in deliveries.items():
             method = delivery_config["method"]
 
             try:
                 await self.methods[method].deliver(message=message,
-                                             title=title,
-                                             target=target,
-                                             scenarios=scenarios,
-                                             priority=priority,
-                                             data=data.get(
-                                                 delivery, {}),
-                                             config=delivery_config)
+                                                   title=title,
+                                                   target=target,
+                                                   scenarios=scenarios,
+                                                   priority=priority,
+                                                   data=data.get(
+                                                       delivery, {}),
+                                                   config=delivery_config)
                 stats_delivieries += 1
             except Exception as e:
                 stats_errors += 1
@@ -283,19 +279,19 @@ class SuperNotificationService(BaseNotificationService):
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
-        
+
     async def select_scenarios(self):
-        scenarios=[]
-        for key,scenario in self.scenarios.items():
+        scenarios = []
+        for key, scenario in self.scenarios.items():
             if CONF_CONDITION in scenario:
                 try:
                     conditions = cv.CONDITION_SCHEMA(
                         scenario.get(CONF_CONDITION))
                     test = await condition.async_from_config(
-                            self.hass, conditions)
+                        self.hass, conditions)
                     if test(self.hass):
                         scenarios.append(key)
                 except Exception as e:
-                    _LOGGER.error("SUPERNOTIFY Scenario condition eval failed: %s", e)
+                    _LOGGER.error(
+                        "SUPERNOTIFY Scenario condition eval failed: %s", e)
         return scenarios
-

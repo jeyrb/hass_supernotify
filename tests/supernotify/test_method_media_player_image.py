@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, CONF_PERSON, METHOD_MEDIA
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.media_player import MediaPlayerImageDeliveryMethod
+from custom_components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, CONF_PERSON, METHOD_MEDIA
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.media_player import MediaPlayerImageDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD
 
 DELIVERY = {

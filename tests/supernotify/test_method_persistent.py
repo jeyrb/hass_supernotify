@@ -1,9 +1,9 @@
 from unittest.mock import Mock
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 
-from homeassistant.components.supernotify import ATTR_NOTIFICATION_ID, CONF_MOBILE, CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.persistent import PersistentDeliveryMethod
+from custom_components.supernotify import ATTR_NOTIFICATION_ID, CONF_MOBILE, CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.persistent import PersistentDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
 

@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = [
+    "tests",
+]
+norecursedirs = [
+    ".git",
+    "templates",
+]
+
+addopts = [
+  
+    "--timeout=20",
+    "--cov-report=lcov:cover/supernotify.lcov --cov-report=term-missing --cov=custom_components.supernotify --cov-fail-under=100"
+
+]

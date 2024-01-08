@@ -1,9 +1,9 @@
 from unittest.mock import Mock
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
-from homeassistant.components.supernotify import METHOD_GENERIC
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.generic import GenericDeliveryMethod
+from custom_components.supernotify import METHOD_GENERIC
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
 

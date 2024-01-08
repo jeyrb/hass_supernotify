@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import CONF_MOBILE, CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.sms import SMSDeliveryMethod
+from custom_components.supernotify import CONF_MOBILE, CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.sms import SMSDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
 

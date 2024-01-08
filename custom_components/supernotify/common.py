@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import asyncio
 import logging
 
 from homeassistant.components.notify import ATTR_TARGET

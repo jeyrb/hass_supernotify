@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import CONF_PERSON, METHOD_EMAIL
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.email import EmailDeliveryMethod
+from custom_components.supernotify import CONF_PERSON, METHOD_EMAIL
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
 
 

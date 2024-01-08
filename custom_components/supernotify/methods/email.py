@@ -7,8 +7,8 @@ from jinja2 import Environment, FileSystemLoader
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from homeassistant.const import CONF_EMAIL, CONF_SERVICE
 
-from . import CONF_TEMPLATE, METHOD_EMAIL
-from .common import DeliveryMethod
+from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
+from custom_components.supernotify.common import DeliveryMethod
 
 RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 

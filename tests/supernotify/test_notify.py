@@ -1,11 +1,10 @@
 from unittest.mock import Mock
-from homeassistant.components.supernotify import CONF_PHONE_NUMBER, ATTR_DELIVERY, ATTR_SCENARIOS, CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_METHOD, CONF_SCENARIOS, METHOD_ALEXA, METHOD_EMAIL, METHOD_CHIME, METHOD_PERSISTENT, METHOD_SMS
+from custom_components.supernotify import CONF_PHONE_NUMBER, ATTR_DELIVERY, ATTR_SCENARIOS, CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_METHOD, CONF_SCENARIOS, METHOD_ALEXA, METHOD_EMAIL, METHOD_CHIME, METHOD_PERSISTENT, METHOD_SMS
 from homeassistant.const import CONF_SERVICE, CONF_TARGET
 from homeassistant.core import HomeAssistant
-from homeassistant.components.supernotify.notify import SuperNotificationService
+from custom_components.supernotify.notify import SuperNotificationService
 import asyncio
 
-from tests.common import get_test_home_assistant
 
 DELIVERY = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},

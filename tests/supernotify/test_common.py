@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import CONF_PERSON
-from homeassistant.components.supernotify.common import DeliveryMethod, SuperNotificationContext
+from custom_components.supernotify import CONF_PERSON
+from custom_components.supernotify.common import DeliveryMethod, SuperNotificationContext
 
 class DummyDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):

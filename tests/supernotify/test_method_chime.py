@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify import METHOD_CHIME
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.chime import ChimeDeliveryMethod
+from custom_components.supernotify import METHOD_CHIME
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD
 
 

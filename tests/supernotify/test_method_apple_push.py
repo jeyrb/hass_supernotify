@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
-from homeassistant.components.supernotify.common import SuperNotificationContext
-from homeassistant.components.supernotify.methods.apple_push import (
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.methods.apple_push import (
     ApplePushDeliveryMethod,
 )
 
