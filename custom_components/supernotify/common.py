@@ -7,6 +7,7 @@ from homeassistant.const import (
     CONF_DEFAULT,
     CONF_ENTITIES,
     CONF_METHOD,
+    CONF_NAME,
     CONF_SERVICE,
     CONF_TARGET,
 )
@@ -143,9 +144,9 @@ class DeliveryMethod:
             # reuse standard recipient attributes like email or phone
             self._safe_extend(targets, self.recipient_target(recipient))
             # use entities or targets set at a method level for recipient
-            if CONF_DELIVERY in recipient and self.name in recipient.get(CONF_DELIVERY, {}):
+            if CONF_DELIVERY in recipient and delivery_config[CONF_NAME] in recipient.get(CONF_DELIVERY, {}):
                 recp_meth_cust = recipient.get(
-                    CONF_DELIVERY, {}).get(self.name, {})
+                    CONF_DELIVERY, {}).get(delivery_config[CONF_NAME], {})
                 self._safe_extend(
                     targets, recp_meth_cust.get(CONF_ENTITIES, []))
                 self._safe_extend(targets, recp_meth_cust.get(CONF_TARGET, []))

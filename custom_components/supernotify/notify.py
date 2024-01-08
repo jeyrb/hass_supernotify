@@ -258,7 +258,8 @@ class SuperNotificationService(BaseNotificationService):
         stats_delivieries = stats_errors = 0
 
         for delivery, delivery_config in deliveries.items():
-            method = delivery_config["method"]
+            method = delivery_config[CONF_METHOD]
+            delivery_config[CONF_NAME] = delivery # TODO consider changing delivery config to list
 
             try:
                 await self.methods[method].deliver(message=message,

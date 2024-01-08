@@ -62,7 +62,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                     service_data.setdefault("data", {})
                     service_data["data"]["images"] = image_paths
             else:
-                template_path = os.path.join(self.templates, "email")
+                template_path = os.path.join(self.context.templates, "email")
                 alert = {"title": title,
                          "message": message,
                          "subheading": "Home Assistant Notification",
