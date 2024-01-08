@@ -12,6 +12,25 @@ FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "fixtures", "configuration.yaml"
 )
 
+SIMPLE_CONFIG = {
+    "name": DOMAIN,
+    "platform": DOMAIN,
+    "recipients": [
+        {
+            "person": "person.house_owner",
+            "email": "test@testing.com",
+            "mobile": {
+                "phone_number": "+4497177848484",
+                                "devices": [
+                                    "mobile_app.owner_phone"
+                                ]
+
+            }
+
+        },
+    ]
+}
+
 
 async def test_reload(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", {})
@@ -21,27 +40,8 @@ async def test_reload(hass: HomeAssistant) -> None:
         hass,
         notify.DOMAIN,
         {
-            notify.DOMAIN: [
-                {
-                    "name": DOMAIN,
-                    "platform": DOMAIN,
-                    "recipients": [
-                        {
-                            "person": "person.house_owner",
-                            "email" : "test@testing.com",
-                            "mobile": {
-                                "phone_number": "+4497177848484",
-                                "devices": [
-                                    "mobile_app.owner_phone"
-                                ]
-
-                            }
-
-                        },
-                    ]
-                },
-            ]
-        },
+            notify.DOMAIN: [SIMPLE_CONFIG]
+        }
     )
 
     await hass.async_block_till_done()
@@ -73,12 +73,25 @@ async def test_reload(hass: HomeAssistant) -> None:
 
     assert len(uut.deliveries) == 9
 
+
+async def test_call_service(hass: HomeAssistant) -> None:
+
+    assert await async_setup_component(
+        hass,
+        notify.DOMAIN,
+        {
+            notify.DOMAIN: [SIMPLE_CONFIG]
+        }
+    )
+
+    await hass.async_block_till_done()
+
     await hass.services.async_call(
-            notify.DOMAIN,
-            "supernotifier_reloaded",
-            {"title":"my title","message":"unit test"},
-            blocking=True,
-        )
+        notify.DOMAIN,
+        DOMAIN,
+        {"title": "my title", "message": "unit test"},
+        blocking=True,
+    )
 
 
 async def test_empty_config(hass: HomeAssistant) -> None:
@@ -100,10 +113,8 @@ async def test_empty_config(hass: HomeAssistant) -> None:
 
     assert hass.services.has_service(notify.DOMAIN, DOMAIN)
     await hass.services.async_call(
-            notify.DOMAIN,
-            DOMAIN,
-            {"title":"my title","message":"unit test"},
-            blocking=True,
-        )
-
-
+        notify.DOMAIN,
+        DOMAIN,
+        {"title": "my title", "message": "unit test"},
+        blocking=True,
+    )
