@@ -2,13 +2,13 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_TARGET
-from homeassistant.components.supernotify import (
+from . import (
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
     METHOD_MEDIA,
 )
-from homeassistant.components.supernotify.common import DeliveryMethod
+from .common import DeliveryMethod
 from homeassistant.const import CONF_ENTITIES, CONF_SERVICE
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"

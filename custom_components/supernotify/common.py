@@ -106,7 +106,7 @@ class DeliveryMethod:
                             config=config)
 
     @abstractmethod
-    def _delivery_impl(message=None, title=None, config=None):
+    async def _delivery_impl(message=None, title=None, config=None):
         pass
 
     def select_target(self, target):

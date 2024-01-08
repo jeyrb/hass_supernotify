@@ -2,8 +2,8 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.components.supernotify import METHOD_CHIME
-from homeassistant.components.supernotify.common import DeliveryMethod
+from . import METHOD_CHIME
+from .common import DeliveryMethod
 from homeassistant.const import ATTR_DATE, CONF_ENTITIES
 
 RE_VALID_CHIME = r"(switch|script)\.[A-Za-z0-9_]+"

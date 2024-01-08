@@ -1,8 +1,8 @@
 import logging
 
 from homeassistant.components.notify.const import ATTR_TARGET
-from homeassistant.components.supernotify import METHOD_GENERIC
-from homeassistant.components.supernotify.common import DeliveryMethod
+from . import METHOD_GENERIC
+from .common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 _LOGGER = logging.getLogger(__name__)

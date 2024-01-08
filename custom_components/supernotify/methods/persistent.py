@@ -1,11 +1,11 @@
 import logging
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.components.supernotify import (
+from . import (
     ATTR_NOTIFICATION_ID,
     METHOD_PERSISTENT
 )
-from homeassistant.components.supernotify.common import DeliveryMethod
+from .common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 

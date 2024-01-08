@@ -2,8 +2,8 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS
-from homeassistant.components.supernotify.common import DeliveryMethod
+from . import CONF_PHONE_NUMBER, METHOD_SMS
+from .common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"

@@ -3,10 +3,10 @@ import re
 
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.components.supernotify import (
+from . import (
     METHOD_ALEXA
 )
-from homeassistant.components.supernotify.common import DeliveryMethod
+from .common import DeliveryMethod
 from homeassistant.const import CONF_ENTITIES, CONF_SERVICE, CONF_TARGET
 
 RE_VALID_ALEXA = r"media_player\.[A-Za-z0-9_]+"

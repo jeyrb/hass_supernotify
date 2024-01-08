@@ -12,7 +12,7 @@ from homeassistant.components.notify import (
     PLATFORM_SCHEMA,
     BaseNotificationService,
 )
-from homeassistant.components.supernotify.methods.generic import GenericDeliveryMethod
+from .methods.generic import GenericDeliveryMethod
 from homeassistant.const import (
     CONF_ALIAS,
     CONF_CONDITION,
