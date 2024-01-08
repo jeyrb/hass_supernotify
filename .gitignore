@@ -3,6 +3,7 @@ __pycache__/
 tests/__pycache__
 *.py[cod]
 *$py.class
+tests/supernotify/__pycache__/
 
 # C extensions
 *.so
