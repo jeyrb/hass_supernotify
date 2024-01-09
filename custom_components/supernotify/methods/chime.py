@@ -32,9 +32,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
         chime_tune = data.get("chime_tune")
         data = data or {}
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
-        service_data={}
+
         for chime_entity_id in targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
+            service_data={}
             try:
                 sequence = []  # TODO replace appdaemon sequencing
                 domain, name = chime_entity_id.split(".",1)
