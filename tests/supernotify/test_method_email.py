@@ -16,13 +16,13 @@ async def test_deliver() -> None:
         hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True }})
 
     await uut.deliver("hello there", title="testing")
-    hass.services.call.assert_called_with("notify", "smtp",
+    hass.services.async_call.assert_called_with("notify", "smtp",
                                           service_data={
                                               "target": ["tester1@assert.com"],
                                               "title": "testing", "message": "hello there"})
     hass.reset_mock()
     await uut.deliver("hello there", title="testing",target=['tester9@assert.com'])
-    hass.services.call.assert_called_with("notify", "smtp",
+    hass.services.async_call.assert_called_with("notify", "smtp",
                                           service_data={
                                               "target": ["tester9@assert.com"],
                                               "title": "testing", "message": "hello there"})

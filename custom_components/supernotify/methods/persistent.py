@@ -35,7 +35,7 @@ class PersistentDeliveryMethod(DeliveryMethod):
         try:
             domain, service = config.get(
                 CONF_SERVICE, "notify.persistent_notification").split(".", 1)
-            self.hass.services.call(
+            await self.hass.services.async_call(
                 domain, service, service_data=service_data)
         except Exception as e:
             _LOGGER.error(

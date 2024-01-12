@@ -103,7 +103,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
                               mobile_target, service_data)
-                self.hass.services.call("notify", mobile_target,
+                await self.hass.services.async_call("notify", mobile_target,
                                         service_data=service_data)
             except Exception as e:
                 _LOGGER.error(

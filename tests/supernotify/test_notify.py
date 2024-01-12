@@ -39,13 +39,13 @@ async def test_send_message_with_scenario_mismatch() -> None:
                                  data={ATTR_DELIVERY: [
                                      "pigeon", "persistent"]},
                                  recipients=RECIPIENTS)
-    hass.services.call.assert_not_called()
+    hass.services.async_call.assert_not_called()
     hass.reset_mock()
     await uut.async_send_message(title="test_title", message="testing 123",
                                  data={ATTR_DELIVERY: [
                                      "pigeon", "persistent"], ATTR_SCENARIOS: ["scenario1"]},
                                  recipients=RECIPIENTS)
-    hass.services.call.assert_called_with("notify", "persistent_notification",
+    hass.services.async_call.assert_called_with("notify", "persistent_notification",
                                           service_data={"title": "test_title", "message": "testing 123",
                                                         "notification_id": None})
 

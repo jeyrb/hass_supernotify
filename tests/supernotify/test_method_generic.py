@@ -17,7 +17,7 @@ async def test_deliver() -> None:
     await uut.deliver("hello there", title="testing",
                 target=["weird_generic_1", "weird_generic_2"],
                 data={"cuteness": "very"})
-    hass.services.call.assert_called_with("notify", "teleportation",
+    hass.services.async_call.assert_called_with("notify", "teleportation",
                                           service_data={
                                               ATTR_TITLE:   "testing",
                                               ATTR_MESSAGE: "hello there",

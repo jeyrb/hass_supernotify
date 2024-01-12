@@ -16,13 +16,13 @@ async def test_deliver() -> None:
         hass, context, {"default": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.smsify", CONF_DEFAULT: True }})
 
     await uut.deliver("hello there", title="testing")
-    hass.services.call.assert_called_with("notify", "smsify",
+    hass.services.async_call.assert_called_with("notify", "smsify",
                                           service_data={
                                               "target": ["+447979123456"],
                                               "message": "testing hello there"})
     hass.reset_mock()
     await uut.deliver("explicit target", title="testing", target=["+19876123456"])
-    hass.services.call.assert_called_with("notify", "smsify",
+    hass.services.async_call.assert_called_with("notify", "smsify",
                                           service_data={
                                               "target": ["+19876123456"],
                                               "message": "testing explicit target"})

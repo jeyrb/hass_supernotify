@@ -28,7 +28,7 @@ async def test_notify_media_image() -> None:
     await uut.deliver("hello there", data={
                 "snapshot_url": "http://10.10.10.10/ftp/pic.jpeg"})
 
-    hass.services.call.assert_called_with("media_player", "play_media",
+    hass.services.async_call.assert_called_with("media_player", "play_media",
                                           service_data={"entity_id": ["media_player.echo_show_8", "media_player.echo_show_10"],
                                                         "media_content_id": "https://myserver/pic.jpeg",
                                                         "media_content_type": "image"}
