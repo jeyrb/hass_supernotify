@@ -23,7 +23,7 @@ async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
     hass = Mock()
     context = SuperNotificationContext(recipients=[{"person":"person.test_user",
                                                     "mobile_devices":[
-                                                        {"service":"mobile_app_test_user_iphone"}
+                                                        {"notify_service":"mobile_app_test_user_iphone"}
                                                     ]
                                                     }])
 

@@ -29,7 +29,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
-            return filter(None, md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, []) )
+            return [ md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, []) if md.get(CONF_NOTIFY_SERVICE)]
         else:
             return []
 
