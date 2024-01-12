@@ -41,6 +41,7 @@ from . import (
     CONF_ACTIONS,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_NOTIFY,
     CONF_DEVICE_TRACKER,
     CONF_LINKS,
     CONF_MANUFACTURER,
@@ -48,7 +49,6 @@ from . import (
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
-    CONF_NOTIFY_SERVICE,
     CONF_OCCUPANCY,
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
@@ -92,7 +92,7 @@ TEMPLATE_DIR = "/config/templates/supernotify"
 MOBILE_DEVICE_SCHEMA = {
     vol.Optional(CONF_MANUFACTURER): cv.string,
     vol.Optional(CONF_MODEL): cv.string,
-    vol.Required(CONF_NOTIFY_SERVICE): cv.string,
+    vol.Optional(CONF_NOTIFY): { vol.Required(CONF_SERVICE): cv.service },
     vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
 }
 RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = {
@@ -346,7 +346,7 @@ class SuperNotificationService(BaseNotificationService):
                         mobile_devices.append({
                             CONF_MANUFACTURER: device.manufacturer,
                             CONF_MODEL: device.model,
-                            CONF_NOTIFY_SERVICE: 'mobile_app_%s' % slugify(device.name),
+                            CONF_NOTIFY: { CONF_SERVICE: 'mobile_app_%s' % slugify(device.name) },
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices

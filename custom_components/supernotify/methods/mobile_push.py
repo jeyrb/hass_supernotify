@@ -4,7 +4,7 @@ import re
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
     CONF_MOBILE_DEVICES,
-    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
     PRIORITY_CRITICAL,
@@ -29,7 +29,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
-            return [ md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, []) if md.get(CONF_NOTIFY_SERVICE)]
+            services = [md.get(CONF_NOTIFY, {}).get(CONF_SERVICE)
+                        for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            return list(filter(None, services))
         else:
             return []
 
@@ -104,7 +106,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
                               mobile_target, service_data)
                 await self.hass.services.async_call("notify", mobile_target,
-                                        service_data=service_data)
+                                                    service_data=service_data)
             except Exception as e:
                 _LOGGER.error(
                     "SUPERNOTIFY Mobile push failure (m=%s): %s", message, e)
