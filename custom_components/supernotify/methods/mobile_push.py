@@ -1,36 +1,44 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_TITLE
-from custom_components.supernotify  import (
-    METHOD_APPLE_PUSH,
+from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
+from custom_components.supernotify import (
+    CONF_MOBILE_DEVICES,
+    CONF_PERSON,
+    METHOD_MOBILE_PUSH,
     PRIORITY_CRITICAL,
     PRIORITY_HIGH,
     PRIORITY_LOW,
     PRIORITY_MEDIUM
 )
 from custom_components.supernotify.common import DeliveryMethod
-from homeassistant.const import CONF_ENTITIES, CONF_SERVICE, CONF_TARGET
+from homeassistant.const import CONF_SERVICE
 
-RE_VALID_MOBILE_APP = r"mobile_app\.[A-Za-z0-9_]+"
+RE_VALID_MOBILE_APP = r"mobile_app_[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ApplePushDeliveryMethod(DeliveryMethod):
+class MobilePushDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_APPLE_PUSH, False, *args, **kwargs)
+        super().__init__(METHOD_MOBILE_PUSH, False, *args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MOBILE_APP, target)
-    
+
+    def recipient_target(self, recipient):
+        if CONF_PERSON in recipient:
+            return [md[CONF_SERVICE] for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+        else:
+            return []
+
     async def _delivery_impl(self, message=None,
-                       title=None,
-                       config=None,
-                       targets=None,
-                       priority=PRIORITY_MEDIUM,
-                       data=None,
-                       **kwargs):
+                             title=None,
+                             config=None,
+                             targets=None,
+                             priority=PRIORITY_MEDIUM,
+                             data=None,
+                             **kwargs):
         config = config or {}
         app_url = data.get("app_url")
         app_url_title = data.get("app_url_title")
@@ -40,7 +48,7 @@ class ApplePushDeliveryMethod(DeliveryMethod):
         category = data.get("category", "general")
 
         title = title or ""
-        _LOGGER.info("SUPERNOTIFY notify_apple: %s -> %s", title, targets)
+        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", title, targets)
 
         data = data and data.get(ATTR_DATA) or {}
 
@@ -90,14 +98,14 @@ class ApplePushDeliveryMethod(DeliveryMethod):
             "message": message,
             ATTR_DATA: data
         }
-        for apple_target in targets:
+        for mobile_target in targets:
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
-                              apple_target, service_data)
-                self.hass.services.call("notify", apple_target,
+                              mobile_target, service_data)
+                self.hass.services.call("notify", mobile_target,
                                         service_data=service_data)
             except Exception as e:
                 _LOGGER.error(
-                    "SUPERNOTIFY Apple push failure (m=%s): %s", message, e)
-        _LOGGER.info("SUPERNOTIFY iOS Push t=%s m=%s d=%s",
+                    "SUPERNOTIFY Mobile push failure (m=%s): %s", message, e)
+        _LOGGER.info("SUPERNOTIFY Mobile Push t=%s m=%s d=%s",
                      title, message, data)

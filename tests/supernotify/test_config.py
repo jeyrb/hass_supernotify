@@ -1,12 +1,14 @@
 import pathlib
 from unittest.mock import patch
 
-from homeassistant import config as hass_config
 import homeassistant.components.notify as notify
-from custom_components.supernotify import DOMAIN
+from homeassistant import config as hass_config
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
+
+from custom_components.supernotify import DOMAIN
+from custom_components.supernotify.notify import PLATFORM_SCHEMA
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "fixtures", "configuration.yaml"
@@ -19,17 +21,14 @@ SIMPLE_CONFIG = {
         {
             "person": "person.house_owner",
             "email": "test@testing.com",
-            "mobile": {
-                "phone_number": "+4497177848484",
-                                "devices": [
-                                    "mobile_app.owner_phone"
-                                ]
-
-            }
-
-        },
+            "phone_number": "+4497177848484"
+        }
     ]
 }
+
+
+async def test_schema():
+    assert PLATFORM_SCHEMA(SIMPLE_CONFIG)
 
 
 async def test_reload(hass: HomeAssistant) -> None:
@@ -64,7 +63,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert "html_email" in uut.deliveries
     assert "text_message" in uut.deliveries
     assert "alexa_announce" in uut.deliveries
-    assert "apple_push" in uut.deliveries
+    assert "mobile_push" in uut.deliveries
     assert "alexa_show" in uut.deliveries
     assert "play_chimes" in uut.deliveries
     assert "doorbell" in uut.deliveries

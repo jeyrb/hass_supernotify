@@ -2,7 +2,6 @@ import logging
 import os.path
 
 import voluptuous as vol
-
 from homeassistant.components.ios import PUSH_ACTION_SCHEMA
 from homeassistant.components.notify import (
     ATTR_DATA,
@@ -11,7 +10,6 @@ from homeassistant.components.notify import (
     PLATFORM_SCHEMA,
     BaseNotificationService,
 )
-from .methods.generic import GenericDeliveryMethod
 from homeassistant.const import (
     CONF_ALIAS,
     CONF_CONDITION,
@@ -27,8 +25,12 @@ from homeassistant.const import (
     CONF_URL,
     Platform,
 )
-from homeassistant.helpers import condition, config_validation as cv
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import condition, device_registry, entity_registry
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.reload import async_setup_reload_service
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.util import slugify
 
 from . import (
     ATTR_DELIVERY,
@@ -39,8 +41,14 @@ from . import (
     CONF_ACTIONS,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_DEVICE_TRACKER,
     CONF_LINKS,
+    CONF_MANUFACTURER,
     CONF_METHOD,
+    CONF_MOBILE_DEVICES,
+    CONF_MOBILE_DISCOVERY,
+    CONF_MODEL,
+    CONF_NOTIFY_SERVICE,
     CONF_OCCUPANCY,
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
@@ -54,11 +62,11 @@ from . import (
     CONF_TEMPLATES,
     DOMAIN,
     METHOD_ALEXA,
-    METHOD_APPLE_PUSH,
     METHOD_CHIME,
     METHOD_EMAIL,
     METHOD_GENERIC,
     METHOD_MEDIA,
+    METHOD_MOBILE_PUSH,
     METHOD_PERSISTENT,
     METHOD_SMS,
     METHOD_VALUES,
@@ -69,10 +77,11 @@ from . import (
 )
 from .common import SuperNotificationContext
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
-from .methods.apple_push import ApplePushDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
+from .methods.generic import GenericDeliveryMethod
 from .methods.media_player import MediaPlayerImageDeliveryMethod
+from .methods.mobile_push import MobilePushDeliveryMethod
 from .methods.persistent import PersistentDeliveryMethod
 from .methods.sms import SMSDeliveryMethod
 
@@ -80,7 +89,12 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.NOTIFY]
 TEMPLATE_DIR = "/config/templates/supernotify"
-
+MOBILE_DEVICE_SCHEMA = {
+    vol.Optional(CONF_MANUFACTURER): cv.string,
+    vol.Optional(CONF_MODEL): cv.string,
+    vol.Required(CONF_NOTIFY_SERVICE): cv.string,
+    vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
+}
 RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = {
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
@@ -98,6 +112,8 @@ RECIPIENT_SCHEMA = {
     vol.Optional(CONF_EMAIL): cv.string,
     vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
+    vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
+    vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
 }
 SCENARIO_SCHEMA = {
@@ -145,7 +161,7 @@ METHODS = {
     METHOD_EMAIL:       EmailDeliveryMethod,
     METHOD_SMS:         SMSDeliveryMethod,
     METHOD_ALEXA:       AlexaMediaPlayerDeliveryMethod,
-    METHOD_APPLE_PUSH:  ApplePushDeliveryMethod,
+    METHOD_MOBILE_PUSH: MobilePushDeliveryMethod,
     METHOD_MEDIA:       MediaPlayerImageDeliveryMethod,
     METHOD_CHIME:       ChimeDeliveryMethod,
     METHOD_PERSISTENT:  PersistentDeliveryMethod,
@@ -153,7 +169,10 @@ METHODS = {
 }
 
 
-async def async_get_service(hass, config, discovery_info=None):
+async def async_get_service(hass: HomeAssistant,
+                            config: ConfigType,
+                            discovery_info: DiscoveryInfoType | None = None
+                            ):
     for delivery in config.get(CONF_DELIVERY, ()).values():
         if CONF_CONDITION in delivery:
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
@@ -212,7 +231,18 @@ class SuperNotificationService(BaseNotificationService):
         self.overrides = overrides or {}
         deliveries = deliveries or {}
 
-        self.people = {r["person"]: r for r in recipients}
+        self.people = {}
+        for r in recipients:
+            if r[CONF_MOBILE_DISCOVERY]:
+                r[CONF_MOBILE_DEVICES].extend(
+                    self.mobile_devices_for_person(r[CONF_PERSON]))
+                if r[CONF_MOBILE_DEVICES]:
+                    _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s",
+                                 r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
+                else:
+                    _LOGGER.warn(
+                        "SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
+            self.people[r[CONF_PERSON]] = r
         if templates and not os.path.exists(templates):
             _LOGGER.warning("SUPERNOTIFY template directory not found at %s",
                             templates)
@@ -259,7 +289,8 @@ class SuperNotificationService(BaseNotificationService):
 
         for delivery, delivery_config in deliveries.items():
             method = delivery_config[CONF_METHOD]
-            delivery_config[CONF_NAME] = delivery # TODO consider changing delivery config to list
+            # TODO consider changing delivery config to list
+            delivery_config[CONF_NAME] = delivery
 
             try:
                 await self.methods[method].deliver(message=message,
@@ -296,3 +327,26 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.error(
                         "SUPERNOTIFY Scenario condition eval failed: %s", e)
         return scenarios
+
+    def mobile_devices_for_person(self, person_entity_id):
+
+        dev_reg = device_registry.async_get(self.hass)
+        ent_reg = entity_registry.async_get(self.hass)
+
+        mobile_devices = []
+        person_state = self.hass.states.get(person_entity_id)
+        if not person_state:
+            _LOGGER.warn("SUPERNOTIFY Unable to resolve %s", person_entity_id)
+        else:
+            for d_t in person_state.attributes.get('device_trackers', ()):
+                entity = ent_reg.async_get(d_t)
+                if entity and entity.platform == 'mobile_app':
+                    device = dev_reg.async_get(entity.device_id)
+                    if device:
+                        mobile_devices.append({
+                            CONF_MANUFACTURER: device.manufacturer,
+                            CONF_MODEL: device.model,
+                            CONF_NOTIFY_SERVICE: 'mobile_app_%s' % slugify(device.name),
+                            CONF_DEVICE_TRACKER: d_t
+                        })
+        return mobile_devices

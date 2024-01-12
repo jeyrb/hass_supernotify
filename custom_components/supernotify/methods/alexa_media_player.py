@@ -4,6 +4,7 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import (
+    CONF_PERSON,
     METHOD_ALEXA
 )
 from custom_components.supernotify.common import DeliveryMethod
@@ -20,7 +21,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_ALEXA, target)
-    
+      
     async def _delivery_impl(self, message=None,
                        title=None,
                        config=None,

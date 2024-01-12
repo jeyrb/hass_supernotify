@@ -33,7 +33,7 @@ for sending only to people in or out of the property
 
 ## Delivery Methods
 
-### Apple Push
+### Mobile Push
 
 Send a push message out, with option for camera integration, mobile actions, and
 translate general priority to Apple specific push priority. 
@@ -122,8 +122,8 @@ notify:
           - media_player.bedroom
           - media_player.studio
         occupancy: any_in
-      apple_push:
-        method: apple_push
+      mobile_push:
+        method: mobile_push
       alexa_show:
         method: media
         service: media_player.play_media
@@ -159,7 +159,7 @@ notify:
         email: me@home.net
         phone_number: "+44797940404"
         delivery:
-            apple_push:
+            mobile_push:
                 entities:
                     - mobile_app.new_iphone
                 data:
@@ -170,8 +170,7 @@ notify:
                 entities:
                     - media_player.echo_workshop
       - person: person.bidey_in
-        mobile:
-          number: "+4489393013834"
+        phone_number: "+4489393013834"
 
     actions:
       - identifier: action-1

@@ -43,8 +43,8 @@ notify:
           - media_player.old_kitchen_flex
           - media_player.studio
         occupancy: any_in
-      apple_push:
-        method: apple_push
+      mobile_push:
+        method: mobile_push
       alexa_show:
         method: media
         service: media_player.play_media
@@ -90,7 +90,7 @@ notify:
         email: jrb@jeymail.net
         phone_number: "+447989408889"
         deliveries:
-          apple_push: 
+          mobile_push: 
             target:
               - mobile_app.new_iphone
             data:

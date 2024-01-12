@@ -1,7 +1,9 @@
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
 
+from homeassistant.components import person
 from homeassistant.components.notify import ATTR_TARGET
+from homeassistant.components.person import ATTR_DEVICE_TRACKERS
 from homeassistant.const import (
     CONF_CONDITION,
     CONF_DEFAULT,
@@ -12,7 +14,8 @@ from homeassistant.const import (
     CONF_TARGET,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import condition, config_validation as cv
+from homeassistant.helpers import condition
+from homeassistant.helpers import config_validation as cv
 
 from . import (
     ATTR_SCENARIOS,
@@ -126,26 +129,27 @@ class DeliveryMethod:
                     recipients.append({ATTR_TARGET: t})
             _LOGGER.debug(
                 "SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
-        elif delivery_config and CONF_ENTITIES in delivery_config:
-            # second priority is explicit entities on delivery
-            recipients = [{ATTR_TARGET: e}
-                          for e in delivery_config.get(CONF_ENTITIES)]
-            _LOGGER.debug(
-                "SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
-
-        elif delivery_config and CONF_TARGET in delivery_config:
-            # thirdt priority is explicit target on delivery
-            recipients = [{ATTR_TARGET: e}
-                          for e in delivery_config.get(CONF_TARGET)]
-            _LOGGER.debug(
-                "SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
-
         else:
-            # If target not specified on service call or delivery, then use the list of recipients
-            recipients = self.filter_recipients(
-                delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
-            _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s",
-                          __name__, recipients)
+            if delivery_config and CONF_ENTITIES in delivery_config:
+                # second priority is explicit entities on delivery
+                recipients.extend({ATTR_TARGET: e}
+                                  for e in delivery_config.get(CONF_ENTITIES))
+                _LOGGER.debug(
+                    "SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
+
+            if delivery_config and CONF_TARGET in delivery_config:
+                # third priority is explicit target on delivery
+                recipients.extend({ATTR_TARGET: e}
+                                  for e in delivery_config.get(CONF_TARGET))
+                _LOGGER.debug(
+                    "SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
+
+            if not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
+                # If target not specified on service call or delivery, then use list of recipients
+                recipients = self.filter_recipients(
+                    delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
+                _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s",
+                              __name__, recipients)
 
         # now the list of recipients determined, resolve this to target addresses or entities
         targets = []

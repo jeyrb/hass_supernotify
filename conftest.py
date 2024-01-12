@@ -1,5 +1,5 @@
 from unittest.mock import patch
-
+from homeassistant.setup import async_setup_component
 import pytest
 
 
@@ -18,3 +18,4 @@ def skip_notifications_fixture():
         "homeassistant.components.persistent_notification.async_dismiss"
     ):
         yield
+        
