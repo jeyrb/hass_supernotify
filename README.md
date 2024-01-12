@@ -157,7 +157,10 @@ notify:
     recipients:
       - person: person.new_home_owner
         email: me@home.net
+        # phone_number only required if SMS or similar delivery methods available
         phone_number: "+44797940404"
+        # defaults to true, switch off for manual configuration or if no mobile push desired
+        mobile_discovery: true
         delivery:
             mobile_push:
                 entities:
