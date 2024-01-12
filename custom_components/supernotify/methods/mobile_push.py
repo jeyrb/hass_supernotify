@@ -4,6 +4,7 @@ import re
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
     CONF_MOBILE_DEVICES,
+    CONF_NOTIFY_SERVICE,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
     PRIORITY_CRITICAL,
@@ -28,7 +29,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
-            return [md[CONF_SERVICE] for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            return filter(None, md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, []) )
         else:
             return []
 
