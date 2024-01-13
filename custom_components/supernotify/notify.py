@@ -366,7 +366,7 @@ class SuperNotificationService(BaseNotificationService):
                         mobile_devices.append({
                             CONF_MANUFACTURER: device.manufacturer,
                             CONF_MODEL: device.model,
-                            CONF_NOTIFY_SERVICE: slugify(device.name),
+                            CONF_NOTIFY_SERVICE: 'mobile_app_%s' % slugify(device.name),
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices

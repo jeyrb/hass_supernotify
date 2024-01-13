@@ -4,6 +4,7 @@ tests/__pycache__
 *.py[cod]
 *$py.class
 tests/supernotify/__pycache__/
+cov.xml
 
 # C extensions
 *.so

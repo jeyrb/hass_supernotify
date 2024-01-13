@@ -24,6 +24,7 @@ from . import (
     CONF_OCCUPANCY,
     CONF_PERSON,
     CONF_PRIORITY,
+    CONF_RECIPIENTS,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -120,7 +121,8 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
-        targets = self.build_targets(config, target)
+        recipients_override = data.get(CONF_RECIPIENTS)
+        targets = self.build_targets(config, target,recipients_override)
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
             _LOGGER.debug(
@@ -144,7 +146,7 @@ class DeliveryMethod:
     def recipient_target(self, recipient):
         return []
 
-    def build_targets(self, delivery_config, target):
+    def build_targets(self, delivery_config, target, recipients_override):
         recipients = []
         if target:
             # first priority is explicit target set on notify call, which overrides everything else
@@ -170,7 +172,12 @@ class DeliveryMethod:
                 _LOGGER.debug(
                     "SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
 
-            if not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
+            if delivery_config and CONF_RECIPIENTS in delivery_config:
+                recipients = delivery_config[CONF_RECIPIENTS]
+                _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s",
+                              __name__, recipients)
+                
+            elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
                 # If target not specified on service call or delivery, then use list of recipients
                 recipients = self.filter_recipients(
                     delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
@@ -194,10 +201,11 @@ class DeliveryMethod:
                 self._safe_extend(targets, recipient.get(ATTR_TARGET))
 
         pre_filter_count = len(targets)
+        _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
         targets = [t for t in targets if self.select_target(t)]
         if len(targets) < pre_filter_count:
-            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__, len(
-                targets)-pre_filter_count, targets)
+            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__, 
+                          pre_filter_count-len(targets), targets)
         if not targets:
             _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)
         return targets
