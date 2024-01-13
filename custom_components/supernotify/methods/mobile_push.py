@@ -4,7 +4,6 @@ import re
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
     CONF_MOBILE_DEVICES,
-    CONF_NOTIFY,
     CONF_NOTIFY_SERVICE,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
@@ -14,7 +13,6 @@ from custom_components.supernotify import (
     PRIORITY_MEDIUM
 )
 from custom_components.supernotify.common import DeliveryMethod
-from homeassistant.const import CONF_SERVICE
 
 RE_VALID_MOBILE_APP = r"mobile_app_[A-Za-z0-9_]+"
 

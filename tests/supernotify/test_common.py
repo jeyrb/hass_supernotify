@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from custom_components.supernotify import CONF_PERSON
 from custom_components.supernotify.common import DeliveryMethod, SuperNotificationContext
 
+
 class DummyDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__("dummy", False, *args, **kwargs)

@@ -1,19 +1,19 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_TARGET
-from custom_components.supernotify  import (
+from custom_components.supernotify import (
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
     METHOD_MEDIA,
 )
 from custom_components.supernotify.common import DeliveryMethod
-from homeassistant.const import CONF_ENTITIES, CONF_SERVICE
+from homeassistant.const import CONF_SERVICE
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
@@ -21,13 +21,13 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
-    
+
     async def _delivery_impl(self, message=None,
-                       title=None,
-                       config=None,
-                       targets=None,
-                       data=None,
-                       **kwargs):
+                             title=None,
+                             config=None,
+                             targets=None,
+                             data=None,
+                             **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_media: %s", message)
         config = config or self.default_delivery
         media_players = targets or []
@@ -40,7 +40,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
             return
 
-        override_config = config.get(CONF_OVERRIDES,{}).get("image_url")
+        override_config = config.get(CONF_OVERRIDES, {}).get("image_url")
         if override_config:
             new_url = snapshot_url.replace(
                 override_config[CONF_OVERRIDE_BASE], override_config[CONF_OVERRIDE_REPLACE])
@@ -60,8 +60,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             domain, service = config.get(
                 CONF_SERVICE, "media_player.play_media").split(".", 1)
             await self.hass.services.async_call(
-                    domain, service,
-                    service_data=service_data)
+                domain, service,
+                service_data=service_data)
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via media player (url=%s): %s", snapshot_url, e)

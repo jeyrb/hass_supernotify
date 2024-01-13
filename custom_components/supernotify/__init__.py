@@ -18,6 +18,7 @@ CONF_DELIVERY = "delivery"
 CONF_OVERRIDES = "overrides"
 CONF_OVERRIDE_BASE = "base"
 CONF_OVERRIDE_REPLACE = "replace"
+CONF_FALLBACK = "fallback"
 
 CONF_DATA = "data"
 CONF_OPTIONS = "options"
@@ -34,7 +35,6 @@ CONF_DEVICE_TRACKER = "device_tracker"
 CONF_MODEL = "model"
 CONF_MOBILE_DEVICES = "mobile_devices"
 CONF_MOBILE_DISCOVERY = "mobile_discovery"
-CONF_CONDITION_COMPILED = "__compiled_condition"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -45,6 +45,10 @@ OCCUPANCY_ALL_OUT = "all_out"
 OCCUPANCY_ONLY_IN = "only_in"
 OCCUPANCY_ONLY_OUT = "only_out"
 
+FALLBACK_DISABLED = "disabled"
+FALLBACK_ON_ERROR = "on_error"
+FALLBACK_ENABLED = "enabled"
+
 ATTR_PRIORITY = "priority"
 ATTR_SCENARIOS = "scenarios"
 ATTR_DELIVERY = "delivery"
@@ -53,6 +57,7 @@ ATTR_NOTIFICATION_ID = "notification_id"
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
 
+FALLBACK_VALUES = [FALLBACK_ON_ERROR, FALLBACK_DISABLED, FALLBACK_ENABLED]
 OCCUPANCY_VALUES = [OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT,
                     OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT,
                     OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT,

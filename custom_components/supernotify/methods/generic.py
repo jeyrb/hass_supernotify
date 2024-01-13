@@ -1,7 +1,6 @@
 import logging
 
-from homeassistant.components.notify.const import ATTR_TARGET
-from custom_components.supernotify  import METHOD_GENERIC
+from custom_components.supernotify import METHOD_GENERIC
 from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
@@ -13,12 +12,12 @@ class GenericDeliveryMethod(DeliveryMethod):
         super().__init__(METHOD_GENERIC, True, *args, **kwargs)
 
     async def _delivery_impl(self,
-                       title=None,
-                       message=None,
-                       config=None,
-                       data=None,
-                       targets=None,
-                       **kwargs):
+                             title=None,
+                             message=None,
+                             config=None,
+                             data=None,
+                             targets=None,
+                             **kwargs):
         config = config or {}
         data = data or {}
         targets = targets or []

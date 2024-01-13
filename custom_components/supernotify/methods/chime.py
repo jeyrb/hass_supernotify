@@ -1,7 +1,7 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_DATA
 from custom_components.supernotify import METHOD_CHIME
 from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
@@ -17,12 +17,12 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
-    
+
     async def _delivery_impl(self,
-                       config=None,
-                       targets=None,
-                       data=None,
-                       **kwargs):
+                             config=None,
+                             targets=None,
+                             data=None,
+                             **kwargs):
         config = config or {}
         data = data or {}
         targets = targets or []
@@ -35,10 +35,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         for chime_entity_id in targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
-            service_data={}
+            service_data = {}
             try:
                 sequence = []  # TODO replace appdaemon sequencing
-                domain, name = chime_entity_id.split(".",1)
+                domain, name = chime_entity_id.split(".", 1)
 
                 if domain == "switch":
                     service = "turn_on"

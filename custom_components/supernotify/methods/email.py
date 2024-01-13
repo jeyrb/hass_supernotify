@@ -23,7 +23,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             self.template_path = os.path.join(self.context.templates, "email")
             if not os.path.exists(self.template_path):
                 self.template_path = None
-        if self.template_path == None:
+        if self.template_path is None:
             _LOGGER.warning("SUPERNOTIFY Email templates not available")
         else:
             _LOGGER.debug(

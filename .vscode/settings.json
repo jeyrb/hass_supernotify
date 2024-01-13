@@ -2,9 +2,6 @@
     "files.associations": {
         "*.yaml": "home-assistant"
     },
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.testing.pytestArgs": [
@@ -12,4 +9,7 @@
         "--cov-report=html:htmlcov",
         "tests"
     ],
+    "flake8.args": [
+        "--max-line-length=120"
+     ]
 }

@@ -12,16 +12,18 @@ async def test_deliver() -> None:
     hass = Mock()
     context = SuperNotificationContext()
     uut = GenericDeliveryMethod(
-        hass, context, {"default": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.teleportation", CONF_DEFAULT: True}})
+        hass, context, {"default": {CONF_METHOD: METHOD_GENERIC,
+                                    CONF_SERVICE: "notify.teleportation",
+                                    CONF_DEFAULT: True}})
 
     await uut.deliver("hello there", title="testing",
-                target=["weird_generic_1", "weird_generic_2"],
-                data={"cuteness": "very"})
+                      target=["weird_generic_1", "weird_generic_2"],
+                      data={"cuteness": "very"})
     hass.services.async_call.assert_called_with("notify", "teleportation",
-                                          service_data={
-                                              ATTR_TITLE:   "testing",
-                                              ATTR_MESSAGE: "hello there",
-                                              ATTR_DATA:    {"cuteness": "very"},
-                                              ATTR_TARGET:  [
-                                                  "weird_generic_1", "weird_generic_2"]
-                                          })
+                                                service_data={
+                                                    ATTR_TITLE:   "testing",
+                                                    ATTR_MESSAGE: "hello there",
+                                                    ATTR_DATA:    {"cuteness": "very"},
+                                                    ATTR_TARGET:  [
+                                                        "weird_generic_1", "weird_generic_2"]
+                                                })

@@ -10,9 +10,10 @@ RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class SMSDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
-        super().__init__( METHOD_SMS, True, *args, **kwargs)
+        super().__init__(METHOD_SMS, True, *args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_PHONE, target)
@@ -20,13 +21,13 @@ class SMSDeliveryMethod(DeliveryMethod):
     def recipient_target(self, recipient):
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
-    
+
     async def _delivery_impl(self, message=None,
-                       title=None,
-                       config=None,
-                       targets=None,
-                       data=None,
-                       **kwargs):
+                             title=None,
+                             config=None,
+                             targets=None,
+                             data=None,
+                             **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
         config = config or self.default_delivery
         data = data or {}
@@ -48,5 +49,3 @@ class SMSDeliveryMethod(DeliveryMethod):
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)
-
-

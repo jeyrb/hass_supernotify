@@ -1,13 +1,9 @@
 import logging
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from custom_components.supernotify  import (
-    ATTR_NOTIFICATION_ID,
-    METHOD_PERSISTENT
-)
-from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
+from custom_components.supernotify import ATTR_NOTIFICATION_ID, METHOD_PERSISTENT
+from custom_components.supernotify.common import DeliveryMethod
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,11 +13,11 @@ class PersistentDeliveryMethod(DeliveryMethod):
         super().__init__(METHOD_PERSISTENT, False, *args, **kwargs)
 
     async def _delivery_impl(self,
-                       title=None,
-                       message=None,
-                       config=None,
-                       data=None,
-                       **kwargs):
+                             title=None,
+                             message=None,
+                             config=None,
+                             data=None,
+                             **kwargs):
         config = config or {}
         data = data or {}
 

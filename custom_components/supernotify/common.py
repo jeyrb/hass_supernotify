@@ -122,7 +122,7 @@ class DeliveryMethod:
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
         recipients_override = data.get(CONF_RECIPIENTS)
-        targets = self.build_targets(config, target,recipients_override)
+        targets = self.build_targets(config, target, recipients_override)
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
             _LOGGER.debug(
@@ -176,7 +176,7 @@ class DeliveryMethod:
                 recipients = delivery_config[CONF_RECIPIENTS]
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s",
                               __name__, recipients)
-                
+
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
                 # If target not specified on service call or delivery, then use list of recipients
                 recipients = self.filter_recipients(
@@ -204,7 +204,7 @@ class DeliveryMethod:
         _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
         targets = [t for t in targets if self.select_target(t)]
         if len(targets) < pre_filter_count:
-            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__, 
+            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__,
                           pre_filter_count-len(targets), targets)
         if not targets:
             _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)

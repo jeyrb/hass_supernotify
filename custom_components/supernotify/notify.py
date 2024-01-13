@@ -49,6 +49,7 @@ from . import (
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
+    CONF_FALLBACK,
     CONF_NOTIFY_SERVICE,
     CONF_OCCUPANCY,
     CONF_OVERRIDE_BASE,
@@ -75,6 +76,10 @@ from . import (
     OCCUPANCY_VALUES,
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
+    FALLBACK_DISABLED,
+    FALLBACK_ON_ERROR,
+    FALLBACK_ENABLED,
+    FALLBACK_VALUES
 )
 from .common import SuperNotificationContext
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -128,6 +133,7 @@ DELIVERY_SCHEMA = {
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
+    vol.Optional(CONF_FALLBACK, default=FALLBACK_DISABLED): vol.In(FALLBACK_VALUES),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_DATA): dict,
@@ -261,6 +267,13 @@ class SuperNotificationService(BaseNotificationService):
 
         self.methods = {}
         self.deliveries = {}
+        self.fallback_on_error = {d: dc for d, dc in deliveries.items() if dc.get(
+            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_ON_ERROR}
+        self.fallback_by_default = {d: dc for d, dc in deliveries.items() if dc.get(
+            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_ENABLED}
+        deliveries = {d: dc for d, dc in deliveries.items() if dc.get(
+            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_DISABLED}
+
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
             self.deliveries.update(self.methods[method].valid_deliveries)
@@ -308,26 +321,47 @@ class SuperNotificationService(BaseNotificationService):
         stats_delivieries = stats_errors = 0
 
         for delivery, delivery_config in deliveries.items():
-            method = delivery_config[CONF_METHOD]
-            # TODO consider changing delivery config to list
-            delivery_config[CONF_NAME] = delivery
+            delivered, errored = await self.call_method(delivery, delivery_config, message,
+                                                        title, target, scenarios, priority, data)
+            stats_delivieries += delivered
+            stats_errors += errored
 
-            try:
-                await self.methods[method].deliver(message=message,
-                                                   title=title,
-                                                   target=target,
-                                                   scenarios=scenarios,
-                                                   priority=priority,
-                                                   data=data.get(
-                                                       delivery, {}),
-                                                   config=delivery_config)
-                stats_delivieries += 1
-            except Exception as e:
-                stats_errors += 1
-                _LOGGER.warning(
-                    "SUPERNOTIFY Failed to %s %s: %s", method, delivery, e)
+        if stats_delivieries == 0 and stats_errors == 0:
+            for delivery, delivery_config in self.fallback_by_default.items():
+                delivered, errored = await self.call_method(delivery, delivery_config, message,
+                                                            title, target, scenarios, priority, data)
+                stats_delivieries += delivered
+                stats_errors += errored
+
+        if stats_delivieries == 0 and stats_errors > 0:
+            for delivery, delivery_config in self.fallback_on_error.items():
+                delivered, errored = await self.call_method(delivery, delivery_config, message,
+                                                            title, target, scenarios, priority, data)
+                stats_delivieries += delivered
+                stats_errors += errored
         _LOGGER.debug("SUPERNOTIFY %s deliveries, %s errors",
                       stats_delivieries, stats_errors)
+
+    async def call_method(self, delivery, delivery_config, message,
+                          title, target, scenarios, priority, data):
+        method = delivery_config[CONF_METHOD]
+        # TODO consider changing delivery config to list
+        delivery_config[CONF_NAME] = delivery
+
+        try:
+            await self.methods[method].deliver(message=message,
+                                               title=title,
+                                               target=target,
+                                               scenarios=scenarios,
+                                               priority=priority,
+                                               data=data.get(
+                                                   delivery, {}),
+                                               config=delivery_config)
+            return (1, 0)
+        except Exception as e:
+            _LOGGER.warning(
+                "SUPERNOTIFY Failed to %s %s: %s", method, delivery, e)
+            return (0, 1)
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)

@@ -11,11 +11,12 @@ async def test_deliver() -> None:
     hass = Mock()
     context = SuperNotificationContext()
     uut = ChimeDeliveryMethod(
-        hass, context, {"chimes":{CONF_METHOD: METHOD_CHIME,
-                                  CONF_DEFAULT: True,
-                                  CONF_ENTITIES: ["switch.bell_1", "script.siren_2"]}})
+        hass, context, {"chimes": {CONF_METHOD: METHOD_CHIME,
+                                   CONF_DEFAULT: True,
+                                   CONF_ENTITIES: ["switch.bell_1", "script.siren_2"]}})
 
     await uut.deliver()
-    hass.services.async_call.assert_any_call("script", "siren_2", service_data={})
+    hass.services.async_call.assert_any_call(
+        "script", "siren_2", service_data={})
     hass.services.async_call.assert_any_call("switch", "turn_on", service_data={
-                                       "entity_id": "switch.bell_1"})
+        "entity_id": "switch.bell_1"})

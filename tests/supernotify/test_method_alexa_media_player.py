@@ -9,18 +9,21 @@ DELIVERY = {
     "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
 }
 
+
 async def test_notify_alexa() -> None:
     """Test on_notify_alexa."""
     hass = Mock()
     context = SuperNotificationContext()
 
     uut = AlexaMediaPlayerDeliveryMethod(hass, context,
-         {"default": {CONF_METHOD: METHOD_ALEXA, 
-                      CONF_DEFAULT: True, 
-                      CONF_SERVICE: "notify.alexa",
-                      CONF_ENTITIES:["media_player.hall","media_player.toilet"] }})
+                                         {"default": {CONF_METHOD: METHOD_ALEXA,
+                                                      CONF_DEFAULT: True,
+                                                      CONF_SERVICE: "notify.alexa",
+                                                      CONF_ENTITIES: ["media_player.hall", "media_player.toilet"]}})
 
     await uut.deliver("hello there")
     hass.services.async_call.assert_called_with("notify", "alexa",
-                                          service_data={"message": "hello there", "data": {"type": "announce"}, "target": ["media_player.hall","media_player.toilet"]})
-
+                                                service_data={"message": "hello there",
+                                                              "data": {"type": "announce"},
+                                                              "target": ["media_player.hall",
+                                                                         "media_player.toilet"]})

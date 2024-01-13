@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from custom_components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, CONF_PERSON, METHOD_MEDIA
+from custom_components.supernotify import CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, METHOD_MEDIA
 from custom_components.supernotify.common import SuperNotificationContext
 from custom_components.supernotify.methods.media_player import MediaPlayerImageDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD
@@ -18,18 +18,21 @@ async def test_notify_media_image() -> None:
     uut = MediaPlayerImageDeliveryMethod(hass, context,
                                          {"default": {CONF_METHOD: METHOD_MEDIA,
                                                       CONF_DEFAULT: True,
-                                                      CONF_ENTITIES: ["media_player.echo_show_8", "media_player.echo_show_10"],
-                                                      CONF_OVERRIDES: {"image_url": {CONF_OVERRIDE_BASE: "http://10.10.10.10/ftp",
-                                                                                     CONF_OVERRIDE_REPLACE: "https://myserver"}
-                                                                       }
+                                                      CONF_ENTITIES: ["media_player.echo_show_8",
+                                                                      "media_player.echo_show_10"],
+                                                      CONF_OVERRIDES: {"image_url": {
+                                                          CONF_OVERRIDE_BASE: "http://10.10.10.10/ftp",
+                                                          CONF_OVERRIDE_REPLACE: "https://myserver"}
+                                                      }
                                                       }
                                           })
 
     await uut.deliver("hello there", data={
-                "snapshot_url": "http://10.10.10.10/ftp/pic.jpeg"})
+        "snapshot_url": "http://10.10.10.10/ftp/pic.jpeg"})
 
     hass.services.async_call.assert_called_with("media_player", "play_media",
-                                          service_data={"entity_id": ["media_player.echo_show_8", "media_player.echo_show_10"],
-                                                        "media_content_id": "https://myserver/pic.jpeg",
-                                                        "media_content_type": "image"}
-                                          )
+                                                service_data={"entity_id": ["media_player.echo_show_8",
+                                                                            "media_player.echo_show_10"],
+                                                              "media_content_id": "https://myserver/pic.jpeg",
+                                                              "media_content_type": "image"}
+                                                )
