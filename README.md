@@ -55,7 +55,30 @@ Uses the `phone_number` attribute of recipient, and truncates message to fit in 
 
 ### Generic
 
-Use to call any service and pass `target` and `data` elements.
+Use to call any service.
+If service is in `notify` domain, then `message`,`title`,`target` and `data` will be
+passed in the Service Data, otherwise the `data` supplied will be passed directly
+as the Service Data.
+
+```yaml
+    - service: notify.supernotify
+      data:
+        title: "My Home Notification"
+        message: "Notify via custom chat"
+        data:
+            generic_notify:
+                channel: 3456
+        delivery:
+            - chat_notify
+    - service: notify.supernotify
+      data:
+        data:
+            mqtt_notify:
+                topic: alert/family_all
+                payload: something happened
+        delivery:
+            - mqtt_notify
+```
 
 ### Email
 
@@ -96,6 +119,10 @@ notify:
           - high
           - medium
           - low
+      plain_old_email:
+        method: email
+        service: notify.smtp
+        fallback: on_error
       text_message:    
         method: sms
         service: notify.mikrotik_sms
