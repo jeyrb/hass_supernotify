@@ -162,8 +162,8 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         "alarm_control_panel.home_alarm_control", "armed_away")
 
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 priority="high",
+                                 priority="high",data={"testablity":{"test":"unit"}},
                                  recipients=RECIPIENTS)
     await hass.async_block_till_done()
     assert calls_service_data == [
-        {'title': 'test_title', 'message': 'testing 123', 'target': [], 'data': {}}]
+        {"test":"unit"}]

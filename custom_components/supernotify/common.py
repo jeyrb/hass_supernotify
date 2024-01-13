@@ -33,6 +33,7 @@ from . import (
     OCCUPANCY_NONE,
     OCCUPANCY_ONLY_IN,
     OCCUPANCY_ONLY_OUT,
+    PRIORITY_MEDIUM,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -103,8 +104,20 @@ class DeliveryMethod:
                       config=None,
                       scenarios=None,
                       target=None,
-                      priority=None,
+                      priority=PRIORITY_MEDIUM,
                       data=None):
+        """
+        Deliver a notification
+
+        Args:
+            message (_type_, optional): Message to send. Defaults to None, e.g for methods like chime 
+            title (_type_, optional): Title of message. Defaults to None, e.g for methods like chime 
+            config (_type_, optional): Delivery Configuration. Defaults to None.
+            scenarios (_type_, optional): List of current scenarios. Defaults to None.
+            target (_type_, optional): Specific targets, method specific or Person. Defaults to None.
+            priority (_type_, optional): Message priority. Defaults to Medium.
+            data (_type_, optional): Optional service data. Defaults to None.
+        """
         config = config or self.default_delivery or {}
         data = data or {}
         for reserved in (ATTR_DOMAIN, ATTR_SERVICE):

@@ -1,6 +1,6 @@
 import logging
 
-from custom_components.supernotify import METHOD_GENERIC
+from custom_components.supernotify import CONF_NOTIFY, METHOD_GENERIC
 from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
@@ -22,16 +22,18 @@ class GenericDeliveryMethod(DeliveryMethod):
         data = data or {}
         targets = targets or []
 
-        service_data = {
-            "title":    title,
-            "message":  message,
-            "target":   targets,
-            "data":     data
-        }
-
         try:
             domain, service = config.get(
                 CONF_SERVICE).split(".", 1)
+            if domain == CONF_NOTIFY:
+                service_data = {
+                    "title":    title,
+                    "message":  message,
+                    "target":   targets,
+                    "data":     data
+                }
+            else:
+                service_data = data
             await self.hass.services.async_call(
                 domain, service, service_data=service_data)
         except Exception as e:

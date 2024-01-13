@@ -8,7 +8,6 @@ from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
 
 async def test_deliver() -> None:
-    """Test generic notifications"""
     hass = Mock()
     context = SuperNotificationContext()
     uut = GenericDeliveryMethod(
@@ -27,3 +26,21 @@ async def test_deliver() -> None:
                                                     ATTR_TARGET:  [
                                                         "weird_generic_1", "weird_generic_2"]
                                                 })
+
+
+async def test_not_notify_deliver() -> None:
+    hass = Mock()
+    context = SuperNotificationContext()
+    uut = GenericDeliveryMethod(
+        hass, context, {"default": {CONF_METHOD: METHOD_GENERIC,
+                                    CONF_SERVICE: "mqtt.publish",
+                                    CONF_DEFAULT: True}})
+
+    await uut.deliver("hello there", title="testing",
+                      target=["weird_generic_1", "weird_generic_2"],
+                      data={"topic": "testing/123", "payload": "boo"})
+    hass.services.async_call.assert_called_with("mqtt", "publish",
+                                                service_data={
+                                                    "topic": "testing/123",
+                                                    "payload": "boo"}
+                                                )
