@@ -1,11 +1,8 @@
-from http import HTTPStatus
 from unittest.mock import Mock
-from custom_components.supernotify import CONF_PHONE_NUMBER, ATTR_DELIVERY, ATTR_SCENARIOS, CONF_METHOD, CONF_SCENARIOS, METHOD_ALEXA, METHOD_EMAIL, METHOD_CHIME, METHOD_PERSISTENT, METHOD_SMS
-from homeassistant.const import CONF_SERVICE
-from homeassistant.core import HomeAssistant
+from custom_components.supernotify import CONF_PHONE_NUMBER, ATTR_DELIVERY, ATTR_SCENARIOS, CONF_METHOD, CONF_SCENARIOS, METHOD_ALEXA, METHOD_EMAIL, METHOD_CHIME, METHOD_GENERIC, METHOD_PERSISTENT, METHOD_SMS
+from homeassistant.const import CONF_SERVICE, CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_STATE
+from homeassistant.core import HomeAssistant, callback
 from custom_components.supernotify.notify import SuperNotificationService
-from homeassistant.setup import async_setup_component
-from homeassistant.config_entries import ConfigEntry
 
 DELIVERY = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
@@ -46,14 +43,16 @@ async def test_send_message_with_scenario_mismatch() -> None:
                                      "pigeon", "persistent"], ATTR_SCENARIOS: ["scenario1"]},
                                  recipients=RECIPIENTS)
     hass.services.async_call.assert_called_with("notify", "persistent_notification",
-                                          service_data={"title": "test_title", "message": "testing 123",
-                                                        "notification_id": None})
+                                                service_data={"title": "test_title", "message": "testing 123",
+                                                              "notification_id": None})
 
 
-async def test_null_delivery(hass: HomeAssistant) -> None:
+async def test_null_delivery() -> None:
+    hass = Mock()
+    hass.states = Mock()
     uut = SuperNotificationService(hass)
-    deliveries, errors = await uut.async_send_message("just a test")
-    assert errors == 0
+    await uut.async_send_message("just a test")
+    hass.services.async_call.assert_not_called()
 
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
@@ -68,13 +67,13 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
         }
     },
         "hot_day": {
-                    "alias": "Its a very hot day",
-                    "condition": {
-                        "condition": "template",
-                        "value_template": """
+        "alias": "Its a very hot day",
+        "condition": {
+            "condition": "template",
+            "value_template": """
                                     {% set n = states('sensor.outside_temperature') | float %}
                                     {{ 30 <= n }}"""
-                    }
+        }
     }
     })
 
@@ -94,3 +93,57 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
     uut = SuperNotificationService(hass)
     assert uut.mobile_devices_for_person("person.test_user") == []
+
+
+async def test_send_message_with_condition(hass: HomeAssistant) -> None:
+    delivery = {
+        "testablity": {CONF_METHOD: METHOD_GENERIC,
+                       CONF_SERVICE: "testing.mock_notification",
+                       CONF_CONDITION: {
+                           CONF_CONDITION: "or",
+                           CONF_CONDITIONS: [
+                               {
+                                   CONF_CONDITION: "state",
+                                   CONF_ENTITY_ID: "alarm_control_panel.home_alarm_control",
+                                   CONF_STATE: ["armed_away", "armed_night"]
+                               },
+                               {
+                                   CONF_CONDITION: "state",
+                                   CONF_ENTITY_ID: "input_select.supernotify_priority",
+                                   CONF_STATE: ["critical", "high"]
+                               }
+                           ]
+                       }
+                       }
+    }
+    calls_service_data = []
+
+    @callback
+    def mock_service_log(call):
+        calls_service_data.append(call.data)
+
+    hass.services.async_register(
+        "testing",
+        "mock_notification",
+        mock_service_log,
+    )
+
+    uut = SuperNotificationService(hass, deliveries=delivery)
+    hass.states.async_set(
+        "alarm_control_panel.home_alarm_control", "disarmed")
+    hass.states.async_set(
+        "input_select.supernotify_priority", "medium")
+
+    await uut.async_send_message(title="test_title", message="testing 123",
+                                 recipients=RECIPIENTS)
+    await hass.async_block_till_done()
+    assert calls_service_data == []
+    hass.states.async_set(
+        "alarm_control_panel.home_alarm_control", "armed_away")
+
+    await uut.async_send_message(title="test_title", message="testing 123",
+                                 priority="high",
+                                 recipients=RECIPIENTS)
+    await hass.async_block_till_done()
+    assert calls_service_data == [
+        {'title': 'test_title', 'message': 'testing 123', 'target': [], 'data': {}}]

@@ -1,12 +1,13 @@
 import logging
 from abc import abstractmethod
 
-from homeassistant.components import person
 from homeassistant.components.notify import ATTR_TARGET
-from homeassistant.components.person import ATTR_DEVICE_TRACKERS
 from homeassistant.const import (
+    ATTR_DOMAIN,
+    ATTR_SERVICE,
     CONF_CONDITION,
     CONF_DEFAULT,
+    CONF_ENABLED,
     CONF_ENTITIES,
     CONF_METHOD,
     CONF_NAME,
@@ -65,15 +66,35 @@ class DeliveryMethod:
         self.default_delivery = None
         self.valid_deliveries = {}
         self.invalid_deliveries = {}
-        if deliveries:
-            for d, dc in deliveries.items():
-                if dc and dc.get(CONF_METHOD) == method:
-                    if not self.service_required or dc.get(CONF_SERVICE):
-                        self.valid_deliveries[d] = dc
-                        if dc.get(CONF_DEFAULT):
-                            self.default_delivery = dc
-                    else:
+        self.disabled_deliveries = {}
+        self.validate_deliveries(deliveries)
+
+    def validate_deliveries(self, deliveries):
+        for d, dc in deliveries.items():
+            if dc and dc.get(CONF_METHOD) == self.method:
+                if not dc.get(CONF_ENABLED, True):
+                    _LOGGER.debug("SUPERNOTIFY Delivery disabled for %s", d)
+                    self.disabled_deliveries[d] = dc
+                    continue
+                if self.service_required and not dc.get(CONF_SERVICE):
+                    _LOGGER.debug("SUPERNOTIFY No service for %s", d)
+                    self.invalid_deliveries[d] = dc
+                    continue
+                delivery_condition = dc.get(CONF_CONDITION)
+                if delivery_condition:
+                    if not condition.async_validate_condition_config(self.hass, delivery_condition):
+                        _LOGGER.warning(
+                            "SUPERNOTIFY Invalid condition for %s: %s", d, delivery_condition)
                         self.invalid_deliveries[d] = dc
+                        continue
+
+                self.valid_deliveries[d] = dc
+                if dc.get(CONF_DEFAULT):
+                    if self.default_delivery:
+                        _LOGGER.warning(
+                            "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
+                    else:
+                        self.default_delivery = dc
 
     async def deliver(self,
                       message=None,
@@ -85,6 +106,11 @@ class DeliveryMethod:
                       data=None):
         config = config or self.default_delivery or {}
         data = data or {}
+        for reserved in (ATTR_DOMAIN, ATTR_SERVICE):
+            if reserved in data:
+                _LOGGER.warning(
+                    "SUPERNOTIFY Removing reserved keyword from data %s:%s", reserved, data.get(reserved))
+                del data[reserved]
         delivery_priorities = config.get(CONF_PRIORITY) or ()
         if priority and delivery_priorities and priority not in delivery_priorities:
             _LOGGER.debug(

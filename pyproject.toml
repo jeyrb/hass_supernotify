@@ -14,6 +14,9 @@ norecursedirs = [
 addopts = [
   
     "--timeout=30",
-    "--cov-report=lcov:cover/supernotify.lcov --cov-report=term-missing --cov=custom_components.supernotify --cov-fail-under=100"
-
+    "--cov-report=xml:cov.xml",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--cov=custom_components.supernotify",
+    "--cov-fail-under=100"
 ]

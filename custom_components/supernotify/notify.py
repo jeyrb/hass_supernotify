@@ -16,6 +16,7 @@ from homeassistant.const import (
     CONF_DEFAULT,
     CONF_DESCRIPTION,
     CONF_EMAIL,
+    CONF_ENABLED,
     CONF_ENTITIES,
     CONF_ICON,
     CONF_NAME,
@@ -41,7 +42,6 @@ from . import (
     CONF_ACTIONS,
     CONF_DATA,
     CONF_DELIVERY,
-    CONF_NOTIFY,
     CONF_DEVICE_TRACKER,
     CONF_LINKS,
     CONF_MANUFACTURER,
@@ -49,6 +49,7 @@ from . import (
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
+    CONF_NOTIFY_SERVICE,
     CONF_OCCUPANCY,
     CONF_OVERRIDE_BASE,
     CONF_OVERRIDE_REPLACE,
@@ -92,7 +93,7 @@ TEMPLATE_DIR = "/config/templates/supernotify"
 MOBILE_DEVICE_SCHEMA = {
     vol.Optional(CONF_MANUFACTURER): cv.string,
     vol.Optional(CONF_MODEL): cv.string,
-    vol.Optional(CONF_NOTIFY): { vol.Required(CONF_SERVICE): cv.service },
+    vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
     vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
 }
 RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = {
@@ -130,6 +131,7 @@ DELIVERY_SCHEMA = {
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_DATA): dict,
+    vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
@@ -227,7 +229,7 @@ class SuperNotificationService(BaseNotificationService):
         self.templates = templates
         self.actions = mobile_actions
         self.links = links
-        self.scenarios = scenarios or {}
+        scenarios = scenarios or {}
         self.overrides = overrides or {}
         deliveries = deliveries or {}
 
@@ -248,15 +250,33 @@ class SuperNotificationService(BaseNotificationService):
                             templates)
             self.templates = None
 
+        self.scenarios = {}
+        for scenario, scenario_definition in scenarios.items():
+            if CONF_CONDITION in scenario_definition:
+                if condition.async_validate_condition_config(self.hass, scenario_definition[CONF_CONDITION]):
+                    self.scenarios[scenario] = scenario_definition
+            else:
+                _LOGGER.warning(
+                    "SUPERNOTIFY Disabling scenario %s with failed condition %s", scenario, scenario_definition)
+
         self.methods = {}
-        self.deliveries = {k: d for k, d in deliveries.items(
-        ) if CONF_METHOD in d and d[CONF_METHOD] not in METHODS}
+        self.deliveries = {}
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
             self.deliveries.update(self.methods[method].valid_deliveries)
             if self.methods[method].invalid_deliveries:
-                _LOGGER.warning("SUPERNOTIFY Invalid deliveries with no service defined: %s",
+                _LOGGER.warning("SUPERNOTIFY Invalid deliveries for method %s: %s",
+                                method,
                                 self.methods[method].invalid_deliveries)
+            if self.methods[method].disabled_deliveries:
+                _LOGGER.warning("SUPERNOTIFY Disabled deliveries for method %s: %s",
+                                method,
+                                self.methods[method].disabled_deliveries)
+        unknown_deliveries = {
+            d: dc for d, dc in deliveries.items() if dc.get(CONF_METHOD) not in METHODS}
+        if unknown_deliveries:
+            _LOGGER.info(
+                "SUPERNOTIFY Ignoring deliveries without known methods: %s", unknown_deliveries)
         _LOGGER.info("SUPERNOTIFY configured deliveries %s",
                      ";".join(self.deliveries.keys()))
 
@@ -306,8 +326,8 @@ class SuperNotificationService(BaseNotificationService):
                 stats_errors += 1
                 _LOGGER.warning(
                     "SUPERNOTIFY Failed to %s %s: %s", method, delivery, e)
-
-        return stats_delivieries, stats_errors
+        _LOGGER.debug("SUPERNOTIFY %s deliveries, %s errors",
+                      stats_delivieries, stats_errors)
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
@@ -346,7 +366,7 @@ class SuperNotificationService(BaseNotificationService):
                         mobile_devices.append({
                             CONF_MANUFACTURER: device.manufacturer,
                             CONF_MODEL: device.model,
-                            CONF_NOTIFY: { CONF_SERVICE: 'mobile_app_%s' % slugify(device.name) },
+                            CONF_NOTIFY_SERVICE: slugify(device.name),
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices
