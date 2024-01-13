@@ -72,6 +72,12 @@ class DeliveryMethod:
         self.validate_deliveries(deliveries)
 
     def validate_deliveries(self, deliveries):
+        """
+        Validate list of deliveries at startup for this method
+
+        Args:
+            deliveries (dict): Dict of delivery name -> delivery configuration
+        """
         for d, dc in deliveries.items():
             if dc and dc.get(CONF_METHOD) == self.method:
                 if not dc.get(CONF_ENABLED, True):
