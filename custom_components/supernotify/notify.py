@@ -37,6 +37,7 @@ from . import (
     ATTR_DELIVERY,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
+    ATTR_DELIVERY_SELECTION,
     ATTR_PRIORITY,
     ATTR_SCENARIOS,
     CONF_ACTIONS,
@@ -62,6 +63,7 @@ from . import (
     CONF_SCENARIOS,
     CONF_TEMPLATE,
     CONF_TEMPLATES,
+    DELIVERY_SELECTION_IMPLICIT,
     DOMAIN,
     METHOD_ALEXA,
     METHOD_CHIME,
@@ -308,42 +310,51 @@ class SuperNotificationService(BaseNotificationService):
         scenarios.extend(await self.select_scenarios())
         self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
 
-        override_delivery = data.get(ATTR_DELIVERY)
-        if not override_delivery:
+        delivery_selection = data.get(
+            ATTR_DELIVERY_SELECTION, DELIVERY_SELECTION_IMPLICIT)
+        delivery_overrides = data.get(ATTR_DELIVERY, {})
+        if delivery_selection == DELIVERY_SELECTION_IMPLICIT:
             deliveries = self.deliveries
         else:
-            deliveries = {
-                k: self.deliveries[k] for k in override_delivery if k in self.deliveries}
-            if override_delivery != deliveries:
-                _LOGGER.info("SUPERNOTIFY overriding delivery %s->%s",
-                             override_delivery, deliveries)
+            deliveries = {}
+        if isinstance(delivery_overrides, list):
+            delivery_overrides = {k: {} for k in delivery_selection}
+        for delivery, delivery_override in delivery_overrides.items():
+            if delivery_override.get(CONF_ENABLED, True) and delivery in self.deliveries:
+                deliveries[delivery] = self.deliveries[delivery]
 
         stats_delivieries = stats_errors = 0
 
         for delivery, delivery_config in deliveries.items():
             delivered, errored = await self.call_method(delivery, delivery_config, message,
-                                                        title, target, scenarios, priority, data)
+                                                        title, target, scenarios,
+                                                        priority,
+                                                        delivery_overrides.get(delivery, {}))
             stats_delivieries += delivered
             stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors == 0:
             for delivery, delivery_config in self.fallback_by_default.items():
                 delivered, errored = await self.call_method(delivery, delivery_config, message,
-                                                            title, target, scenarios, priority, data)
+                                                            title, target, scenarios,
+                                                            priority,
+                                                            delivery_overrides.get(delivery, {}))
                 stats_delivieries += delivered
                 stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors > 0:
             for delivery, delivery_config in self.fallback_on_error.items():
                 delivered, errored = await self.call_method(delivery, delivery_config, message,
-                                                            title, target, scenarios, priority, data)
+                                                            title, target, scenarios,
+                                                            priority,
+                                                            delivery_overrides.get(delivery, {}))
                 stats_delivieries += delivered
                 stats_errors += errored
         _LOGGER.debug("SUPERNOTIFY %s deliveries, %s errors",
                       stats_delivieries, stats_errors)
 
     async def call_method(self, delivery, delivery_config, message,
-                          title, target, scenarios, priority, data):
+                          title, target, scenarios, priority, delivery_override):
         method = delivery_config[CONF_METHOD]
         # TODO consider changing delivery config to list
         delivery_config[CONF_NAME] = delivery
@@ -354,8 +365,8 @@ class SuperNotificationService(BaseNotificationService):
                                                target=target,
                                                scenarios=scenarios,
                                                priority=priority,
-                                               data=data.get(
-                                                   delivery, {}),
+                                               data=delivery_override.get(
+                                                   CONF_DATA, {}),
                                                config=delivery_config)
             return (1, 0)
         except Exception as e:

@@ -11,10 +11,13 @@ from homeassistant.core import HomeAssistant, callback
 
 from custom_components.supernotify import (
     ATTR_DELIVERY,
+    ATTR_DELIVERY_SELECTION,
     ATTR_SCENARIOS,
+    CONF_DATA,
     CONF_METHOD,
     CONF_PHONE_NUMBER,
     CONF_SCENARIOS,
+    DELIVERY_SELECTION_EXPLICIT,
     METHOD_ALEXA,
     METHOD_CHIME,
     METHOD_EMAIL,
@@ -53,14 +56,23 @@ async def test_send_message_with_scenario_mismatch() -> None:
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY)
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 data={ATTR_DELIVERY: [
-                                     "pigeon", "persistent"]},
+                                 data={
+                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
+                                     ATTR_DELIVERY: {
+                                         "pigeon": {},
+                                         "persistent": {}}
+                                 },
                                  recipients=RECIPIENTS)
     hass.services.async_call.assert_not_called()
     hass.reset_mock()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 data={ATTR_DELIVERY: [
-                                     "pigeon", "persistent"], ATTR_SCENARIOS: ["scenario1"]},
+                                 data={
+                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
+                                     ATTR_DELIVERY: {
+                                        "pigeon": {}, 
+                                        "persistent": {}
+                                     },
+                                     ATTR_SCENARIOS: ["scenario1"]},
                                  recipients=RECIPIENTS)
     hass.services.async_call.assert_called_with("notify", "persistent_notification",
                                                 service_data={"title": "test_title", "message": "testing 123",
@@ -162,8 +174,17 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         "alarm_control_panel.home_alarm_control", "armed_away")
 
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 priority="high",data={"testablity":{"test":"unit"}},
+                                 priority="high", 
+                                 data={
+                                    ATTR_DELIVERY: {
+                                         "testablity": {
+                                            CONF_DATA: {
+                                                "test": "unit"
+                                            }
+                                         }
+                                    },
+                                 },
                                  recipients=RECIPIENTS)
     await hass.async_block_till_done()
     assert calls_service_data == [
-        {"test":"unit"}]
+        {"test": "unit"}]

@@ -65,19 +65,17 @@ as the Service Data.
       data:
         title: "My Home Notification"
         message: "Notify via custom chat"
-        data:
-            generic_notify:
-                channel: 3456
         delivery:
-            - chat_notify
+            chat_notify:
+                data:
+                    channel: 3456
     - service: notify.supernotify
       data:
-        data:
-            mqtt_notify:
-                topic: alert/family_all
-                payload: something happened
         delivery:
-            - mqtt_notify
+            mqtt_notify:
+                data:
+                  topic: alert/family_all
+                  payload: something happened
 ```
 
 ### Email
@@ -180,7 +178,7 @@ notify:
         target:
             - slack.channel_1
         data:
-            - API_KEY: !secret SLACK_API_KEY
+            API_KEY: !secret SLACK_API_KEY
     recipients:
       - person: person.new_home_owner
         email: me@home.net
@@ -235,3 +233,6 @@ TODO:
 * Configurable links for email
 * Add mobile action definition
 * Rate limiting
+
+
+            

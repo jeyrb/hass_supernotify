@@ -53,6 +53,10 @@ ATTR_PRIORITY = "priority"
 ATTR_SCENARIOS = "scenarios"
 ATTR_DELIVERY = "delivery"
 ATTR_NOTIFICATION_ID = "notification_id"
+ATTR_DELIVERY_SELECTION = "delivery_selection"
+
+DELIVERY_SELECTION_IMPLICIT = "implicit"
+DELIVERY_SELECTION_EXPLICIT = "explicit"
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
