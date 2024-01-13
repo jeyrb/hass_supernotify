@@ -26,6 +26,11 @@ notify:
           - high
           - medium
           - low
+        
+      backup_mail:
+        method: email
+        service: notify.smtp
+        fallback: on_error
       text_message:    
         method: sms
         service: notify.mikrotik_sms
