@@ -21,10 +21,12 @@ from homeassistant.helpers import config_validation as cv
 from . import (
     ATTR_SCENARIOS,
     CONF_DELIVERY,
+    CONF_MESSAGE,
     CONF_OCCUPANCY,
     CONF_PERSON,
     CONF_PRIORITY,
     CONF_RECIPIENTS,
+    CONF_TITLE,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -43,13 +45,15 @@ class SuperNotificationContext:
     def __init__(self, hass_url: str = None, hass_name: str = None,
                  links=(), recipients=(),
                  mobile_actions=None,
-                 templates=()):
+                 templates=(),
+                 method_defaults=None):
         self.hass_url = hass_url
         self.hass_name = hass_name
         self.links = links
         self.recipients = recipients
         self.mobile_actions = mobile_actions or {}
         self.templates = templates
+        self.method_defaults = method_defaults or {}
         self.people = {r[CONF_PERSON]: r for r in recipients}
 
 
@@ -69,7 +73,16 @@ class DeliveryMethod:
         self.valid_deliveries = {}
         self.invalid_deliveries = {}
         self.disabled_deliveries = {}
+        self.default_deliveries(deliveries)
         self.validate_deliveries(deliveries)
+
+    def default_deliveries(self, deliveries):
+        method_defaults = self.context.method_defaults.get(self.method, {})
+        for delivery_config in deliveries.values():
+            if not delivery_config.get(CONF_SERVICE) and method_defaults.get(CONF_SERVICE):
+                delivery_config[CONF_SERVICE] = method_defaults[CONF_SERVICE]
+            if not delivery_config.get(CONF_TARGET) and method_defaults.get(CONF_TARGET):
+                delivery_config[CONF_TARGET] = method_defaults[CONF_TARGET]
 
     def validate_deliveries(self, deliveries):
         """
@@ -128,6 +141,10 @@ class DeliveryMethod:
         config = config or self.default_delivery or {}
         data = data or {}
         scenarios = scenarios or {}
+        # message and title reverse the usual defaulting, delivery config overrides runtime call
+        message = config.get(CONF_MESSAGE, message)
+        title = config.get(CONF_TITLE, title)
+
         for reserved in (ATTR_DOMAIN, ATTR_SERVICE):
             if reserved in data:
                 _LOGGER.warning(
@@ -142,7 +159,7 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
-        
+
         targets = self.build_targets(config, target, recipients_override)
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):

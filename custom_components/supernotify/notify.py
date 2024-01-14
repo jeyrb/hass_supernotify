@@ -33,6 +33,7 @@ from . import (
     CONF_LINKS,
     CONF_MANUFACTURER,
     CONF_METHOD,
+    CONF_METHODS,
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
@@ -104,7 +105,8 @@ async def async_get_service(hass: HomeAssistant,
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
-            CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
+            CONF_OVERRIDES: config.get(CONF_OVERRIDES, {}),
+            CONF_METHODS: config.get(CONF_METHODS, {})
         },
     )
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
@@ -118,7 +120,8 @@ async def async_get_service(hass: HomeAssistant,
                                     mobile_actions=config[CONF_ACTIONS],
                                     scenarios=config[CONF_SCENARIOS],
                                     links=config[CONF_LINKS],
-                                    overrides=config[CONF_OVERRIDES]
+                                    overrides=config[CONF_OVERRIDES],
+                                    method_defaults=config[CONF_METHODS]
                                     )
 
 
@@ -132,13 +135,15 @@ class SuperNotificationService(BaseNotificationService):
                  mobile_actions=None,
                  scenarios=None,
                  links=(),
-                 overrides=None):
+                 overrides=None,
+                 method_defaults={}):
         """Initialize the service."""
         self.hass = hass
 
         hass_url = hass.config.external_url or self.hass.config.internal_url
         context = SuperNotificationContext(
-            hass_url, hass.config.location_name, links, recipients, mobile_actions, templates)
+            hass_url, hass.config.location_name, links, 
+            recipients, mobile_actions, templates, method_defaults)
 
         self.recipients = recipients
         self.templates = templates
@@ -147,6 +152,7 @@ class SuperNotificationService(BaseNotificationService):
         scenarios = scenarios or {}
         self.overrides = overrides or {}
         deliveries = deliveries or {}
+        self.method_defaults = method_defaults or {}
 
         self.people = {}
         for r in recipients:

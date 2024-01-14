@@ -28,7 +28,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
-            services = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            services = [md.get(CONF_NOTIFY_SERVICE)
+                        for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))
         else:
             return []
@@ -70,10 +71,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data.setdefault("push", {})
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
-            pass
-        #    data['data']['push']['sound']['name'] = 'default'
-        #    data['data']['push']['sound']['critical'] = 1
-        #    data['data']['push']['sound']['volume'] = 1.0
+            data['push']['sound']['name'] = 'default'
+            data['push']['sound']['critical'] = 1
+            data['push']['sound']['volume'] = 1.0
         else:
             # critical notifications cant be grouped on iOS
             data.setdefault("group", "%s-%s" %

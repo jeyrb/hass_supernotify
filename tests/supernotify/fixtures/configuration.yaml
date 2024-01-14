@@ -5,7 +5,6 @@ notify:
     delivery:
       html_email:
         method: email
-        service: notify.smtp
         template: default.html.j2
         condition:
           condition: or
@@ -29,7 +28,6 @@ notify:
         
       backup_mail:
         method: email
-        service: notify.smtp
         fallback: on_error
       text_message:    
         method: sms
@@ -41,12 +39,6 @@ notify:
       alexa_announce:
         method: alexa
         service: notify.alexa
-        target:
-          - media_player.kitchen_2
-          - media_player.bedroom
-          - media_player.hall_flex
-          - media_player.old_kitchen_flex
-          - media_player.studio
         occupancy: any_in
       mobile_push:
         method: mobile_push
@@ -111,6 +103,17 @@ notify:
       image_url:
         base: http://10.1.1.100
         replace: https://myhomeserver.org/images
+    methods:
+      email:
+        service: notify.smtp
+      alexa:
+        target:
+          - media_player.kitchen_2
+          - media_player.bedroom
+          - media_player.hall_flex
+          - media_player.old_kitchen_flex
+          - media_player.studio
+      
     scenarios:
       ordinary_day:
         alias: nothing special

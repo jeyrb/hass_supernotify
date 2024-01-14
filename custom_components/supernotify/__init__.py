@@ -38,6 +38,7 @@ CONF_TEMPLATE = "template"
 CONF_LINKS = "links"
 CONF_PERSON = "person"
 CONF_METHOD = "method"
+CONF_METHODS = "methods"
 CONF_DELIVERY = "delivery"
 CONF_OVERRIDES = "overrides"
 CONF_OVERRIDE_BASE = "base"
@@ -56,6 +57,8 @@ CONF_SCENARIOS = "scenarios"
 CONF_MANUFACTURER = "manufacturer"
 CONF_DEVICE_TRACKER = "device_tracker"
 CONF_MODEL = "model"
+CONF_MESSAGE = "message"
+CONF_TITLE = "title"
 CONF_MOBILE_DEVICES = "mobile_devices"
 CONF_MOBILE_DISCOVERY = "mobile_discovery"
 CONF_ACTION_TEMPLATE = "action_template"
@@ -129,6 +132,10 @@ LINK_SCHEMA = vol.Schema({
     vol.Required(CONF_DESCRIPTION): cv.string,
     vol.Optional(CONF_NAME): cv.string
 })
+METHOD_DEFAULTS_SCHEMA = vol.Schema({
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_SERVICE): cv.service
+})
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
     vol.Optional(CONF_ALIAS): cv.string,
@@ -154,6 +161,8 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_SCENARIOS, default=[]): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_MESSAGE): cv.string,
+    vol.Optional(CONF_TITLE): cv.string,
     vol.Optional(CONF_DATA): dict,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
@@ -184,6 +193,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_LINKS, default=[]):
             vol.All(cv.ensure_list, [LINK_SCHEMA]),
         vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
-        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA}
+        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA},
+        vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA}
     }
 )

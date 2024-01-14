@@ -119,27 +119,13 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 ```yaml
 notify:
-  - name: my_supernotifer
+  - name: SuperNotifier_reloaded
     platform: supernotify
     templates: config/templates/supernotify        
     delivery:
       html_email:
         method: email
-        service: notify.smtp
-        template: default.html.j2 
-        priority:
-          - critical
-          - high
-          - medium
-          - low
-      plain_old_email:
-        method: email
-        service: notify.smtp
-        fallback: on_error
-      text_message:    
-        method: sms
-        service: notify.mikrotik_sms
-        occupancy: only_out
+        template: default.html.j2
         condition:
           condition: or
           conditions:
@@ -153,28 +139,57 @@ notify:
               entity_id: supernotify.delivery_priority
               state:
                 - critical
-                - high    
+                - high     
+        priority:
+          - critical
+          - high
+          - medium
+          - low
+        
+      backup_mail:
+        method: email
+        fallback: on_error
+      text_message:    
+        method: sms
+        service: notify.mikrotik_sms
+        occupancy: only_out
+        priority:
+          - critical
+          - high
       alexa_announce:
         method: alexa
         service: notify.alexa
-        entities:
-          - media_player.kitchen
-          - media_player.bedroom
-          - media_player.studio
         occupancy: any_in
       mobile_push:
         method: mobile_push
       alexa_show:
         method: media
         service: media_player.play_media
-        entities:
-          - media_player.kitchen
+        target:
+          - media_player.kitchen_2
       play_chimes:
         method: chime
-        entities:
+        target:
           - script.chime_ding_dong
           - switch.chime_sax
+          - media_player.echo_lobby
         occupancy: any_in
+      doorbell:
+        method: chime
+        target:
+          - media_player.echo_lobby
+        data:
+          chime_tune: amzn_sfx_doorbell_chime_01
+        scenarios:
+          - doorbell
+      upstairs_siren:
+        method: generic
+        service: mqtt.publish
+        priority:
+          - critical
+        data:
+          topic: zigbee2mqtt/Upstairs Siren/set
+          payload: '{"warning": {"duration": 30, "mode": "emergency", "strobe": true }}'
       sleigh_bells:
         method: chime
         target:
@@ -187,66 +202,102 @@ notify:
           value_template: >
             {% set n = now() %}
             {{ n.month == 12 and 15 <= n.day }}
-      slack:
-        method: generic
-        service: notify.custom_slack
-        target:
-            - slack.channel_1
-        data:
-            API_KEY: !secret SLACK_API_KEY
     recipients:
       - person: person.new_home_owner
-        email: me@home.net
-        # phone_number only required if SMS or similar delivery methods available
-        phone_number: "+44797940404"
-        # defaults to true, switch off for manual configuration or if no mobile push desired
-        mobile_discovery: true
+        email: jrb@jeymail.net
+        phone_number: "+447989408889"
         delivery:
-            mobile_push:
-                entities:
-                    - mobile_app.new_iphone
-                data:
-                  push:
-                    sound:
-                      name: default
-            alexa:
-                entities:
-                    - media_player.echo_workshop
+          mobile_push: 
+            target:
+              - mobile_app.new_iphone
+            data:
+              push:
+                sound:
+                  name: default
+          alexa_announce:
+            target:
+              - media_player.echo_study
       - person: person.bidey_in
         phone_number: "+4489393013834"
+    overrides:
+      image_url:
+        base: http://10.1.1.100
+        replace: https://myhomeserver.org/images
+    methods:
+      email:
+        service: notify.smtp
+      alexa:
+        target:
+          - media_player.kitchen_2
+          - media_player.bedroom
+          - media_player.hall_flex
+          - media_player.old_kitchen_flex
+          - media_player.studio
+      
+    scenarios:
+      ordinary_day:
+        alias: nothing special
+        condition:
+          condition: and
+          conditions:
+            - not:
+                - condition: state
+                  entity_id: alarm_control_panel.home_alarm_control
+                  state: disarmed
+            - condition: time
+              after: "21:30:00"
+              before: "06:30:00"
+      mostly:
+        alias: nothing special
+        condition:
+          condition: and
+          conditions:
+            - not:
+                - condition: state
+                  entity_id: alarm_control_panel.home_alarm_control
+                  state: unknown
+            - condition: time
+              after: "06:30:00"
+              before: "21:30:00"
 
     actions:
-      - identifier: action-1
-        title: Example Mobile Action
-        icon: "sfsymbols:bell"
-        uri: http://10.111.10.111:8123
-        activationMode: foreground
-        authenticationRequired: false
-        destructive: false
-        behavior: default
-        textInputButtonTitle: Input Button Title
-        textInputPlaceholder: Input Placeholder Text
-      - identifier: "ALARM_PANEL_DISARM"
-        title: "Disarm Alarm Panel"
-        icon: "sfsymbols:bell.slash"
-      - identifier: "ALARM_PANEL_RESET"
-        title: "Arm Alarm Panel for at Home"
-        icon: "sfsymbols:bell"
-      - identifier: "ALARM_PANEL_AWAY"
-        title: "Arm Alarm Panel for Going Away"
-        icon: "sfsymbols:airplane"
+      examples:
+        - identifier: action-1
+          title: Example Mobile Action
+          icon: "sfsymbols:bell"
+          uri: http://10.111.10.111:8123
+          activationMode: foreground
+          authenticationRequired: false
+          destructive: false
+          behavior: default
+          textInputButtonTitle: Input Button Title
+          textInputPlaceholder: Input Placeholder Text
+      frigate:
+        - action_template: silence-{{camera.entity_id}}
+          title_template: Silence Notifications for {{camera.entity_id}}
+          icon: "sfsymbols:bell.slash"
+      alarm_panel:
+        - action: "ALARM_PANEL_DISARM"
+          title: "Disarm Alarm Panel"
+          icon: "sfsymbols:bell.slash"
+        - action: "ALARM_PANEL_RESET"
+          title: "Arm Alarm Panel for at Home"
+          icon: "sfsymbols:bell"
+        - action: "ALARM_PANEL_AWAY"
+          title: "Arm Alarm Panel for Going Away"
+          icon: "sfsymbols:airplane"
     links:
       - url: http://frigate
         icon: "mdi:camera"
         name: Frigate
         description: Frigate CCTV
+
 ```
 
 TODO:
 
 * Migrate driveway camera handling incl PTZ
 * Configurable links for email
-* Add mobile action definition
 * Rate limiting
 
 
