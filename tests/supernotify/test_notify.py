@@ -69,8 +69,8 @@ async def test_send_message_with_scenario_mismatch() -> None:
                                  data={
                                      ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
                                      ATTR_DELIVERY: {
-                                        "pigeon": {}, 
-                                        "persistent": {}
+                                         "pigeon": {},
+                                         "persistent": {}
                                      },
                                      ATTR_SCENARIOS: ["scenario1"]},
                                  recipients=RECIPIENTS)
@@ -174,15 +174,15 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         "alarm_control_panel.home_alarm_control", "armed_away")
 
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 priority="high", 
+                                 priority="high",
                                  data={
-                                    ATTR_DELIVERY: {
+                                     ATTR_DELIVERY: {
                                          "testablity": {
-                                            CONF_DATA: {
-                                                "test": "unit"
-                                            }
+                                             CONF_DATA: {
+                                                 "test": "unit"
+                                             }
                                          }
-                                    },
+                                     },
                                  },
                                  recipients=RECIPIENTS)
     await hass.async_block_till_done()

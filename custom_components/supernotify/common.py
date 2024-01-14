@@ -111,7 +111,8 @@ class DeliveryMethod:
                       scenarios=None,
                       target=None,
                       priority=PRIORITY_MEDIUM,
-                      data=None):
+                      data=None,
+                      recipients_override=None):
         """
         Deliver a notification
 
@@ -126,6 +127,7 @@ class DeliveryMethod:
         """
         config = config or self.default_delivery or {}
         data = data or {}
+        scenarios = scenarios or {}
         for reserved in (ATTR_DOMAIN, ATTR_SERVICE):
             if reserved in data:
                 _LOGGER.warning(
@@ -140,7 +142,7 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
-        recipients_override = data.get(CONF_RECIPIENTS)
+        
         targets = self.build_targets(config, target, recipients_override)
         delivery_scenarios = config.get(ATTR_SCENARIOS)
         if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
@@ -177,29 +179,32 @@ class DeliveryMethod:
             _LOGGER.debug(
                 "SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
         else:
+            # second priority is explicit entities on delivery
             if delivery_config and CONF_ENTITIES in delivery_config:
-                # second priority is explicit entities on delivery
                 recipients.extend({ATTR_TARGET: e}
                                   for e in delivery_config.get(CONF_ENTITIES))
                 _LOGGER.debug(
                     "SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
-
+            # third priority is explicit target on delivery
             if delivery_config and CONF_TARGET in delivery_config:
-                # third priority is explicit target on delivery
+
                 recipients.extend({ATTR_TARGET: e}
                                   for e in delivery_config.get(CONF_TARGET))
                 _LOGGER.debug(
                     "SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
 
+            # next priority is explicit recipients on delivery
             if delivery_config and CONF_RECIPIENTS in delivery_config:
                 recipients = delivery_config[CONF_RECIPIENTS]
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s",
                               __name__, recipients)
 
+            # If target not specified on service call or delivery, then default to std list of recipients
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
-                # If target not specified on service call or delivery, then use list of recipients
-                recipients = self.filter_recipients(
+                recipients = self.filter_recipients_by_occupancy(
                     delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
+                recipients = [r for r in recipients if recipients_override is None or r.get(
+                    CONF_PERSON) in recipients_override]
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s",
                               __name__, recipients)
 
@@ -236,10 +241,16 @@ class DeliveryMethod:
             target.append(extension)
         return target
 
-    def filter_recipients(self, occupancy):
+    def filter_recipients_by_occupancy(self, occupancy):
+        if occupancy == OCCUPANCY_ALL:
+            return self.context.recipients
+        elif occupancy == OCCUPANCY_NONE:
+            return []
+
         at_home = []
         away = []
         for r in self.context.recipients:
+            # all recipients checked for occupancy, regardless of override
             try:
                 tracker = self.hass.states.get(r["person"])
                 if tracker is not None and tracker.state == "home":
@@ -261,10 +272,6 @@ class DeliveryMethod:
             return at_home
         elif occupancy == OCCUPANCY_ONLY_OUT:
             return away
-        elif occupancy == OCCUPANCY_ALL:
-            return self.context.recipients
-        elif occupancy == OCCUPANCY_NONE:
-            return []
         else:
             _LOGGER.warning(
                 "SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)

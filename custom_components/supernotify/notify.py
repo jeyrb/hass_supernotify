@@ -83,11 +83,12 @@ METHODS = {
     METHOD_GENERIC:     GenericDeliveryMethod
 }
 
+
 async def async_get_service(hass: HomeAssistant,
                             config: ConfigType,
                             discovery_info: DiscoveryInfoType | None = None
                             ):
-    
+
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if CONF_CONDITION in delivery:
@@ -212,6 +213,7 @@ class SuperNotificationService(BaseNotificationService):
 
         priority = data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, priority)
+        
         scenarios = data.get(ATTR_SCENARIOS) or []
         scenarios.extend(await self.select_scenarios())
         self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
@@ -229,13 +231,16 @@ class SuperNotificationService(BaseNotificationService):
             if delivery_override.get(CONF_ENABLED, True) and delivery in self.deliveries:
                 deliveries[delivery] = self.deliveries[delivery]
 
+        recipients_override = data.get(CONF_RECIPIENTS)
+        
         stats_delivieries = stats_errors = 0
 
         for delivery, delivery_config in deliveries.items():
             delivered, errored = await self.call_method(delivery, delivery_config, message,
                                                         title, target, scenarios,
                                                         priority,
-                                                        delivery_overrides.get(delivery, {}))
+                                                        delivery_overrides.get(delivery, {}),
+                                                        recipients_override)
             stats_delivieries += delivered
             stats_errors += errored
 
@@ -244,7 +249,8 @@ class SuperNotificationService(BaseNotificationService):
                 delivered, errored = await self.call_method(delivery, delivery_config, message,
                                                             title, target, scenarios,
                                                             priority,
-                                                            delivery_overrides.get(delivery, {}))
+                                                            delivery_overrides.get(delivery, {}),
+                                                            recipients_override)
                 stats_delivieries += delivered
                 stats_errors += errored
 
@@ -253,14 +259,16 @@ class SuperNotificationService(BaseNotificationService):
                 delivered, errored = await self.call_method(delivery, delivery_config, message,
                                                             title, target, scenarios,
                                                             priority,
-                                                            delivery_overrides.get(delivery, {}))
+                                                            delivery_overrides.get(delivery, {}),
+                                                            recipients_override)
                 stats_delivieries += delivered
                 stats_errors += errored
         _LOGGER.debug("SUPERNOTIFY %s deliveries, %s errors",
                       stats_delivieries, stats_errors)
 
     async def call_method(self, delivery, delivery_config, message,
-                          title, target, scenarios, priority, delivery_override):
+                          title, target, scenarios, priority, 
+                          delivery_override, recipients_override):
         method = delivery_config[CONF_METHOD]
         # TODO consider changing delivery config to list
         delivery_config[CONF_NAME] = delivery
@@ -273,7 +281,8 @@ class SuperNotificationService(BaseNotificationService):
                                                priority=priority,
                                                data=delivery_override.get(
                                                    CONF_DATA, {}),
-                                               config=delivery_config)
+                                               config=delivery_config,
+                                               recipients_override=recipients_override)
             return (1, 0)
         except Exception as e:
             _LOGGER.warning(
@@ -307,7 +316,8 @@ class SuperNotificationService(BaseNotificationService):
         mobile_devices = []
         person_state = self.hass.states.get(person_entity_id)
         if not person_state:
-            _LOGGER.warning("SUPERNOTIFY Unable to resolve %s", person_entity_id)
+            _LOGGER.warning("SUPERNOTIFY Unable to resolve %s",
+                            person_entity_id)
         else:
             for d_t in person_state.attributes.get('device_trackers', ()):
                 entity = ent_reg.async_get(d_t)

@@ -18,17 +18,32 @@ for sending only to people in or out of the property
 
 ## Usage
 
+### Minimal
 ```yaml
   - service: notify.supernotifier
-    title: Security Notification
-    message: '{{state_attr(sensor,"friendly_name")}} triggered'
-    target: 
-      - person.jim_bob
-      - person.neighbour
-    priority: high
-    scenarios:
-      - home_security
-      - garden
+    data:
+        title: Security Notification
+        message: '{{state_attr(sensor,"friendly_name")}} triggered'                    
+```
+
+### More features
+```yaml
+  - service: notify.supernotifier
+    data:
+        title: Security Notification
+        message: '{{state_attr(sensor,"friendly_name")}} triggered'
+        target: 
+          - person.jim_bob
+          - person.neighbour
+        priority: high
+        scenarios:
+          - home_security
+          - garden
+        delivery:
+            mobile_push:
+                data:
+                    clickAction: https://my.home.net/dashboard
+                    
 ```
 
 ## Delivery Methods
