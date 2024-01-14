@@ -1,7 +1,7 @@
 {
     "domain":"supernotify",
-    "name":"deliver",
-    "version":"0.1.4",
+    "name":"SuperNotifier",
+    "version":"0.1.5",
     "dependencies":["input_select"],
     "requirements":[
     ],

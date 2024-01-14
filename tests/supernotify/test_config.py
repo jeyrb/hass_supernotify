@@ -7,8 +7,7 @@ from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from custom_components.supernotify import DOMAIN
-from custom_components.supernotify.notify import PLATFORM_SCHEMA
+from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "fixtures", "configuration.yaml"

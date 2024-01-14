@@ -1,30 +1,16 @@
 import logging
 import os.path
 
-import voluptuous as vol
-from homeassistant.components.ios import PUSH_ACTION_SCHEMA
 from homeassistant.components.notify import (
     ATTR_DATA,
     ATTR_TARGET,
     ATTR_TITLE,
-    PLATFORM_SCHEMA,
     BaseNotificationService,
 )
 from homeassistant.const import (
-    CONF_ALIAS,
     CONF_CONDITION,
-    CONF_DEFAULT,
-    CONF_DESCRIPTION,
-    CONF_EMAIL,
     CONF_ENABLED,
-    CONF_ENTITIES,
-    CONF_ICON,
     CONF_NAME,
-    CONF_PLATFORM,
-    CONF_SERVICE,
-    CONF_TARGET,
-    CONF_URL,
-    Platform,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition, device_registry, entity_registry
@@ -52,16 +38,10 @@ from . import (
     CONF_MODEL,
     CONF_FALLBACK,
     CONF_NOTIFY_SERVICE,
-    CONF_OCCUPANCY,
-    CONF_OVERRIDE_BASE,
-    CONF_OVERRIDE_REPLACE,
     CONF_OVERRIDES,
     CONF_PERSON,
-    CONF_PHONE_NUMBER,
-    CONF_PRIORITY,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
-    CONF_TEMPLATE,
     CONF_TEMPLATES,
     DELIVERY_SELECTION_IMPLICIT,
     DOMAIN,
@@ -73,15 +53,12 @@ from . import (
     METHOD_MOBILE_PUSH,
     METHOD_PERSISTENT,
     METHOD_SMS,
-    METHOD_VALUES,
-    OCCUPANCY_ALL,
-    OCCUPANCY_VALUES,
     PRIORITY_MEDIUM,
-    PRIORITY_VALUES,
     FALLBACK_DISABLED,
     FALLBACK_ON_ERROR,
     FALLBACK_ENABLED,
-    FALLBACK_VALUES
+    PLATFORMS,
+    PLATFORM_SCHEMA
 )
 from .common import SuperNotificationContext
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -95,78 +72,6 @@ from .methods.sms import SMSDeliveryMethod
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.NOTIFY]
-TEMPLATE_DIR = "/config/templates/supernotify"
-MOBILE_DEVICE_SCHEMA = {
-    vol.Optional(CONF_MANUFACTURER): cv.string,
-    vol.Optional(CONF_MODEL): cv.string,
-    vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
-    vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
-}
-RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = {
-    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(CONF_DATA): dict
-}
-LINK_SCHEMA = {
-    vol.Required(CONF_URL): cv.url,
-    vol.Optional(CONF_ICON): cv.icon,
-    vol.Required(CONF_DESCRIPTION): cv.string,
-    vol.Optional(CONF_NAME): cv.string
-}
-RECIPIENT_SCHEMA = {
-    vol.Required(CONF_PERSON): cv.entity_id,
-    vol.Optional(CONF_ALIAS): cv.string,
-    vol.Optional(CONF_EMAIL): cv.string,
-    vol.Optional(CONF_TARGET): cv.string,
-    vol.Optional(CONF_PHONE_NUMBER): cv.string,
-    vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
-    vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
-    vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
-}
-SCENARIO_SCHEMA = {
-    vol.Optional(CONF_ALIAS): cv.string,
-    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
-}
-DELIVERY_SCHEMA = {
-    vol.Optional(CONF_ALIAS): cv.string,
-    vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
-    vol.Optional(CONF_SERVICE): cv.service,
-    vol.Optional(CONF_PLATFORM): cv.string,
-    vol.Optional(CONF_TEMPLATE): cv.string,
-    vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
-    vol.Optional(CONF_FALLBACK, default=FALLBACK_DISABLED): vol.In(FALLBACK_VALUES),
-    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(CONF_DATA): dict,
-    vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-    vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
-        vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
-    vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
-        vol.In(OCCUPANCY_VALUES),
-    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA
-}
-OVERRIDE_SCHEMA = {
-    vol.Required(CONF_OVERRIDE_BASE): cv.string,
-    vol.Required(CONF_OVERRIDE_REPLACE): cv.string
-}
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_TEMPLATES, default=TEMPLATE_DIR):
-            cv.path,
-        vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
-        vol.Optional(CONF_ACTIONS, default=[]):
-            vol.All(cv.ensure_list, [PUSH_ACTION_SCHEMA]),
-        vol.Optional(CONF_RECIPIENTS, default=[]):
-            vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
-        vol.Optional(CONF_LINKS, default=[]):
-            vol.All(cv.ensure_list, [LINK_SCHEMA]),
-        vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
-        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA}
-    }
-)
-
 METHODS = {
     METHOD_EMAIL:       EmailDeliveryMethod,
     METHOD_SMS:         SMSDeliveryMethod,
@@ -178,12 +83,12 @@ METHODS = {
     METHOD_GENERIC:     GenericDeliveryMethod
 }
 
-
 async def async_get_service(hass: HomeAssistant,
                             config: ConfigType,
                             discovery_info: DiscoveryInfoType | None = None
                             ):
-    for delivery in config.get(CONF_DELIVERY, ()).values():
+    _ = PLATFORM_SCHEMA # schema must be imported even if not used for HA platform detection
+    for delivery in config.get(CONF_DELIVERY, {}).values():
         if CONF_CONDITION in delivery:
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
 
@@ -195,7 +100,7 @@ async def async_get_service(hass: HomeAssistant,
             CONF_LINKS: config.get(CONF_LINKS, ()),
             CONF_TEMPLATES: config.get(CONF_TEMPLATES),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
-            CONF_ACTIONS: config.get(CONF_ACTIONS, ()),
+            CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {})
         },
@@ -222,7 +127,7 @@ class SuperNotificationService(BaseNotificationService):
                  deliveries=None,
                  templates=None,
                  recipients=(),
-                 mobile_actions=(),
+                 mobile_actions=None,
                  scenarios=None,
                  links=(),
                  overrides=None):
@@ -235,7 +140,7 @@ class SuperNotificationService(BaseNotificationService):
 
         self.recipients = recipients
         self.templates = templates
-        self.actions = mobile_actions
+        self.actions = mobile_actions or {}
         self.links = links
         scenarios = scenarios or {}
         self.overrides = overrides or {}
@@ -250,7 +155,7 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s",
                                  r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
                 else:
-                    _LOGGER.warn(
+                    _LOGGER.warning(
                         "SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
             self.people[r[CONF_PERSON]] = r
         if templates and not os.path.exists(templates):
@@ -401,7 +306,7 @@ class SuperNotificationService(BaseNotificationService):
         mobile_devices = []
         person_state = self.hass.states.get(person_entity_id)
         if not person_state:
-            _LOGGER.warn("SUPERNOTIFY Unable to resolve %s", person_entity_id)
+            _LOGGER.warning("SUPERNOTIFY Unable to resolve %s", person_entity_id)
         else:
             for d_t in person_state.attributes.get('device_trackers', ()):
                 entity = ent_reg.async_get(d_t)

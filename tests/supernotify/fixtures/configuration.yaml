@@ -94,7 +94,7 @@ notify:
       - person: person.new_home_owner
         email: jrb@jeymail.net
         phone_number: "+447989408889"
-        deliveries:
+        delivery:
           mobile_push: 
             target:
               - mobile_app.new_iphone
@@ -138,25 +138,31 @@ notify:
               before: "21:30:00"
 
     actions:
-      - identifier: action-1
-        title: Example Mobile Action
-        icon: "sfsymbols:bell"
-        uri: http://10.111.10.111:8123
-        activationMode: foreground
-        authenticationRequired: false
-        destructive: false
-        behavior: default
-        textInputButtonTitle: Input Button Title
-        textInputPlaceholder: Input Placeholder Text
-      - identifier: "ALARM_PANEL_DISARM"
-        title: "Disarm Alarm Panel"
-        icon: "sfsymbols:bell.slash"
-      - identifier: "ALARM_PANEL_RESET"
-        title: "Arm Alarm Panel for at Home"
-        icon: "sfsymbols:bell"
-      - identifier: "ALARM_PANEL_AWAY"
-        title: "Arm Alarm Panel for Going Away"
-        icon: "sfsymbols:airplane"
+      examples:
+        - identifier: action-1
+          title: Example Mobile Action
+          icon: "sfsymbols:bell"
+          uri: http://10.111.10.111:8123
+          activationMode: foreground
+          authenticationRequired: false
+          destructive: false
+          behavior: default
+          textInputButtonTitle: Input Button Title
+          textInputPlaceholder: Input Placeholder Text
+      frigate:
+        - action_template: silence-{{camera.entity_id}}
+          title_template: Silence Notifications for {{camera.entity_id}}
+          icon: "sfsymbols:bell.slash"
+      alarm_panel:
+        - action: "ALARM_PANEL_DISARM"
+          title: "Disarm Alarm Panel"
+          icon: "sfsymbols:bell.slash"
+        - action: "ALARM_PANEL_RESET"
+          title: "Arm Alarm Panel for at Home"
+          icon: "sfsymbols:bell"
+        - action: "ALARM_PANEL_AWAY"
+          title: "Arm Alarm Panel for Going Away"
+          icon: "sfsymbols:airplane"
     links:
       - url: http://frigate
         icon: "mdi:camera"

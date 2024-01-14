@@ -47,6 +47,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         clip_url = data.get("clip_url")
         snapshot_url = data.get("snapshot_url")
         category = data.get("category", "general")
+        action_groups = data.get("action_groups")
 
         title = title or ""
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", title, targets)
@@ -90,10 +91,13 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["actions"].append(
                 {"action": "URI", "title": app_url_title, "uri": app_url})
         if camera_entity_id:
+            # TODO generalize
             data["actions"].append({"action": "silence-%s" % camera_entity_id,
                                     "title": "Stop camera notifications for %s" % camera_entity_id,
                                     "destructive": "true"})
-        data["actions"].extend(self.context.mobile_actions)
+        for group, actions in self.context.mobile_actions.items():
+            if action_groups is None or group in action_groups:
+                data["actions"].extend(actions)
         service_data = {
             ATTR_TITLE: title,
             "message": message,
@@ -110,3 +114,53 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                     "SUPERNOTIFY Mobile push failure (m=%s): %s", message, e)
         _LOGGER.info("SUPERNOTIFY Mobile Push t=%s m=%s d=%s",
                      title, message, data)
+
+
+'''
+FRIGATE Example
+
+ - device_id: !input notify_device
+                            domain: mobile_app
+                            type: notify
+                            title: "{{title}}"
+                            message: "{{message}}"
+                            data:
+                              tag: "{{ id }}"
+                              group: "{{ group }}"
+                              color: "{{color}}"
+                              # Android Specific
+                              subject: "{{subtitle}}"
+                              image: "{{base_url}}/api/frigate{{client_id}}/notifications/{{id}}/{{attachment}}{{'&' if '?' in attachment else '?'}}format=android"
+                              video: "{{video}}"
+                              clickAction: "{{tap_action}}"
+                              ttl: 0
+                              priority: high
+                              notification_icon: "{{icon}}"
+                              sticky: "{{sticky}}"
+                              channel: "{{'alarm_stream' if critical else channel}}"
+                              car_ui: "{{android_auto}}"
+                              # iOS Specific
+                              subtitle: "{{subtitle}}"
+                              url: "{{tap_action}}"
+                              attachment:
+                                url: "{{base_url}}/api/frigate{{client_id}}/notifications/{{id}}/{{attachment}}"
+                              push:
+                                sound: "{{sound}}"
+                                interruption-level: "{{ iif(critical, 'critical', 'active') }}"
+                              entity_id: "{{ios_live_view}}"
+                              # Actions
+                              actions:
+                                - action: URI
+                                  title: "{{button_1}}"
+                                  uri: "{{url_1}}"
+                                  icon: "{{icon_1}}"
+                                - action: URI
+                                  title: "{{button_2}}"
+                                  uri: "{{url_2}}"
+                                  icon: "{{icon_2}}"
+                                - action: "{{ 'URI' if '/' in url_3 else url_3 }}"
+                                  title: "{{button_3}}"
+                                  uri: "{{url_3}}"
+                                  icon: "{{icon_3}}"
+                                  destructive: true
+'''

@@ -42,13 +42,13 @@ _LOGGER = logging.getLogger(__name__)
 class SuperNotificationContext:
     def __init__(self, hass_url: str = None, hass_name: str = None,
                  links=(), recipients=(),
-                 mobile_actions=(),
+                 mobile_actions=None,
                  templates=()):
         self.hass_url = hass_url
         self.hass_name = hass_name
         self.links = links
         self.recipients = recipients
-        self.mobile_actions = mobile_actions
+        self.mobile_actions = mobile_actions or {}
         self.templates = templates
         self.people = {r[CONF_PERSON]: r for r in recipients}
 

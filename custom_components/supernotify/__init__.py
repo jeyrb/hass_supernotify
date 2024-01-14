@@ -1,13 +1,37 @@
 """The SuperNotification integration"""
 
-import logging
+from homeassistant.const import Platform
 
+import voluptuous as vol
+from homeassistant.components.notify import (
+    PLATFORM_SCHEMA,
+)
+from homeassistant.const import (
+    CONF_ALIAS,
+    CONF_CONDITION,
+    CONF_DEFAULT,
+    CONF_DESCRIPTION,
+    CONF_EMAIL,
+    CONF_ENABLED,
+    CONF_ENTITIES,
+    CONF_ICON,
+    CONF_NAME,
+    CONF_PLATFORM,
+    CONF_SERVICE,
+    CONF_TARGET,
+    CONF_URL
+)
+from homeassistant.helpers import config_validation as cv
 
 DOMAIN = "supernotify"
 
-PLATFORMS = ["notify"]
+PLATFORMS = [Platform.NOTIFY]
+TEMPLATE_DIR = "/config/templates/supernotify"
 
 CONF_ACTIONS = "actions"
+CONF_ACTION = "action"
+CONF_TITLE = "title"
+CONF_URI = "uri"
 CONF_RECIPIENTS = "recipients"
 CONF_TEMPLATES = "templates"
 CONF_TEMPLATE = "template"
@@ -22,7 +46,6 @@ CONF_FALLBACK = "fallback"
 
 CONF_DATA = "data"
 CONF_OPTIONS = "options"
-CONF_TARGET = "target"
 CONF_MOBILE = "mobile"
 CONF_NOTIFY = "notify"
 CONF_NOTIFY_SERVICE = "notify_service"
@@ -35,6 +58,8 @@ CONF_DEVICE_TRACKER = "device_tracker"
 CONF_MODEL = "model"
 CONF_MOBILE_DEVICES = "mobile_devices"
 CONF_MOBILE_DISCOVERY = "mobile_discovery"
+CONF_ACTION_TEMPLATE = "action_template"
+CONF_TITLE_TEMPLATE = "title_template"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -87,4 +112,78 @@ METHOD_VALUES = [METHOD_SMS, METHOD_ALEXA, METHOD_MOBILE_PUSH,
                  METHOD_PERSISTENT, METHOD_GENERIC]
 
 
-_LOGGER = logging.getLogger(__name__)
+MOBILE_DEVICE_SCHEMA = vol.Schema({
+    vol.Optional(CONF_MANUFACTURER): cv.string,
+    vol.Optional(CONF_MODEL): cv.string,
+    vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
+    vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
+})
+RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_DATA): dict
+})
+LINK_SCHEMA = vol.Schema({
+    vol.Required(CONF_URL): cv.url,
+    vol.Optional(CONF_ICON): cv.icon,
+    vol.Required(CONF_DESCRIPTION): cv.string,
+    vol.Optional(CONF_NAME): cv.string
+})
+RECIPIENT_SCHEMA = vol.Schema({
+    vol.Required(CONF_PERSON): cv.entity_id,
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Optional(CONF_EMAIL): cv.string,
+    vol.Optional(CONF_TARGET): cv.string,
+    vol.Optional(CONF_PHONE_NUMBER): cv.string,
+    vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
+    vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
+    vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
+})
+SCENARIO_SCHEMA = vol.Schema({
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
+})
+DELIVERY_SCHEMA = vol.Schema({
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
+    vol.Optional(CONF_SERVICE): cv.service,
+    vol.Optional(CONF_PLATFORM): cv.string,
+    vol.Optional(CONF_TEMPLATE): cv.string,
+    vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
+    vol.Optional(CONF_FALLBACK, default=FALLBACK_DISABLED): vol.In(FALLBACK_VALUES),
+    vol.Optional(CONF_SCENARIOS, default=[]): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_DATA): dict,
+    vol.Optional(CONF_ENABLED, default=True): cv.boolean,
+    vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
+        vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
+    vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
+        vol.In(OCCUPANCY_VALUES),
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA
+})
+OVERRIDE_SCHEMA = vol.Schema({
+    vol.Required(CONF_OVERRIDE_BASE): cv.string,
+    vol.Required(CONF_OVERRIDE_REPLACE): cv.string
+})
+PUSH_ACTION_SCHEMA = vol.Schema({
+    vol.Exclusive(CONF_ACTION, CONF_ACTION_TEMPLATE): cv.string,
+    vol.Exclusive(CONF_TITLE, CONF_TITLE_TEMPLATE): cv.string,
+    vol.Optional(CONF_URI): cv.url,
+    vol.Optional(CONF_ICON): cv.string
+}, extra=vol.ALLOW_EXTRA)
+
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+    {
+        vol.Optional(CONF_TEMPLATES, default=TEMPLATE_DIR):
+            cv.path,
+        vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
+        vol.Optional(CONF_ACTIONS, default={}): {cv.string: [PUSH_ACTION_SCHEMA]},
+        vol.Optional(CONF_RECIPIENTS, default=[]):
+            vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
+        vol.Optional(CONF_LINKS, default=[]):
+            vol.All(cv.ensure_list, [LINK_SCHEMA]),
+        vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
+        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA}
+    }
+)
