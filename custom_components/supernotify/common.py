@@ -83,6 +83,8 @@ class DeliveryMethod:
                 delivery_config[CONF_SERVICE] = method_defaults[CONF_SERVICE]
             if not delivery_config.get(CONF_TARGET) and method_defaults.get(CONF_TARGET):
                 delivery_config[CONF_TARGET] = method_defaults[CONF_TARGET]
+            if not delivery_config.get(CONF_ENTITIES) and method_defaults.get(CONF_ENTITIES):
+                delivery_config[CONF_ENTITIES] = method_defaults[CONF_ENTITIES]
 
     def validate_deliveries(self, deliveries):
         """

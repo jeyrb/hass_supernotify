@@ -134,6 +134,7 @@ LINK_SCHEMA = vol.Schema({
 })
 METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_SERVICE): cv.service
 })
 RECIPIENT_SCHEMA = vol.Schema({
