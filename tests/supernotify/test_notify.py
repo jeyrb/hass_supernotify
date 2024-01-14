@@ -141,7 +141,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
                                },
                                {
                                    CONF_CONDITION: "state",
-                                   CONF_ENTITY_ID: "input_select.supernotify_priority",
+                                   CONF_ENTITY_ID: "supernotify.delivery_priority",
                                    CONF_STATE: ["critical", "high"]
                                }
                            ]
@@ -164,7 +164,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     hass.states.async_set(
         "alarm_control_panel.home_alarm_control", "disarmed")
     hass.states.async_set(
-        "input_select.supernotify_priority", "medium")
+        "supernotify.delivery_priority", "medium")
 
     await uut.async_send_message(title="test_title", message="testing 123",
                                  recipients=RECIPIENTS)

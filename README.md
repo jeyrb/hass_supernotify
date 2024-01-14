@@ -135,7 +135,7 @@ notify:
                 - armed_home
                 - armed_night
             - condition: state
-              entity_id: input_select.supernotify_priority
+              entity_id: supernotify.delivery_priority
               state:
                 - critical
                 - high    

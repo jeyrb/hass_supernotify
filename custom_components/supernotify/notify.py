@@ -87,7 +87,8 @@ async def async_get_service(hass: HomeAssistant,
                             config: ConfigType,
                             discovery_info: DiscoveryInfoType | None = None
                             ):
-    _ = PLATFORM_SCHEMA # schema must be imported even if not used for HA platform detection
+    
+    _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if CONF_CONDITION in delivery:
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
