@@ -213,8 +213,6 @@ class SuperNotificationService(BaseNotificationService):
 
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
             self.delivery_by_scenario[SCENARIO_DEFAULT] = list(deliveries.keys())
-        hass.states.async_set(
-            ".".join((DOMAIN, ATTR_SCENARIOS_BY_DELIVERY)), self.delivery_by_scenario.keys(), {})
 
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
@@ -233,10 +231,6 @@ class SuperNotificationService(BaseNotificationService):
         if unknown_deliveries:
             _LOGGER.info(
                 "SUPERNOTIFY Ignoring deliveries without known methods: %s", unknown_deliveries)
-        hass.states.async_set(
-            ".".join((DOMAIN, ATTR_SKIPPED_DELIVERIES)), unknown_deliveries.keys(), {})
-        hass.states.async_set(
-            ".".join((DOMAIN, ATTR_CONFIGURED_DELIVERIES)), self.deliveries.keys(), {})
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s",
                      ";".join(self.deliveries.keys()))
