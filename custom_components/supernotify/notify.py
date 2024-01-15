@@ -234,7 +234,7 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.info(
                 "SUPERNOTIFY Ignoring deliveries without known methods: %s", unknown_deliveries)
         hass.states.async_set(
-            ".".join((DOMAIN, ATTR_SKIPPED_DELIVERIES)), unknown_deliveries, {})
+            ".".join((DOMAIN, ATTR_SKIPPED_DELIVERIES)), unknown_deliveries.keys(), {})
         hass.states.async_set(
             ".".join((DOMAIN, ATTR_CONFIGURED_DELIVERIES)), self.deliveries.keys(), {})
 
