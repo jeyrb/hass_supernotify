@@ -97,6 +97,9 @@ notify:
               - media_player.echo_study
       - person: person.bidey_in
         phone_number: "+4489393013834"
+        delivery:
+          text_message:
+            enabled: false
     overrides:
       image_url:
         base: http://10.1.1.100
@@ -114,8 +117,11 @@ notify:
       
     scenarios:
       doorbell:
+        delivery_selection: implicit
         delivery:
           doorbell_chime_alexa: 
+            data:
+              amazon_magic_id: a77464
           email:
       ordinary_day:
         alias: nothing special

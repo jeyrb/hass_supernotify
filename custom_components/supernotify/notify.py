@@ -214,7 +214,7 @@ class SuperNotificationService(BaseNotificationService):
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
             self.delivery_by_scenario[SCENARIO_DEFAULT] = list(deliveries.keys())
         hass.states.async_set(
-            ".".join((DOMAIN, ATTR_SCENARIOS_BY_DELIVERY)), self.delivery_by_scenario, {})
+            ".".join((DOMAIN, ATTR_SCENARIOS_BY_DELIVERY)), self.delivery_by_scenario.keys(), {})
 
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
@@ -377,7 +377,8 @@ class SuperNotificationService(BaseNotificationService):
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices
+    
 
 def delivery_enabled(delivery):
     delivery = delivery or {}
-    return delivery.get(CONF_ENABLED,True)
+    return delivery.get(CONF_ENABLED, True)
