@@ -1,0 +1,47 @@
+Message: just a wee test, kwargs: {'data': {'delivery': 'alexa_announce'}}
+ invalid delivery_overrides: alexa_announce
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ custom_components.supernotify.common target list filtered by 5 to []
+ custom_components.supernotify.common No targets resolved
+ notify_email: {'method': 'email', 'template': 'default.html.j2', 'priority': ['critical', 'high', 'medium', 'low'], 'fallback': 'disabled', 'enabled': True, 'default': False, 'occupancy': 'all', 'service': 'notify.email', 'entities': ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio'], 'name': 'html_email'} []
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ custom_components.supernotify.common target list filtered by 5 to []
+ custom_components.supernotify.common No targets resolved
+ notify_email: {'method': 'email', 'fallback': 'disabled', 'enabled': True, 'default': False, 'priority': ['critical', 'high', 'low', 'medium'], 'occupancy': 'all', 'service': 'notify.email', 'entities': ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio'], 'name': 'plain_email'} []
+ Skipping delivery for sms based on priority (medium)
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ [custom_components.supernotify.methods.alexa_media_player] SUPERNOTIFY notify_alexa: just a wee test
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ custom_components.supernotify.common target list filtered by 5 to []
+ custom_components.supernotify.common No targets resolved
+ notify_mobile:  -> []
+ Mobile Push t= m=just a wee test d={'actions': [{'action': 'ALARM_PANEL_DISARM', 'title': 'Disarm Alarm Panel', 'icon': 'sfsymbols:bell.slash'}, {'action': 'ALARM_PANEL_RESET', 'title': 'Arm Alarm Panel for at Home', 'icon': 'sfsymbols:bell'}, {'action': 'ALARM_PANEL_AWAY', 'title': 'Arm Alarm Panel for Going Away', 'icon': 'sfsymbols:airplane'}, {'action': 'ALL_LIGHTS_ON', 'title': 'All Lights On', 'icon': 'sfsymbols:lightbulb'}], 'push': {'interruption-level': 'active'}, 'group': 'general-appd'}
+ Skipping delivery for chime based on priority (medium)
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'switch.chimes_doorbell'}]
+ Prefiltered targets: ['switch.chimes_doorbell']
+ notify_chime: ['switch.chimes_doorbell']
+ chime switch.chimes_doorbell
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'switch.chime_big_ben'}]
+ Prefiltered targets: ['switch.chime_big_ben']
+ notify_chime: ['switch.chime_big_ben']
+ chime switch.chime_big_ben
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'switch.chime_sax'}]
+ Prefiltered targets: ['switch.chime_sax']
+ notify_chime: ['switch.chime_sax']
+ chime switch.chime_sax
+ Skipping delivery for chime based on priority (medium)
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ [custom_components.supernotify.methods.generic] Failed to notify via generic notification (m=<audio src="soundbank://soundlibrary/home/amzn_sfx_doorbell_chime_02"/>): template value is None for dictionary value @ data['title']
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ [custom_components.supernotify.methods.generic] Failed to notify via generic notification (m=<audio src="soundbank://soundlibrary/home/musical/amzn_sfx_trumpet_bugle_04"/>): template value is None for dictionary value @ data['title']
+ custom_components.supernotify.common Using delivery config entities: [{'target': 'media_player.kitchen_2'}, {'target': 'media_player.bedroom'}, {'target': 'media_player.old_kitchen_flex'}, {'target': 'media_player.hall_flex'}, {'target': 'media_player.studio'}]
+ Prefiltered targets: ['media_player.kitchen_2', 'media_player.bedroom', 'media_player.old_kitchen_flex', 'media_player.hall_flex', 'media_player.studio']
+ [custom_components.supernotify.methods.generic] Failed to notify via generic notification (m=<audio src="soundbank://soundlibrary/home/bell/church/church_bells_01"/>): template value is None for dictionary value @ data['title']
+ Skipping delivery for generic based on priority (medium)
+ 15 deliveries, 0 errors

@@ -265,11 +265,11 @@ class SuperNotificationService(BaseNotificationService):
         elif not isinstance(delivery_overrides, dict):
             _LOGGER.error(
                 "SUPERNOTIFIER invalid delivery_overrides: %s", delivery_overrides)
-            delivery_overrides = {}
+            delivery_overrides = {delivery_overrides: None}
 
         selected_scenarios = scenarios or [SCENARIO_DEFAULT]
         for delivery, delivery_override in delivery_overrides.items():
-            if delivery_override.get(CONF_ENABLED, True) and delivery in self.deliveries:
+            if (delivery_override is None or delivery_override.get(CONF_ENABLED, True)) and delivery in self.deliveries:
                 if any(delivery in self.delivery_by_scenario.get(s) for s in selected_scenarios):
                     deliveries[delivery] = self.deliveries[delivery]
 
