@@ -200,7 +200,7 @@ class SuperNotificationService(BaseNotificationService):
         for scenario, scenario_definition in scenarios.items():
             self.delivery_by_scenario.setdefault(scenario, [])
             if scenario_definition.get(CONF_DELIVERY_SELECTION) == DELIVERY_SELECTION_IMPLICIT:
-                scenario_deliveries = deliveries.keys()
+                scenario_deliveries = list(deliveries.keys())
             else:
                 scenario_deliveries = []
             scenario_deliveries.extend(s for s in scenario_definition.get(
@@ -263,7 +263,7 @@ class SuperNotificationService(BaseNotificationService):
             deliveries = {}
         if isinstance(delivery_overrides, list):
             delivery_overrides = {k: {} for k in delivery_selection}
-            
+
         selected_scenarios = scenarios or [SCENARIO_DEFAULT]
         for delivery, delivery_override in delivery_overrides.items():
             if delivery_override.get(CONF_ENABLED, True) and delivery in self.deliveries:
@@ -275,7 +275,7 @@ class SuperNotificationService(BaseNotificationService):
         stats_delivieries = stats_errors = 0
 
         for delivery, delivery_config in deliveries.items():
- 
+
             delivered, errored = await self.call_method(delivery, delivery_config, message,
                                                         title, target, scenarios,
                                                         priority,
