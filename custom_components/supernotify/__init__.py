@@ -131,7 +131,7 @@ MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
     vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
 })
-RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
+DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_DATA): dict
@@ -155,7 +155,7 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
     vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
     vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
-    vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
+    vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -181,7 +181,7 @@ SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
     vol.Optional(CONF_DELIVERY_SELECTION, default=DELIVERY_SELECTION_EXPLICIT): vol.Any(DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT),
-    vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_SCHEMA)}
+    vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}
 })
 OVERRIDE_SCHEMA = vol.Schema({
     vol.Required(CONF_OVERRIDE_BASE): cv.string,
