@@ -134,6 +134,7 @@ MOBILE_DEVICE_SCHEMA = vol.Schema({
 DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_DATA): dict
 })
 LINK_SCHEMA = vol.Schema({

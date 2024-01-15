@@ -238,6 +238,7 @@ class DeliveryMethod:
         custom_targets = []
         for recipient in recipients:
             recipient_targets = []
+            enabled = True
             custom_data = {}
             # reuse standard recipient attributes like email or phone
             self._safe_extend(recipient_targets,
@@ -251,13 +252,15 @@ class DeliveryMethod:
                 self._safe_extend(recipient_targets,
                                   recp_meth_cust.get(CONF_TARGET, []))
                 custom_data = recp_meth_cust.get(CONF_DATA)
+                enabled = recp_meth_cust.get(CONF_ENABLED, True)
             elif ATTR_TARGET in recipient:
                 # non person recipient
                 self._safe_extend(default_targets, recipient.get(ATTR_TARGET))
-            if custom_data:
-                custom_targets.append((recipient_targets, custom_data))
-            else:
-                default_targets.extend(recipient_targets)
+            if enabled:
+                if custom_data:
+                    custom_targets.append((recipient_targets, custom_data))
+                else:
+                    default_targets.extend(recipient_targets)
 
         bundled_targets = custom_targets + [(default_targets, None)]
         filtered_bundles = []

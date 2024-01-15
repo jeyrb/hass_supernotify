@@ -21,7 +21,6 @@ from homeassistant.util import slugify
 
 from . import (
     ATTR_CONFIGURED_DELIVERIES,
-    ATTR_DEFAULT,
     ATTR_DELIVERY,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
@@ -203,13 +202,17 @@ class SuperNotificationService(BaseNotificationService):
                 scenario_deliveries = list(deliveries.keys())
             else:
                 scenario_deliveries = []
-            scenario_deliveries.extend(s for s in scenario_definition.get(
-                CONF_DELIVERY, {}).keys() if s not in scenario_deliveries)
+            scenario_definition_delivery = scenario_definition.get(CONF_DELIVERY, {})
+            scenario_deliveries.extend(
+                s for s in scenario_definition_delivery.keys() if s not in scenario_deliveries)
+            scenario_deliveries = [sd for sd in scenario_deliveries if delivery_enabled(scenario_definition_delivery.get(
+                sd))]
 
             for scenario_delivery in scenario_deliveries:
                 self.delivery_by_scenario[scenario].append(scenario_delivery)
+
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
-            self.delivery_by_scenario[SCENARIO_DEFAULT] = deliveries.keys()
+            self.delivery_by_scenario[SCENARIO_DEFAULT] = list(deliveries.keys())
         hass.states.async_set(
             ".".join((DOMAIN, ATTR_SCENARIOS_BY_DELIVERY)), self.delivery_by_scenario, {})
 
@@ -374,3 +377,7 @@ class SuperNotificationService(BaseNotificationService):
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices
+
+def delivery_enabled(delivery):
+    delivery = delivery or {}
+    return delivery.get(CONF_ENABLED,True)
