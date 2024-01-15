@@ -119,11 +119,12 @@ class DeliveryMethod:
                             "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
                     else:
                         self.default_delivery = dc
-        if not self.default_delivery and len(self.valid_deliveries) == 1:
-            single_default = [d for d in self.valid_deliveries][0]
-            _LOGGER.info(
-                "SUPERNOTIFY Set default delivery for %s to %s", self.method, single_default)
-            self.default_delivery = self.valid_deliveries[single_default]
+        if not self.default_delivery:
+            method_definition = self.context.method_defaults.get(self.method)
+            if method_definition:
+                _LOGGER.info(
+                "SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
+                self.default_delivery = method_definition
 
     async def deliver(self,
                       message=None,
