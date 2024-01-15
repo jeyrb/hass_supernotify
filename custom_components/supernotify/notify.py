@@ -48,6 +48,7 @@ from . import (
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
     CONF_TEMPLATE_PATH,
+    DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_IMPLICIT,
     DOMAIN,
     METHOD_ALEXA,
@@ -253,19 +254,28 @@ class SuperNotificationService(BaseNotificationService):
         scenarios.extend(await self.select_scenarios())
         self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, scenarios)
 
-        delivery_selection = data.get(
-            ATTR_DELIVERY_SELECTION, DELIVERY_SELECTION_IMPLICIT)
-        delivery_overrides = data.get(ATTR_DELIVERY, {})
+        delivery_selection = data.get(ATTR_DELIVERY_SELECTION)
+        delivery_overrides = data.get(ATTR_DELIVERY)
         if delivery_selection == DELIVERY_SELECTION_IMPLICIT:
             deliveries = self.deliveries
-        else:
+        elif delivery_selection == DELIVERY_SELECTION_EXPLICIT:
             deliveries = {}
+        elif delivery_overrides is None:
+            deliveries = self.deliveries
+            delivery_overrides = {}
+        elif not isinstance(delivery_overrides,dict):
+            deliveries = {}
+        else:
+            deliveries = self.deliveries
+            
         if isinstance(delivery_overrides, list):
-            delivery_overrides = {k: {} for k in delivery_selection}
+            delivery_overrides = {k: None for k in delivery_overrides}
+        elif isinstance(delivery_overrides, str):
+            delivery_overrides = {delivery_overrides: None}
         elif not isinstance(delivery_overrides, dict):
             _LOGGER.error(
                 "SUPERNOTIFIER invalid delivery_overrides: %s", delivery_overrides)
-            delivery_overrides = {delivery_overrides: None}
+            delivery_overrides = {}            
 
         selected_scenarios = scenarios or [SCENARIO_DEFAULT]
         for delivery, delivery_override in delivery_overrides.items():
