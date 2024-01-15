@@ -202,7 +202,8 @@ class SuperNotificationService(BaseNotificationService):
                 scenario_deliveries = list(deliveries.keys())
             else:
                 scenario_deliveries = []
-            scenario_definition_delivery = scenario_definition.get(CONF_DELIVERY, {})
+            scenario_definition_delivery = scenario_definition.get(
+                CONF_DELIVERY, {})
             scenario_deliveries.extend(
                 s for s in scenario_definition_delivery.keys() if s not in scenario_deliveries)
             scenario_deliveries = [sd for sd in scenario_deliveries if delivery_enabled(scenario_definition_delivery.get(
@@ -212,7 +213,8 @@ class SuperNotificationService(BaseNotificationService):
                 self.delivery_by_scenario[scenario].append(scenario_delivery)
 
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
-            self.delivery_by_scenario[SCENARIO_DEFAULT] = list(deliveries.keys())
+            self.delivery_by_scenario[SCENARIO_DEFAULT] = list(
+                deliveries.keys())
 
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
@@ -260,6 +262,10 @@ class SuperNotificationService(BaseNotificationService):
             deliveries = {}
         if isinstance(delivery_overrides, list):
             delivery_overrides = {k: {} for k in delivery_selection}
+        elif not isinstance(delivery_overrides, dict):
+            _LOGGER.error(
+                "SUPERNOTIFIER invalid delivery_overrides: %s", delivery_overrides)
+            delivery_overrides = {}
 
         selected_scenarios = scenarios or [SCENARIO_DEFAULT]
         for delivery, delivery_override in delivery_overrides.items():
@@ -371,7 +377,7 @@ class SuperNotificationService(BaseNotificationService):
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices
-    
+
 
 def delivery_enabled(delivery):
     delivery = delivery or {}

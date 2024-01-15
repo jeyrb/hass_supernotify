@@ -5,6 +5,7 @@ tests/__pycache__
 *$py.class
 tests/supernotify/__pycache__/
 cov.xml
+examples/barrsofcloak.yaml
 
 # C extensions
 *.so
