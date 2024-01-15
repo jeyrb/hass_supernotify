@@ -318,6 +318,7 @@ class SuperNotificationService(BaseNotificationService):
         method = delivery_config[CONF_METHOD]
         # TODO consider changing delivery config to list
         delivery_config[CONF_NAME] = delivery
+        delivery_override = delivery_override or {}
 
         try:
             await self.methods[method].deliver(message=message,
@@ -332,7 +333,7 @@ class SuperNotificationService(BaseNotificationService):
             return (1, 0)
         except Exception as e:
             _LOGGER.warning(
-                "SUPERNOTIFY Failed to %s %s: %s", method, delivery, e)
+                "SUPERNOTIFY Failed to %s notify using %s: %s", method, delivery, e)
             return (0, 1)
 
     def setup_condition_inputs(self, field, value):

@@ -119,6 +119,11 @@ class DeliveryMethod:
                             "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
                     else:
                         self.default_delivery = dc
+        if not self.default_delivery and len(self.valid_deliveries) == 1:
+            single_default = [d for d in self.valid_deliveries][0]
+            _LOGGER.info(
+                "SUPERNOTIFY Set default delivery for %s to %s", self.method, single_default)
+            self.default_delivery = self.valid_deliveries[single_default]
 
     async def deliver(self,
                       message=None,
@@ -222,7 +227,7 @@ class DeliveryMethod:
             if delivery_config and CONF_RECIPIENTS in delivery_config:
                 recipients = delivery_config[CONF_RECIPIENTS]
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s",
-                              __name__, recipients)
+                              self.method, recipients)
 
             # If target not specified on service call or delivery, then default to std list of recipients
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
@@ -231,7 +236,7 @@ class DeliveryMethod:
                 recipients = [r for r in recipients if recipients_override is None or r.get(
                     CONF_PERSON) in recipients_override]
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s",
-                              __name__, recipients)
+                              self.method, recipients)
 
         # now the list of recipients determined, resolve this to target addresses or entities
         default_targets = []
@@ -269,10 +274,11 @@ class DeliveryMethod:
             _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
             targets = [t for t in targets if self.select_target(t)]
             if len(targets) < pre_filter_count:
-                _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__,
+                _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", self.method,
                               pre_filter_count-len(targets), targets)
             if not targets:
-                _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)
+                _LOGGER.warning(
+                    "SUPERNOTIFY %s No targets resolved", self.method)
             else:
                 filtered_bundles.append((targets, custom_data))
         if not filtered_bundles:

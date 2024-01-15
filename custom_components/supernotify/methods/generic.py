@@ -1,6 +1,6 @@
 import logging
 
-from custom_components.supernotify import CONF_NOTIFY, METHOD_GENERIC
+from custom_components.supernotify import CONF_DATA, CONF_MESSAGE, CONF_NOTIFY, CONF_TITLE, METHOD_GENERIC, CONF_TARGET
 from custom_components.supernotify.common import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
@@ -26,16 +26,19 @@ class GenericDeliveryMethod(DeliveryMethod):
             domain, service = config.get(
                 CONF_SERVICE).split(".", 1)
             if domain == CONF_NOTIFY:
-                service_data = {
-                    "title":    title,
-                    "message":  message,
-                    "target":   targets,
-                    "data":     data
-                }
+                service_data = {}
+                if title is not None:
+                    service_data[CONF_TITLE] = title
+                if message is not None:
+                    service_data[CONF_MESSAGE] = message
+                if targets is not None:
+                    service_data[CONF_TARGET] = targets
+                if data is not None:
+                    service_data[CONF_DATA] = data
             else:
                 service_data = data
             await self.hass.services.async_call(
                 domain, service, service_data=service_data)
         except Exception as e:
             _LOGGER.error(
-                "Failed to notify via generic notification (m=%s): %s", message, e)
+                "Failed to notify via generic %s.%s (m=%s): %s", domain, service, message, e)
