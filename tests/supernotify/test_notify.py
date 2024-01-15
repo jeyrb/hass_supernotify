@@ -14,6 +14,7 @@ from custom_components.supernotify import (
     ATTR_DELIVERY_SELECTION,
     ATTR_SCENARIOS,
     CONF_DATA,
+    CONF_DELIVERY,
     CONF_METHOD,
     CONF_PHONE_NUMBER,
     CONF_SCENARIOS,
@@ -24,6 +25,7 @@ from custom_components.supernotify import (
     METHOD_GENERIC,
     METHOD_PERSISTENT,
     METHOD_SMS,
+    SCENARIO_DEFAULT,
 )
 from custom_components.supernotify.notify import SuperNotificationService
 
@@ -33,6 +35,10 @@ DELIVERY = {
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
     "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SCENARIOS: ["scenario1", "scenario2"]}
+}
+SCENARIOS = {
+    SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}}},
+    "scenario1": {CONF_DELIVERY: {"persistent": {}}}
 }
 
 RECIPIENTS = [
@@ -54,7 +60,7 @@ async def test_send_message_with_scenario_mismatch() -> None:
     hass = Mock()
     hass.states = Mock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY)
+        hass, deliveries=DELIVERY, scenarios=SCENARIOS)
     await uut.async_send_message(title="test_title", message="testing 123",
                                  data={
                                      ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,

@@ -1,7 +1,7 @@
 notify:
-  - name: SuperNotifier_reloaded
+  - name: maximal
     platform: supernotify
-    templates: config/templates/supernotify        
+    template_path: config/templates/supernotify        
     delivery:
       html_email:
         method: email
@@ -54,14 +54,12 @@ notify:
           - switch.chime_sax
           - media_player.echo_lobby
         occupancy: any_in
-      doorbell:
+      doorbell_chime_alexa:
         method: chime
         target:
           - media_player.echo_lobby
         data:
           chime_tune: amzn_sfx_doorbell_chime_01
-        scenarios:
-          - doorbell
       upstairs_siren:
         method: generic
         service: mqtt.publish
@@ -115,6 +113,10 @@ notify:
           - media_player.studio
       
     scenarios:
+      doorbell:
+        delivery:
+          doorbell_chime_alexa: 
+          email:
       ordinary_day:
         alias: nothing special
         condition:

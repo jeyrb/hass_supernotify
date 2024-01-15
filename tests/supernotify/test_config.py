@@ -10,8 +10,9 @@ from homeassistant.setup import async_setup_component
 from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
-    "fixtures", "configuration.yaml"
+    "..", "..", "examples", "maximal.yaml"
 )
+
 
 SIMPLE_CONFIG = {
     "name": DOMAIN,
@@ -65,7 +66,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert "mobile_push" in uut.deliveries
     assert "alexa_show" in uut.deliveries
     assert "play_chimes" in uut.deliveries
-    assert "doorbell" in uut.deliveries
+    assert "doorbell_chime_alexa" in uut.deliveries
     assert "sleigh_bells" in uut.deliveries
     assert "upstairs_siren" in uut.deliveries
 

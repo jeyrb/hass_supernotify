@@ -1,3 +1,4 @@
+import copy
 import logging
 from abc import abstractmethod
 
@@ -19,7 +20,6 @@ from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
 
 from . import (
-    ATTR_SCENARIOS,
     CONF_DELIVERY,
     CONF_MESSAGE,
     CONF_OCCUPANCY,
@@ -27,6 +27,7 @@ from . import (
     CONF_PRIORITY,
     CONF_RECIPIENTS,
     CONF_TITLE,
+    CONF_DATA,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -45,14 +46,14 @@ class SuperNotificationContext:
     def __init__(self, hass_url: str = None, hass_name: str = None,
                  links=(), recipients=(),
                  mobile_actions=None,
-                 templates=(),
+                 template_path=(),
                  method_defaults=None):
         self.hass_url = hass_url
         self.hass_name = hass_name
         self.links = links
         self.recipients = recipients
         self.mobile_actions = mobile_actions or {}
-        self.templates = templates
+        self.template_path = template_path
         self.method_defaults = method_defaults or {}
         self.people = {r[CONF_PERSON]: r for r in recipients}
 
@@ -124,6 +125,7 @@ class DeliveryMethod:
                       title=None,
                       config=None,
                       scenarios=None,
+                      scenario_configs=None,
                       target=None,
                       priority=PRIORITY_MEDIUM,
                       data=None,
@@ -136,6 +138,7 @@ class DeliveryMethod:
             title (_type_, optional): Title of message. Defaults to None, e.g for methods like chime 
             config (_type_, optional): Delivery Configuration. Defaults to None.
             scenarios (_type_, optional): List of current scenarios. Defaults to None.
+            scenario_configs (_type_, optional): Current scenarios configs. Defaults to None.
             target (_type_, optional): Specific targets, method specific or Person. Defaults to None.
             priority (_type_, optional): Message priority. Defaults to Medium.
             data (_type_, optional): Optional service data. Defaults to None.
@@ -143,6 +146,7 @@ class DeliveryMethod:
         config = config or self.default_delivery or {}
         data = data or {}
         scenarios = scenarios or {}
+        scenario_configs = scenario_configs or {}
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         message = config.get(CONF_MESSAGE, message)
         title = config.get(CONF_TITLE, title)
@@ -162,19 +166,21 @@ class DeliveryMethod:
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return
 
-        targets = self.build_targets(config, target, recipients_override)
-        delivery_scenarios = config.get(ATTR_SCENARIOS)
-        if delivery_scenarios and not any(s in delivery_scenarios for s in scenarios):
-            _LOGGER.debug(
-                "Skipping delivery without matched scenario (%s) vs (%s)", scenarios, delivery_scenarios)
-            return
-        await self._delivery_impl(message=message,
-                                  title=title,
-                                  targets=targets,
-                                  priority=priority,
-                                  scenarios=scenarios,
-                                  data=data,
-                                  config=config)
+        target_bundles = self.build_targets(
+            config, target, recipients_override)
+        for targets, custom_data in target_bundles:
+            if custom_data:
+                target_data = copy.deepcopy(data)
+                target_data |= custom_data
+            else:
+                target_data = data
+            await self._delivery_impl(message=message,
+                                      title=title,
+                                      targets=targets,
+                                      priority=priority,
+                                      scenarios=scenarios,
+                                      data=target_data,
+                                      config=config)
 
     @abstractmethod
     async def _delivery_impl(message=None, title=None, config=None):
@@ -228,30 +234,48 @@ class DeliveryMethod:
                               __name__, recipients)
 
         # now the list of recipients determined, resolve this to target addresses or entities
-        targets = []
+        default_targets = []
+        custom_targets = []
         for recipient in recipients:
+            recipient_targets = []
+            custom_data = {}
             # reuse standard recipient attributes like email or phone
-            self._safe_extend(targets, self.recipient_target(recipient))
+            self._safe_extend(recipient_targets,
+                              self.recipient_target(recipient))
             # use entities or targets set at a method level for recipient
             if CONF_DELIVERY in recipient and delivery_config[CONF_NAME] in recipient.get(CONF_DELIVERY, {}):
                 recp_meth_cust = recipient.get(
                     CONF_DELIVERY, {}).get(delivery_config[CONF_NAME], {})
                 self._safe_extend(
-                    targets, recp_meth_cust.get(CONF_ENTITIES, []))
-                self._safe_extend(targets, recp_meth_cust.get(CONF_TARGET, []))
+                    recipient_targets, recp_meth_cust.get(CONF_ENTITIES, []))
+                self._safe_extend(recipient_targets,
+                                  recp_meth_cust.get(CONF_TARGET, []))
+                custom_data = recp_meth_cust.get(CONF_DATA)
             elif ATTR_TARGET in recipient:
                 # non person recipient
-                self._safe_extend(targets, recipient.get(ATTR_TARGET))
+                self._safe_extend(default_targets, recipient.get(ATTR_TARGET))
+            if custom_data:
+                custom_targets.append((recipient_targets), custom_data)
+            else:
+                default_targets.extend(recipient_targets)
 
-        pre_filter_count = len(targets)
-        _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
-        targets = [t for t in targets if self.select_target(t)]
-        if len(targets) < pre_filter_count:
-            _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__,
-                          pre_filter_count-len(targets), targets)
-        if not targets:
-            _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)
-        return targets
+        bundled_targets = custom_targets + [(default_targets, None)]
+        filtered_bundles = []
+        for targets, custom_data in bundled_targets:
+            pre_filter_count = len(targets)
+            _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
+            targets = [t for t in targets if self.select_target(t)]
+            if len(targets) < pre_filter_count:
+                _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", __name__,
+                              pre_filter_count-len(targets), targets)
+            if not targets:
+                _LOGGER.warning("SUPERNOTIFY %s No targets resolved", __name__)
+            else:
+                filtered_bundles.append((targets, custom_data))
+        if not filtered_bundles:
+            # not all delivery methods require explicit targets, or can default them internally
+            filtered_bundles = [([], None)]
+        return filtered_bundles
 
     def _safe_extend(self, target, extension):
         if isinstance(extension, (list, tuple)):

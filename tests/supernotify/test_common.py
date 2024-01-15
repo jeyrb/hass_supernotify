@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS
+from custom_components.supernotify import CONF_PERSON
 from custom_components.supernotify.common import DeliveryMethod, SuperNotificationContext
 
 
@@ -46,7 +46,9 @@ async def test_default_recipients() -> None:
                                                    {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver()
-    assert uut.test_calls == [[None, None, ['new_home_owner', 'bidey_in'], 'medium', {}, {}, {}]]
+    assert uut.test_calls == [
+        [None, None, ['new_home_owner', 'bidey_in'], 'medium', {}, {}, {}]]
+
 
 async def test_default_recipients_with_override() -> None:
     hass = Mock()
@@ -54,4 +56,5 @@ async def test_default_recipients_with_override() -> None:
                                                    {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(recipients_override=["person.new_home_owner"])
-    assert uut.test_calls == [[None, None, ['new_home_owner'], 'medium', {}, {}, {}]]
+    assert uut.test_calls == [
+        [None, None, ['new_home_owner'], 'medium', {}, {}, {}]]

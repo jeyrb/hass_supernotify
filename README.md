@@ -110,6 +110,31 @@ Announce a message on an Alexa Echo device using the `alexa_media_player` integr
 
 Place a notification on Home Assistant application screen.
 
+## Flexible Configuration
+
+Delivery configuration can be done in lots of different ways to suit different configurations
+and to keep those configuration as minimal as possible.
+
+Priority order of application
+
+
+| Where                                | When            | Notes                                            |
+|--------------------------------------|-----------------|--------------------------------------------------|
+| Service Data                         | Runtime call    |                                                  |
+| Recipient delivery override          | Runtime call    |                                                  |
+| Scenario delivery override           | Runtime call    | Multiple scenarios applied in no special order   |
+| Delivery definition                  | Startup         | `message` and `title` override Service Data      |
+| Method defaults                      | Startup         |                                                  |
+| Target notification service defaults | Downstream call |                                                  |
+
+
+1. Service Data passed at runtime call
+2. Recipient delivery override 
+3. Scenario delivery override
+4. Delivery definition
+5. Method defaults
+6. Target notification service defaults, e.g. mail recipients ( this isn't applied inside supernotifier )
+
 ## Setup
 
 Register this GitHub repo as a custom repo 
@@ -121,7 +146,7 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
 notify:
   - name: SuperNotifier_reloaded
     platform: supernotify
-    templates: config/templates/supernotify        
+    template_path: config/templates/supernotify        
     delivery:
       html_email:
         method: email
@@ -174,14 +199,12 @@ notify:
           - switch.chime_sax
           - media_player.echo_lobby
         occupancy: any_in
-      doorbell:
+      doorbell_alexa:
         method: chime
         target:
           - media_player.echo_lobby
         data:
           chime_tune: amzn_sfx_doorbell_chime_01
-        scenarios:
-          - doorbell
       upstairs_siren:
         method: generic
         service: mqtt.publish
@@ -235,6 +258,9 @@ notify:
           - media_player.studio
       
     scenarios:
+      doorbell:
+        delivery:
+            doorbell_alexa:
       ordinary_day:
         alias: nothing special
         condition:

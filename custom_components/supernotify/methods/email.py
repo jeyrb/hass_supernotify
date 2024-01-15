@@ -19,8 +19,8 @@ class EmailDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(METHOD_EMAIL, True, *args, **kwargs)
         self.template_path = None
-        if self.context.templates:
-            self.template_path = os.path.join(self.context.templates, "email")
+        if self.context.template_path:
+            self.template_path = os.path.join(self.context.template_path, "email")
             if not os.path.exists(self.template_path):
                 self.template_path = None
         if self.template_path is None:

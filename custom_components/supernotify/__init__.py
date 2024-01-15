@@ -28,12 +28,13 @@ DOMAIN = "supernotify"
 PLATFORMS = [Platform.NOTIFY]
 TEMPLATE_DIR = "/config/templates/supernotify"
 
+
 CONF_ACTIONS = "actions"
 CONF_ACTION = "action"
 CONF_TITLE = "title"
 CONF_URI = "uri"
 CONF_RECIPIENTS = "recipients"
-CONF_TEMPLATES = "templates"
+CONF_TEMPLATE_PATH = "template_path"
 CONF_TEMPLATE = "template"
 CONF_LINKS = "links"
 CONF_PERSON = "person"
@@ -63,6 +64,7 @@ CONF_MOBILE_DEVICES = "mobile_devices"
 CONF_MOBILE_DISCOVERY = "mobile_discovery"
 CONF_ACTION_TEMPLATE = "action_template"
 CONF_TITLE_TEMPLATE = "title_template"
+CONF_DELIVERY_SELECTION = "delivery_selection"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -80,8 +82,12 @@ FALLBACK_ENABLED = "enabled"
 ATTR_PRIORITY = "priority"
 ATTR_SCENARIOS = "scenarios"
 ATTR_DELIVERY = "delivery"
+ATTR_DEFAULT = "default"
 ATTR_NOTIFICATION_ID = "notification_id"
 ATTR_DELIVERY_SELECTION = "delivery_selection"
+ATTR_SCENARIOS_BY_DELIVERY = "delivery_scenarios"
+ATTR_CONFIGURED_DELIVERIES = "configured_deliveries"
+ATTR_SKIPPED_DELIVERIES = "skipped_deliveries"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -114,6 +120,10 @@ METHOD_VALUES = [METHOD_SMS, METHOD_ALEXA, METHOD_MOBILE_PUSH,
                  METHOD_CHIME, METHOD_EMAIL, METHOD_MEDIA,
                  METHOD_PERSISTENT, METHOD_GENERIC]
 
+SCENARIO_DEFAULT = "DEFAULT"
+
+RESERVED_DELIVERY_NAMES = ["ALL"]
+RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT]
 
 MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_MANUFACTURER): cv.string,
@@ -147,10 +157,6 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: RECIPIENT_DELIVERY_CUSTOMIZE_SCHEMA}
 })
-SCENARIO_SCHEMA = vol.Schema({
-    vol.Optional(CONF_ALIAS): cv.string,
-    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
-})
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
@@ -159,7 +165,6 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
     vol.Optional(CONF_FALLBACK, default=FALLBACK_DISABLED): vol.In(FALLBACK_VALUES),
-    vol.Optional(CONF_SCENARIOS, default=[]): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_MESSAGE): cv.string,
@@ -171,6 +176,12 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):
         vol.In(OCCUPANCY_VALUES),
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA
+})
+SCENARIO_SCHEMA = vol.Schema({
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
+    vol.Optional(CONF_DELIVERY_SELECTION, default=DELIVERY_SELECTION_EXPLICIT): vol.Any(DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT),
+    vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_SCHEMA)}
 })
 OVERRIDE_SCHEMA = vol.Schema({
     vol.Required(CONF_OVERRIDE_BASE): cv.string,
@@ -185,7 +196,7 @@ PUSH_ACTION_SCHEMA = vol.Schema({
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional(CONF_TEMPLATES, default=TEMPLATE_DIR):
+        vol.Optional(CONF_TEMPLATE_PATH, default=TEMPLATE_DIR):
             cv.path,
         vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
         vol.Optional(CONF_ACTIONS, default={}): {cv.string: [PUSH_ACTION_SCHEMA]},

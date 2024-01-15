@@ -32,7 +32,7 @@ async def test_deliver_with_template() -> None:
     hass = Mock()
     context = SuperNotificationContext(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}],
-        templates="tests/supernotify/fixtures/templates")
+        template_path="tests/supernotify/fixtures/templates")
 
     uut = EmailDeliveryMethod(
         hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
