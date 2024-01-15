@@ -255,7 +255,7 @@ class DeliveryMethod:
                 # non person recipient
                 self._safe_extend(default_targets, recipient.get(ATTR_TARGET))
             if custom_data:
-                custom_targets.append((recipient_targets), custom_data)
+                custom_targets.append((recipient_targets, custom_data))
             else:
                 default_targets.extend(recipient_targets)
 

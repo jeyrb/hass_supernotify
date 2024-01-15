@@ -15,6 +15,7 @@ from custom_components.supernotify import (
     ATTR_SCENARIOS,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_TARGET,
     CONF_METHOD,
     CONF_PHONE_NUMBER,
     CONF_SCENARIOS,
@@ -34,10 +35,11 @@ DELIVERY = {
     "text": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.sms"},
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
     "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
+    "chat": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.my_chat_server"},
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SCENARIOS: ["scenario1", "scenario2"]}
 }
 SCENARIOS = {
-    SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}}},
+    SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat":{}}},
     "scenario1": {CONF_DELIVERY: {"persistent": {}}}
 }
 
@@ -47,11 +49,21 @@ RECIPIENTS = [
         CONF_PHONE_NUMBER: "+447989408889",
         "mobile_devices": [
             "mobile_app.new_iphone"
-        ]
+        ],
+        CONF_DELIVERY: {
+            "chat": {CONF_DATA:{"emoji_id": 912393},
+                     CONF_TARGET:["xyz123"]
+                     }
+        }
      },
     {
         "person": "person.bidey_in",
-        CONF_PHONE_NUMBER: "+4489393013834"
+        CONF_PHONE_NUMBER: "+4489393013834",
+        CONF_DELIVERY: {
+            "chat": {
+                     CONF_TARGET:["abc789"]
+                     }
+        }
     }
 ]
 
@@ -83,6 +95,36 @@ async def test_send_message_with_scenario_mismatch() -> None:
     hass.services.async_call.assert_called_with("notify", "persistent_notification",
                                                 service_data={"title": "test_title", "message": "testing 123",
                                                               "notification_id": None})
+
+
+async def test_recipient_delivery_data_override() -> None:
+    hass = Mock()
+    hass.states = Mock()
+    uut = SuperNotificationService(
+        hass, deliveries=DELIVERY, recipients=RECIPIENTS)
+    await uut.async_send_message(title="test_title", message="testing 123",
+                                 data={
+                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
+                                     ATTR_DELIVERY: {
+                                         "pigeon": {},
+                                         "chat": {}
+                                     }},
+                                 recipients=RECIPIENTS)
+    hass.services.async_call.assert_any_call("notify", "my_chat_server",
+                                                service_data={
+                                                    "target": ['xyz123'],
+                                                    "title": "test_title",
+                                                    "message": "testing 123",
+                                                    "data":{
+                                                     "emoji_id": 912393}
+                                                    })
+    hass.services.async_call.assert_any_call("notify", "my_chat_server",
+                                                service_data={
+                                                    "target": ['abc789'],
+                                                    "title": "test_title",
+                                                    "message": "testing 123",
+                                                    "data":{}
+                                                    })
 
 
 async def test_null_delivery() -> None:

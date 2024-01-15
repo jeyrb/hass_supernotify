@@ -163,10 +163,10 @@ class SuperNotificationService(BaseNotificationService):
 
         self.people = {}
         for r in recipients:
-            if r[CONF_MOBILE_DISCOVERY]:
+            if r.get(CONF_MOBILE_DISCOVERY):
                 r[CONF_MOBILE_DEVICES].extend(
                     self.mobile_devices_for_person(r[CONF_PERSON]))
-                if r[CONF_MOBILE_DEVICES]:
+                if r.get(CONF_MOBILE_DEVICES):
                     _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s",
                                  r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
                 else:
