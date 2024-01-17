@@ -39,7 +39,7 @@ DELIVERY = {
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SCENARIOS: ["scenario1", "scenario2"]}
 }
 SCENARIOS = {
-    SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat":{}}},
+    SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat": {}}},
     "scenario1": {CONF_DELIVERY: {"persistent": {}}}
 }
 
@@ -51,8 +51,8 @@ RECIPIENTS = [
             "mobile_app.new_iphone"
         ],
         CONF_DELIVERY: {
-            "chat": {CONF_DATA:{"emoji_id": 912393},
-                     CONF_TARGET:["xyz123"]
+            "chat": {CONF_DATA: {"emoji_id": 912393},
+                     CONF_TARGET: ["xyz123"]
                      }
         }
      },
@@ -61,8 +61,8 @@ RECIPIENTS = [
         CONF_PHONE_NUMBER: "+4489393013834",
         CONF_DELIVERY: {
             "chat": {
-                     CONF_TARGET:["abc789"]
-                     }
+                CONF_TARGET: ["abc789"]
+            }
         }
     }
 ]
@@ -111,20 +111,20 @@ async def test_recipient_delivery_data_override() -> None:
                                      }},
                                  recipients=RECIPIENTS)
     hass.services.async_call.assert_any_call("notify", "my_chat_server",
-                                                service_data={
-                                                    "target": ['xyz123'],
-                                                    "title": "test_title",
-                                                    "message": "testing 123",
-                                                    "data":{
+                                             service_data={
+                                                 "target": ['xyz123'],
+                                                 "title": "test_title",
+                                                 "message": "testing 123",
+                                                 "data": {
                                                      "emoji_id": 912393}
-                                                    })
+                                             })
     hass.services.async_call.assert_any_call("notify", "my_chat_server",
-                                                service_data={
-                                                    "target": ['abc789'],
-                                                    "title": "test_title",
-                                                    "message": "testing 123",
-                                                    "data":{}
-                                                    })
+                                             service_data={
+                                                 "target": ['abc789'],
+                                                 "title": "test_title",
+                                                 "message": "testing 123",
+                                                 "data": {}
+                                             })
 
 
 async def test_null_delivery() -> None:

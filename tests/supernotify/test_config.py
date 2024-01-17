@@ -7,7 +7,7 @@ from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA
+from custom_components.supernotify import ATTR_DEFAULT, DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "..", "..", "examples", "maximal.yaml"
@@ -61,6 +61,8 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert len(uut.recipients) == 2
 
     assert "html_email" in uut.deliveries
+    assert "backup_mail" in uut.deliveries
+    assert "backup_mail" not in uut.delivery_by_scenario[SCENARIO_DEFAULT]
     assert "text_message" in uut.deliveries
     assert "alexa_announce" in uut.deliveries
     assert "mobile_push" in uut.deliveries
@@ -69,8 +71,10 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert "doorbell_chime_alexa" in uut.deliveries
     assert "sleigh_bells" in uut.deliveries
     assert "upstairs_siren" in uut.deliveries
+    assert "expensive_api_call" in uut.deliveries
+    assert "expensive_api_call" not in uut.delivery_by_scenario[SCENARIO_DEFAULT]
 
-    assert len(uut.deliveries) == 9
+    assert len(uut.deliveries) == 11
 
 
 async def test_call_service(hass: HomeAssistant) -> None:
@@ -117,3 +121,24 @@ async def test_empty_config(hass: HomeAssistant) -> None:
         {"title": "my title", "message": "unit test"},
         blocking=True,
     )
+
+async def test_call_supplemental_services(hass: HomeAssistant) -> None:
+
+    assert await async_setup_component(
+        hass,
+        notify.DOMAIN,
+        {
+            notify.DOMAIN: [SIMPLE_CONFIG]
+        }
+    )
+
+    await hass.async_block_till_done()
+
+    response = await hass.services.async_call(
+        "supernotify",
+        "enquire_deliveries_by_scenario",
+        None,
+        blocking=True,
+        return_response=True
+    )
+    assert response == {"DEFAULT":[]}

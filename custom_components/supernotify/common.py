@@ -123,7 +123,7 @@ class DeliveryMethod:
             method_definition = self.context.method_defaults.get(self.method)
             if method_definition:
                 _LOGGER.info(
-                "SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
+                    "SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
 
     async def deliver(self,

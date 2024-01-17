@@ -12,7 +12,7 @@ from homeassistant.const import (
     CONF_ENABLED,
     CONF_NAME,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition, device_registry, entity_registry
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.reload import async_setup_reload_service
@@ -20,15 +20,12 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
 from . import (
-    ATTR_CONFIGURED_DELIVERIES,
     ATTR_DELIVERY,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
     ATTR_DELIVERY_SELECTION,
     ATTR_PRIORITY,
     ATTR_SCENARIOS,
-    ATTR_SCENARIOS_BY_DELIVERY,
-    ATTR_SKIPPED_DELIVERIES,
     CONF_ACTIONS,
     CONF_DATA,
     CONF_DELIVERY,
@@ -41,7 +38,7 @@ from . import (
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
-    CONF_FALLBACK,
+    CONF_SELECTION,
     CONF_NOTIFY_SERVICE,
     CONF_OVERRIDES,
     CONF_PERSON,
@@ -60,13 +57,13 @@ from . import (
     METHOD_PERSISTENT,
     METHOD_SMS,
     PRIORITY_MEDIUM,
-    FALLBACK_DISABLED,
-    FALLBACK_ON_ERROR,
-    FALLBACK_ENABLED,
     PLATFORMS,
     PLATFORM_SCHEMA,
     RESERVED_DELIVERY_NAMES,
-    SCENARIO_DEFAULT
+    SCENARIO_DEFAULT,
+    SELECTION_DEFAULT,
+    SELECTION_FALLBACK,
+    SELECTION_FALLBACK_ON_ERROR
 )
 from .common import SuperNotificationContext
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -120,16 +117,25 @@ async def async_get_service(hass: HomeAssistant,
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), [], {})
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
-    return SuperNotificationService(hass,
-                                    deliveries=config[CONF_DELIVERY],
-                                    template_path=config[CONF_TEMPLATE_PATH],
-                                    recipients=config[CONF_RECIPIENTS],
-                                    mobile_actions=config[CONF_ACTIONS],
-                                    scenarios=config[CONF_SCENARIOS],
-                                    links=config[CONF_LINKS],
-                                    overrides=config[CONF_OVERRIDES],
-                                    method_defaults=config[CONF_METHODS]
-                                    )
+    service = SuperNotificationService(hass,
+                                       deliveries=config[CONF_DELIVERY],
+                                       template_path=config[CONF_TEMPLATE_PATH],
+                                       recipients=config[CONF_RECIPIENTS],
+                                       mobile_actions=config[CONF_ACTIONS],
+                                       scenarios=config[CONF_SCENARIOS],
+                                       links=config[CONF_LINKS],
+                                       overrides=config[CONF_OVERRIDES],
+                                       method_defaults=config[CONF_METHODS]
+                                       )
+
+    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> [str]:
+        return service.enquire_deliveries_by_scenario()
+
+    hass.services.async_register(DOMAIN, "enquire_deliveries_by_scenario",
+                                 supplemental_service_enquire_deliveries_by_scenario,
+                                 supports_response=SupportsResponse.ONLY)
+
+    return service
 
 
 class SuperNotificationService(BaseNotificationService):
@@ -187,36 +193,36 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning(
                         "SUPERNOTIFY Disabling scenario %s with failed condition %s", scenario, scenario_definition)
 
-        self.methods = {}
-        self.deliveries = {}
-        self.fallback_on_error = {d: dc for d, dc in deliveries.items() if dc.get(
-            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_ON_ERROR}
-        self.fallback_by_default = {d: dc for d, dc in deliveries.items() if dc.get(
-            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_ENABLED}
-        deliveries = {d: dc for d, dc in deliveries.items() if dc.get(
-            CONF_FALLBACK, FALLBACK_DISABLED) == FALLBACK_DISABLED}
+        self.fallback_on_error = {d: dc for d, dc in deliveries.items() if SELECTION_FALLBACK_ON_ERROR in dc.get(
+            CONF_SELECTION, [SELECTION_DEFAULT])}
+        self.fallback_by_default = {d: dc for d, dc in deliveries.items() if SELECTION_FALLBACK in dc.get(
+            CONF_SELECTION, [SELECTION_DEFAULT])}
+        default_deliveries = {d: dc for d, dc in deliveries.items() if SELECTION_DEFAULT in dc.get(
+            CONF_SELECTION, [SELECTION_DEFAULT])}
 
         self.delivery_by_scenario = {}
         for scenario, scenario_definition in scenarios.items():
             self.delivery_by_scenario.setdefault(scenario, [])
             if scenario_definition.get(CONF_DELIVERY_SELECTION) == DELIVERY_SELECTION_IMPLICIT:
-                scenario_deliveries = list(deliveries.keys())
+                scenario_deliveries = list(default_deliveries.keys())
             else:
                 scenario_deliveries = []
             scenario_definition_delivery = scenario_definition.get(
                 CONF_DELIVERY, {})
             scenario_deliveries.extend(
                 s for s in scenario_definition_delivery.keys() if s not in scenario_deliveries)
-            scenario_deliveries = [sd for sd in scenario_deliveries if delivery_enabled(scenario_definition_delivery.get(
-                sd))]
 
             for scenario_delivery in scenario_deliveries:
-                self.delivery_by_scenario[scenario].append(scenario_delivery)
+                if delivery_enabled(scenario_definition_delivery.get(scenario_delivery)):
+                    self.delivery_by_scenario[scenario].append(
+                        scenario_delivery)
 
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
             self.delivery_by_scenario[SCENARIO_DEFAULT] = list(
-                deliveries.keys())
+                default_deliveries.keys())
 
+        self.methods = {}
+        self.deliveries = {}
         for method in METHODS:
             self.methods[method] = METHODS[method](hass, context, deliveries)
             self.deliveries.update(self.methods[method].valid_deliveries)
@@ -256,47 +262,49 @@ class SuperNotificationService(BaseNotificationService):
 
         delivery_selection = data.get(ATTR_DELIVERY_SELECTION)
         delivery_overrides = data.get(ATTR_DELIVERY)
+        selected_delivery_names = []
         if delivery_selection == DELIVERY_SELECTION_IMPLICIT:
-            deliveries = self.deliveries
+            selected_delivery_names = self.delivery_by_scenario[SCENARIO_DEFAULT]
         elif delivery_selection == DELIVERY_SELECTION_EXPLICIT:
-            deliveries = {}
+            selected_delivery_names = []
         elif delivery_overrides is None:
-            deliveries = self.deliveries
+            selected_delivery_names = self.delivery_by_scenario[SCENARIO_DEFAULT]
             delivery_overrides = {}
-        elif not isinstance(delivery_overrides,dict):
-            deliveries = {}
+        elif not isinstance(delivery_overrides, dict):
+            selected_delivery_names = []
         else:
-            deliveries = self.deliveries
-            
+            selected_delivery_names = self.delivery_by_scenario[SCENARIO_DEFAULT]
+
         if isinstance(delivery_overrides, list):
             delivery_overrides = {k: None for k in delivery_overrides}
         elif isinstance(delivery_overrides, str):
             delivery_overrides = {delivery_overrides: None}
         elif not isinstance(delivery_overrides, dict):
-            _LOGGER.error(
+            _LOGGER.warning(
                 "SUPERNOTIFIER invalid delivery_overrides: %s", delivery_overrides)
-            delivery_overrides = {}            
+            delivery_overrides = {}
 
         selected_scenarios = scenarios or [SCENARIO_DEFAULT]
         for delivery, delivery_override in delivery_overrides.items():
             if (delivery_override is None or delivery_override.get(CONF_ENABLED, True)) and delivery in self.deliveries:
                 if any(delivery in self.delivery_by_scenario.get(s) for s in selected_scenarios):
-                    deliveries[delivery] = self.deliveries[delivery]
+                    selected_delivery_names.append(delivery)
 
         recipients_override = data.get(CONF_RECIPIENTS)
 
         stats_delivieries = stats_errors = 0
 
-        for delivery, delivery_config in deliveries.items():
+        for delivery, delivery_config in self.deliveries.items():
+            if delivery in selected_delivery_names:
 
-            delivered, errored = await self.call_method(delivery, delivery_config, message,
-                                                        title, target, scenarios,
-                                                        priority,
-                                                        delivery_overrides.get(
-                                                            delivery, {}),
-                                                        recipients_override)
-            stats_delivieries += delivered
-            stats_errors += errored
+                delivered, errored = await self.call_method(delivery, delivery_config, message,
+                                                            title, target, scenarios,
+                                                            priority,
+                                                            delivery_overrides.get(
+                                                                delivery, {}),
+                                                            recipients_override)
+                stats_delivieries += delivered
+                stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors == 0:
             for delivery, delivery_config in self.fallback_by_default.items():
@@ -388,6 +396,9 @@ class SuperNotificationService(BaseNotificationService):
                             CONF_DEVICE_TRACKER: d_t
                         })
         return mobile_devices
+
+    def enquire_deliveries_by_scenario(self):
+        return self.delivery_by_scenario
 
 
 def delivery_enabled(delivery):

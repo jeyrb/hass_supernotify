@@ -28,7 +28,8 @@ notify:
         
       backup_mail:
         method: email
-        fallback: on_error
+        selection: 
+          - fallback
       text_message:    
         method: sms
         service: notify.mikrotik_sms
@@ -42,6 +43,12 @@ notify:
         occupancy: any_in
       mobile_push:
         method: mobile_push
+      expensive_api_call:
+        method: generic
+        service: notify.megacorp_api
+        selection:
+          - scenario
+          - fallback_on_error
       alexa_show:
         method: media
         service: media_player.play_media

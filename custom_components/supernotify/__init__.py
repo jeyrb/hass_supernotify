@@ -44,7 +44,7 @@ CONF_DELIVERY = "delivery"
 CONF_OVERRIDES = "overrides"
 CONF_OVERRIDE_BASE = "base"
 CONF_OVERRIDE_REPLACE = "replace"
-CONF_FALLBACK = "fallback"
+CONF_SELECTION = "selection"
 
 CONF_DATA = "data"
 CONF_OPTIONS = "options"
@@ -75,10 +75,6 @@ OCCUPANCY_ALL_OUT = "all_out"
 OCCUPANCY_ONLY_IN = "only_in"
 OCCUPANCY_ONLY_OUT = "only_out"
 
-FALLBACK_DISABLED = "disabled"
-FALLBACK_ON_ERROR = "on_error"
-FALLBACK_ENABLED = "enabled"
-
 ATTR_PRIORITY = "priority"
 ATTR_SCENARIOS = "scenarios"
 ATTR_DELIVERY = "delivery"
@@ -95,7 +91,13 @@ DELIVERY_SELECTION_EXPLICIT = "explicit"
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
 
-FALLBACK_VALUES = [FALLBACK_ON_ERROR, FALLBACK_DISABLED, FALLBACK_ENABLED]
+SELECTION_FALLBACK_ON_ERROR = "fallback_on_error"
+SELECTION_FALLBACK = "fallback"
+SELECTION_BY_SCENARIO = "scenario"
+SELECTION_DEFAULT = "default"
+SELECTION_VALUES = [SELECTION_FALLBACK_ON_ERROR,
+                    SELECTION_BY_SCENARIO, SELECTION_DEFAULT, SELECTION_FALLBACK]
+
 OCCUPANCY_VALUES = [OCCUPANCY_ALL_IN, OCCUPANCY_ALL_OUT,
                     OCCUPANCY_ANY_IN, OCCUPANCY_ANY_OUT,
                     OCCUPANCY_ONLY_IN, OCCUPANCY_ONLY_OUT,
@@ -165,7 +167,7 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
-    vol.Optional(CONF_FALLBACK, default=FALLBACK_DISABLED): vol.In(FALLBACK_VALUES),
+    vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_MESSAGE): cv.string,

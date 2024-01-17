@@ -38,8 +38,6 @@ class EmailDeliveryMethod(DeliveryMethod):
 
     async def _delivery_impl(self, message=None,
                              title=None,
-                             image_paths=None,
-                             snapshot_url=None,
                              scenarios=None,
                              priority=None,
                              config=None,
@@ -54,6 +52,8 @@ class EmailDeliveryMethod(DeliveryMethod):
         html = data.get("html")
         template = data.get("template", config.get("template"))
         addresses = targets or []
+        image_paths = data.get("image_paths")
+        snapshot_url = data.get("snapshot_url")
 
         service_data = {
             "message":   message,
