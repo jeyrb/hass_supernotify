@@ -1,8 +1,9 @@
 from unittest.mock import Mock
 
-from custom_components.supernotify import CONF_PERSON
-from custom_components.supernotify.common import DeliveryMethod, SuperNotificationContext
-
+from custom_components.supernotify import CONF_DATA, CONF_PERSON, CONF_RECIPIENTS
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.notification import Notification
 
 class DummyDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
@@ -45,7 +46,7 @@ async def test_default_recipients() -> None:
     context = SuperNotificationContext(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                    {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
-    await uut.deliver()
+    await uut.deliver(Notification(context))
     assert uut.test_calls == [
         [None, None, ['new_home_owner', 'bidey_in'], 'medium', {}, {}, {}]]
 
@@ -55,6 +56,7 @@ async def test_default_recipients_with_override() -> None:
     context = SuperNotificationContext(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                    {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
-    await uut.deliver(recipients_override=["person.new_home_owner"])
+    await uut.deliver(Notification(context,None,
+                                   service_data={CONF_RECIPIENTS:["person.new_home_owner"]}))
     assert uut.test_calls == [
         [None, None, ['new_home_owner'], 'medium', {}, {}, {}]]

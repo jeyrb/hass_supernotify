@@ -4,6 +4,7 @@ from custom_components.supernotify import CONF_PERSON, CONF_TEMPLATE, METHOD_EMA
 from custom_components.supernotify.common import SuperNotificationContext
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
+from custom_components.supernotify.notification import Notification
 
 
 async def test_deliver() -> None:
@@ -14,14 +15,16 @@ async def test_deliver() -> None:
 
     uut = EmailDeliveryMethod(
         hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
-
-    await uut.deliver("hello there", title="testing")
+    await uut.initialize()
+    await uut.deliver(Notification(context, message="hello there", title="testing"))
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester1@assert.com"],
-                                                    "title": "testing", "message": "hello there"})
+                                                    "title": "testing",
+                                                    "message": "hello there"})
     hass.reset_mock()
-    await uut.deliver("hello there", title="testing", target=['tester9@assert.com'])
+    await uut.deliver(Notification(context, message="hello there", title="testing",
+                                   target=['tester9@assert.com']))
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
@@ -39,7 +42,11 @@ async def test_deliver_with_template() -> None:
                                     CONF_SERVICE: "notify.smtp",
                                     CONF_TEMPLATE: "minimal_test.html.j2",
                                     CONF_DEFAULT: True}})
-    await uut.deliver("hello there", title="testing", target=['tester9@assert.com'])
+    await uut.initialize()
+    await uut.deliver(Notification(context,
+                                   message="hello there",
+                                   title="testing",
+                                   target=['tester9@assert.com']))
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],

@@ -3,7 +3,7 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"

@@ -15,6 +15,7 @@ from custom_components.supernotify import (
     ATTR_SCENARIOS,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_SELECTION,
     CONF_TARGET,
     CONF_METHOD,
     CONF_PHONE_NUMBER,
@@ -27,7 +28,10 @@ from custom_components.supernotify import (
     METHOD_PERSISTENT,
     METHOD_SMS,
     SCENARIO_DEFAULT,
+    SELECTION_BY_SCENARIO,
 )
+from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.notify import SuperNotificationService
 
 DELIVERY = {
@@ -36,11 +40,12 @@ DELIVERY = {
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
     "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
     "chat": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.my_chat_server"},
-    "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SCENARIOS: ["scenario1", "scenario2"]}
+    "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SELECTION: SELECTION_BY_SCENARIO}
 }
 SCENARIOS = {
     SCENARIO_DEFAULT:  {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat": {}}},
-    "scenario1": {CONF_DELIVERY: {"persistent": {}}}
+    "scenario1": {CONF_DELIVERY: {"persistent": {}}},
+    "scenario2": {CONF_DELIVERY: {"persistent": {}}}
 }
 
 RECIPIENTS = [
@@ -72,26 +77,23 @@ async def test_send_message_with_scenario_mismatch() -> None:
     hass = Mock()
     hass.states = Mock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY, scenarios=SCENARIOS)
+        hass, deliveries=DELIVERY, scenarios=SCENARIOS, recipients=RECIPIENTS)
+    await uut.initialize()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 data={
-                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
-                                     ATTR_DELIVERY: {
+                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
+                                 delivery= {
                                          "pigeon": {},
-                                         "persistent": {}}
-                                 },
-                                 recipients=RECIPIENTS)
+                                         "persistent": {}
+                                 })
     hass.services.async_call.assert_not_called()
     hass.reset_mock()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 data={
-                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
-                                     ATTR_DELIVERY: {
+                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
+                                 delivery= {
                                          "pigeon": {},
                                          "persistent": {}
-                                     },
-                                     ATTR_SCENARIOS: ["scenario1"]},
-                                 recipients=RECIPIENTS)
+                                 },
+                                 scenarios=["scenario1"])
     hass.services.async_call.assert_called_with("notify", "persistent_notification",
                                                 service_data={"title": "test_title", "message": "testing 123",
                                                               "notification_id": None})
@@ -102,14 +104,13 @@ async def test_recipient_delivery_data_override() -> None:
     hass.states = Mock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
+    await uut.initialize()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 data={
-                                     ATTR_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
-                                     ATTR_DELIVERY: {
+                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
+                                 delivery= {
                                          "pigeon": {},
                                          "chat": {}
-                                     }},
-                                 recipients=RECIPIENTS)
+                                 })
     hass.services.async_call.assert_any_call("notify", "my_chat_server",
                                              service_data={
                                                  "target": ['xyz123'],
@@ -133,42 +134,6 @@ async def test_null_delivery() -> None:
     uut = SuperNotificationService(hass)
     await uut.async_send_message("just a test")
     hass.services.async_call.assert_not_called()
-
-
-async def test_select_scenarios(hass: HomeAssistant) -> None:
-    uut = SuperNotificationService(hass, scenarios={"select_only": {},
-                                                    "cold_day": {
-        "alias": "Its a cold day",
-        "condition": {
-            "condition": "template",
-            "value_template": """
-                            {% set n = states('sensor.outside_temperature') | float %}
-                            {{ n <= 10 }}"""
-        }
-    },
-        "hot_day": {
-        "alias": "Its a very hot day",
-        "condition": {
-            "condition": "template",
-            "value_template": """
-                                    {% set n = states('sensor.outside_temperature') | float %}
-                                    {{ 30 <= n }}"""
-        }
-    }
-    })
-
-    hass.states.async_set("sensor.outside_temperature", 42)
-    enabled = await uut.select_scenarios()
-    assert enabled == ['hot_day']
-
-    hass.states.async_set("sensor.outside_temperature", 5)
-    enabled = await uut.select_scenarios()
-    assert enabled == ['cold_day']
-
-    hass.states.async_set("sensor.outside_temperature", 15)
-    enabled = await uut.select_scenarios()
-    assert enabled == []
-
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
     uut = SuperNotificationService(hass)
@@ -208,14 +173,15 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         mock_service_log,
     )
 
-    uut = SuperNotificationService(hass, deliveries=delivery)
+    uut = SuperNotificationService(hass, deliveries=delivery, 
+                                   recipients=RECIPIENTS)
+    await uut.initialize()
     hass.states.async_set(
         "alarm_control_panel.home_alarm_control", "disarmed")
     hass.states.async_set(
         "supernotify.delivery_priority", "medium")
 
-    await uut.async_send_message(title="test_title", message="testing 123",
-                                 recipients=RECIPIENTS)
+    await uut.async_send_message(title="test_title", message="testing 123")
     await hass.async_block_till_done()
     assert calls_service_data == []
     hass.states.async_set(
@@ -223,16 +189,14 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
 
     await uut.async_send_message(title="test_title", message="testing 123",
                                  priority="high",
-                                 data={
-                                     ATTR_DELIVERY: {
+                                 delivery= {
                                          "testablity": {
                                              CONF_DATA: {
                                                  "test": "unit"
                                              }
                                          }
                                      },
-                                 },
-                                 recipients=RECIPIENTS)
+                                 )
     await hass.async_block_till_done()
     assert calls_service_data == [
         {"test": "unit"}]

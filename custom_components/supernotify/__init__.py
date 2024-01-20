@@ -16,6 +16,7 @@ from homeassistant.const import (
     CONF_ENTITIES,
     CONF_ICON,
     CONF_NAME,
+    CONF_ID,
     CONF_PLATFORM,
     CONF_SERVICE,
     CONF_TARGET,
@@ -65,6 +66,12 @@ CONF_MOBILE_DISCOVERY = "mobile_discovery"
 CONF_ACTION_TEMPLATE = "action_template"
 CONF_TITLE_TEMPLATE = "title_template"
 CONF_DELIVERY_SELECTION = "delivery_selection"
+CONF_MEDIA = "media"
+CONF_CAMERA = "camera"
+CONF_MQTT_TOPIC = "mqtt_topic"
+CONF_CLIP_URL = "clip_url"
+CONF_SNAPSHOT_URL = "snapshot_url"
+
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -87,6 +94,10 @@ ATTR_SKIPPED_DELIVERIES = "skipped_deliveries"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
+DELIVERY_SELECTION_FIXED = "fixed"
+
+DELIVERY_SELECTION_VALUES = [DELIVERY_SELECTION_EXPLICIT,
+                             DELIVERY_SELECTION_FIXED, DELIVERY_SELECTION_IMPLICIT]
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
@@ -123,9 +134,10 @@ METHOD_VALUES = [METHOD_SMS, METHOD_ALEXA, METHOD_MOBILE_PUSH,
                  METHOD_PERSISTENT, METHOD_GENERIC]
 
 SCENARIO_DEFAULT = "DEFAULT"
+SCENARIO_NULL = "NULL"
 
 RESERVED_DELIVERY_NAMES = ["ALL"]
-RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT]
+RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
 
 MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_MANUFACTURER): cv.string,
@@ -140,6 +152,7 @@ DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_DATA): dict
 })
 LINK_SCHEMA = vol.Schema({
+    vol.Optional(CONF_ID): cv.string,
     vol.Required(CONF_URL): cv.url,
     vol.Optional(CONF_ICON): cv.icon,
     vol.Required(CONF_DESCRIPTION): cv.string,
@@ -159,6 +172,12 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
     vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}
+})
+MEDIA_SCHEMA = vol.Schema({
+    vol.Optional(CONF_CAMERA): cv.entity_id,
+    vol.Optional(CONF_MQTT_TOPIC): cv.string,
+    vol.Optional(CONF_CLIP_URL): cv.url,
+    vol.Optional(CONF_SNAPSHOT_URL): cv.url
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -183,7 +202,8 @@ DELIVERY_SCHEMA = vol.Schema({
 SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
-    vol.Optional(CONF_DELIVERY_SELECTION, default=DELIVERY_SELECTION_EXPLICIT): vol.Any(DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT),
+    vol.Optional(CONF_MEDIA): MEDIA_SCHEMA,
+    vol.Optional(CONF_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}
 })
 OVERRIDE_SCHEMA = vol.Schema({

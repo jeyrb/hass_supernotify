@@ -1,7 +1,7 @@
 import logging
 
 from custom_components.supernotify import CONF_DATA, CONF_MESSAGE, CONF_NOTIFY, CONF_TITLE, METHOD_GENERIC, CONF_TARGET
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 _LOGGER = logging.getLogger(__name__)

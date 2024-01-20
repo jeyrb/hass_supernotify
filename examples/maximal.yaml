@@ -125,6 +125,8 @@ notify:
     scenarios:
       doorbell:
         delivery_selection: implicit
+        media:
+          camera: camera.doorbell
         delivery:
           doorbell_chime_alexa: 
             data:
@@ -182,7 +184,8 @@ notify:
           title: "Arm Alarm Panel for Going Away"
           icon: "sfsymbols:airplane"
     links:
-      - url: http://frigate
+      - id: frigate_home
+        url: http://frigate
         icon: "mdi:camera"
         name: Frigate
         description: Frigate CCTV

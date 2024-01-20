@@ -3,7 +3,7 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA
 from custom_components.supernotify import METHOD_CHIME
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
 RE_VALID_CHIME = r"(switch|script|media_player)\.[A-Za-z0-9_]+"

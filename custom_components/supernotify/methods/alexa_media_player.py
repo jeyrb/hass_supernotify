@@ -6,7 +6,7 @@ from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import (
     METHOD_ALEXA
 )
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 RE_VALID_ALEXA = r"media_player\.[A-Za-z0-9_]+"

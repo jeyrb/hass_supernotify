@@ -12,7 +12,7 @@ from custom_components.supernotify import (
     PRIORITY_LOW,
     PRIORITY_MEDIUM
 )
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 
 RE_VALID_MOBILE_APP = r"mobile_app_[A-Za-z0-9_]+"
 
@@ -42,6 +42,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                              data=None,
                              **kwargs):
         config = config or {}
+        data = data or {}
         app_url = data.get("app_url")
         app_url_title = data.get("app_url_title")
         camera_entity_id = data.get("camera_entity_id")

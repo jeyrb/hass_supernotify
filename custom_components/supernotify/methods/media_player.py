@@ -7,7 +7,7 @@ from custom_components.supernotify import (
     CONF_OVERRIDES,
     METHOD_MEDIA,
 )
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
@@ -30,6 +30,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
                              **kwargs):
         _LOGGER.info("SUPERNOTIFY notify_media: %s", message)
         config = config or self.default_delivery
+        data = data or {}
         media_players = targets or []
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping media show, no targets")

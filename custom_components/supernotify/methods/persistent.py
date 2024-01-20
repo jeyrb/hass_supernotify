@@ -3,7 +3,7 @@ import logging
 from homeassistant.const import CONF_SERVICE
 
 from custom_components.supernotify import ATTR_NOTIFICATION_ID, METHOD_PERSISTENT
-from custom_components.supernotify.common import DeliveryMethod
+from custom_components.supernotify.delivery_method import DeliveryMethod
 
 _LOGGER = logging.getLogger(__name__)
 
