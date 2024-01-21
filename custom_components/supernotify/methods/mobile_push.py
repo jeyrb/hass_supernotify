@@ -77,6 +77,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data.setdefault("push", {})
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
+            data["push"].setdefault("sound",{})
             data['push']['sound']['name'] = 'default'
             data['push']['sound']['critical'] = 1
             data['push']['sound']['volume'] = 1.0
