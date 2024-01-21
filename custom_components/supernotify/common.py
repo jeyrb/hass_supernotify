@@ -29,6 +29,7 @@ class SuperNotificationContext:
                  recipients=(),
                  mobile_actions=None,
                  template_path=(),
+                 overrides=None,
                  scenarios=None,
                  method_defaults=None):
         self.hass = hass
@@ -41,6 +42,7 @@ class SuperNotificationContext:
         self.template_path = template_path
         self.method_defaults = method_defaults or {}
         self.scenarios = {}
+        self.overrides = overrides or {}
         self.people = {}
         self.configured_scenarios = scenarios or {}
         self.delivery_by_scenario = {}
@@ -65,12 +67,13 @@ class SuperNotificationContext:
         default_deliveries = {}
         if self.deliveries:
             for d, dc in self.deliveries.items():
-                if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
-                    self.fallback_on_error[d] = dc
-                if SELECTION_FALLBACK in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
-                    self.fallback_by_default[d] = dc
-                if SELECTION_DEFAULT in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
-                    default_deliveries[d] = dc
+                if dc.get(CONF_ENABLED, True):
+                    if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
+                        self.fallback_on_error[d] = dc
+                    if SELECTION_FALLBACK in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
+                        self.fallback_by_default[d] = dc
+                    if SELECTION_DEFAULT in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
+                        default_deliveries[d] = dc
 
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])

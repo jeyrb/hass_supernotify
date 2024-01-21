@@ -47,28 +47,26 @@ _LOGGER = logging.getLogger(__name__)
 class DeliveryMethod:
     @abstractmethod
     def __init__(self,
-                 method: str,
-                 service_required: bool,
                  hass: HomeAssistant,
                  context: SuperNotificationContext,
                  deliveries: dict):
         self.hass = hass
         self.context = context
-        self.method = method
-        self.service_required = service_required
         self.default_delivery = None
-        self.deliveries = deliveries or {}
-        self.valid_deliveries = {}
-        self.invalid_deliveries = {}
-        self.disabled_deliveries = {}
-        self.default_deliveries()
-        
-    async def initialize(self):
-        await self.validate_deliveries()
+        self.all_deliveries = deliveries or {}
 
-    def default_deliveries(self):
+    async def initialize(self):
+        assert self.method is not None
+        self.apply_method_defaults()
+        return await self.validate_deliveries()
+    
+    def validate_service(self, service):
+        ''' Override in subclass if delivery method has fixed service or doesn't require one'''
+        return service is not None and service.startswith("notify.")
+
+    def apply_method_defaults(self):
         method_defaults = self.context.method_defaults.get(self.method, {})
-        for delivery_config in self.deliveries.values():
+        for delivery_config in self.all_deliveries.values():
             if not delivery_config.get(CONF_SERVICE) and method_defaults.get(CONF_SERVICE):
                 delivery_config[CONF_SERVICE] = method_defaults[CONF_SERVICE]
             if not delivery_config.get(CONF_TARGET) and method_defaults.get(CONF_TARGET):
@@ -83,31 +81,30 @@ class DeliveryMethod:
         Args:
             deliveries (dict): Dict of delivery name -> delivery configuration
         """
-        for d, dc in self.deliveries.items():
+        valid_deliveries = {}
+        for d, dc in self.all_deliveries.items():
             if dc and dc.get(CONF_METHOD) == self.method:
-                if not dc.get(CONF_ENABLED, True):
-                    _LOGGER.debug("SUPERNOTIFY Delivery disabled for %s", d)
-                    self.disabled_deliveries[d] = dc
-                    continue
-                if self.service_required and not dc.get(CONF_SERVICE):
-                    _LOGGER.debug("SUPERNOTIFY No service for %s", d)
-                    self.invalid_deliveries[d] = dc
+                # don't care about ENABLED here since disabled deliveries can be overridden
+                if not self.validate_service(dc.get(CONF_SERVICE)):
+                    _LOGGER.warning(
+                        "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
                     continue
                 delivery_condition = dc.get(CONF_CONDITION)
                 if delivery_condition:
                     if not await condition.async_validate_condition_config(self.hass, delivery_condition):
                         _LOGGER.warning(
-                            "SUPERNOTIFY Invalid condition for %s: %s", d, delivery_condition)
-                        self.invalid_deliveries[d] = dc
+                            "SUPERNOTIFY Invalid delivery condition for %s: %s", d, delivery_condition)
                         continue
 
-                self.valid_deliveries[d] = dc
+                valid_deliveries[d] = dc
+
                 if dc.get(CONF_DEFAULT):
                     if self.default_delivery:
                         _LOGGER.warning(
                             "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
                     else:
                         self.default_delivery = dc
+
         if not self.default_delivery:
             method_definition = self.context.method_defaults.get(self.method)
             if method_definition:
@@ -115,9 +112,11 @@ class DeliveryMethod:
                     "SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
 
+        return valid_deliveries
+
     async def deliver(self,
                       notification: Notification,
-                      delivery_config: dict = None):
+                      delivery_config: dict = None) -> bool:
         """
         Deliver a notification
 
@@ -142,33 +141,37 @@ class DeliveryMethod:
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
-            return
+            return False
         if not await self.evaluate_delivery_conditions(delivery_config):
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
-            return
+            return False
 
         target_bundles = self.build_targets(
             delivery_config, notification.target, notification.recipients_override)
+        deliveries = 0
         for targets, custom_data in target_bundles:
             if custom_data:
                 target_data = copy.deepcopy(data) if data else {}
                 target_data |= custom_data
             else:
                 target_data = data
-            await self._delivery_impl(message=message,
-                                      title=title,
-                                      targets=targets,
-                                      priority=notification.priority,
-                                      scenarios=scenarios,
-                                      data=target_data,
-                                      config=delivery_config)
+            success = await self._delivery_impl(message=message,
+                                    title=title,
+                                    targets=targets,
+                                    priority=notification.priority,
+                                    scenarios=scenarios,
+                                    data=target_data,
+                                    config=delivery_config)
+            if success:
+                deliveries += 1 
+        return deliveries > 0
 
     @abstractmethod
-    async def _delivery_impl(message=None, title=None, 
+    async def _delivery_impl(message=None, title=None,
                              targets=None, priority=None,
-                             scenarios=None, data=None, config=None):
-        pass
+                             scenarios=None, data=None, config=None) -> bool:
+        return False
 
     def select_target(self, target):
         return True

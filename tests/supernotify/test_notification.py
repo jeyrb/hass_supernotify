@@ -2,6 +2,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_SCENARIOS, DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT
 from custom_components.supernotify.notification import Notification
 from unittest.mock import Mock
+from pytest_unordered import unordered
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
@@ -19,7 +20,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert uut.delivery_overrides == {}
     assert uut.delivery_selection == DELIVERY_SELECTION_IMPLICIT
     assert uut.recipients_override is None
-    assert set(uut.selected_delivery_names) == {'plain_email', 'mobile'}
+    assert uut.selected_delivery_names == unordered(['plain_email', 'mobile'])
 
 
 async def test_explicit_delivery(hass: HomeAssistant) -> None:

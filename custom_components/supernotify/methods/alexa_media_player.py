@@ -15,8 +15,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
+    method = METHOD_ALEXA
+    
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_ALEXA, True, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_ALEXA, target)
@@ -26,14 +28,14 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
                              config=None,
                              targets=None,
                              data=None,
-                             **kwargs):
+                             **kwargs) ->bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = config or self.default_delivery
         media_players = targets or []
 
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
-            return
+            return False
         if title:
             message = "{} {}".format(title, message)
         service_data = {
@@ -47,5 +49,6 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             await self.hass.services.async_call(
                 domain, service, service_data=service_data)
+            return True
         except Exception as e:
             _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e)

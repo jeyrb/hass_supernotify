@@ -9,15 +9,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PersistentDeliveryMethod(DeliveryMethod):
+    method = METHOD_PERSISTENT
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_PERSISTENT, False, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        
+    def validate_service(self, service):
+        return service is None
 
     async def _delivery_impl(self,
                              title=None,
                              message=None,
                              config=None,
                              data=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         config = config or {}
         data = data or {}
 
@@ -33,6 +37,7 @@ class PersistentDeliveryMethod(DeliveryMethod):
                 CONF_SERVICE, "notify.persistent_notification").split(".", 1)
             await self.hass.services.async_call(
                 domain, service, service_data=service_data)
+            return True
         except Exception as e:
             _LOGGER.error(
                 "Failed to notify via persistent notification (m=%s): %s", message, e)

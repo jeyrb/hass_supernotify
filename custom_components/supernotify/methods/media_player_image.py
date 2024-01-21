@@ -16,30 +16,34 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
+    method = METHOD_MEDIA
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_MEDIA, False, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
+    
+    def validate_service(self, service):
+        return service is None
 
     async def _delivery_impl(self, message=None,
                              title=None,
                              config=None,
                              targets=None,
                              data=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_media: %s", message)
         config = config or self.default_delivery
         data = data or {}
         media_players = targets or []
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping media show, no targets")
-            return
+            return False
 
         snapshot_url = data.get("snapshot_url")
         if snapshot_url is None:
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
-            return
+            return False
 
         override_config = config.get(CONF_OVERRIDES, {}).get("image_url")
         if override_config:
@@ -63,6 +67,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             await self.hass.services.async_call(
                 domain, service,
                 service_data=service_data)
+            return True
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via media player (url=%s): %s", snapshot_url, e)

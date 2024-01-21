@@ -7,11 +7,14 @@ from homeassistant.const import (
     CONF_CONDITION,
     CONF_NAME,
 )
+import inspect
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition, device_registry, entity_registry
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
+
+from custom_components.supernotify.delivery_method import DeliveryMethod
 
 from . import (
     ATTR_DELIVERY_PRIORITY,
@@ -51,7 +54,7 @@ from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
 from .methods.generic import GenericDeliveryMethod
-from .methods.media_player import MediaPlayerImageDeliveryMethod
+from .methods.media_player_image import MediaPlayerImageDeliveryMethod
 from .methods.mobile_push import MobilePushDeliveryMethod
 from .methods.persistent import PersistentDeliveryMethod
 from .methods.sms import SMSDeliveryMethod
@@ -59,14 +62,14 @@ from .methods.sms import SMSDeliveryMethod
 _LOGGER = logging.getLogger(__name__)
 
 METHODS = {
-    METHOD_EMAIL:       EmailDeliveryMethod,
-    METHOD_SMS:         SMSDeliveryMethod,
-    METHOD_ALEXA:       AlexaMediaPlayerDeliveryMethod,
-    METHOD_MOBILE_PUSH: MobilePushDeliveryMethod,
-    METHOD_MEDIA:       MediaPlayerImageDeliveryMethod,
-    METHOD_CHIME:       ChimeDeliveryMethod,
-    METHOD_PERSISTENT:  PersistentDeliveryMethod,
-    METHOD_GENERIC:     GenericDeliveryMethod
+    EmailDeliveryMethod,
+    SMSDeliveryMethod,
+    AlexaMediaPlayerDeliveryMethod,
+    MobilePushDeliveryMethod,
+    MediaPlayerImageDeliveryMethod,
+    ChimeDeliveryMethod,
+    PersistentDeliveryMethod,
+    GenericDeliveryMethod
 }
 
 
@@ -140,14 +143,14 @@ class SuperNotificationService(BaseNotificationService):
             hass_url, hass.config.location_name,
             deliveries, links,
             recipients, mobile_actions, template_path,
-            scenarios, method_defaults)
+            overrides, scenarios, method_defaults)
         self.methods = {}
         self.deliveries = {}
         self.people = {}
-        
+
     async def initialize(self):
         await self.context.initialize()
-        
+
         for r in self.context.recipients:
             if r.get(CONF_MOBILE_DISCOVERY):
                 r[CONF_MOBILE_DEVICES].extend(
@@ -161,17 +164,8 @@ class SuperNotificationService(BaseNotificationService):
             self.people[r[CONF_PERSON]] = r
 
         for method in METHODS:
-            self.methods[method] = METHODS[method](self.hass, self.context, self.context.deliveries)
-            await self.methods[method].initialize()
-            self.deliveries.update(self.methods[method].valid_deliveries)
-            if self.methods[method].invalid_deliveries:
-                _LOGGER.warning("SUPERNOTIFY Invalid deliveries for method %s: %s",
-                                method,
-                                self.methods[method].invalid_deliveries)
-            if self.methods[method].disabled_deliveries:
-                _LOGGER.warning("SUPERNOTIFY Disabled deliveries for method %s: %s",
-                                method,
-                                self.methods[method].disabled_deliveries)
+            await self.register_delivery_method(method)
+
         unknown_deliveries = {
             d: dc for d, dc in self.context.deliveries.items() if dc.get(CONF_METHOD) not in METHODS or d in RESERVED_DELIVERY_NAMES}
 
@@ -182,11 +176,22 @@ class SuperNotificationService(BaseNotificationService):
         _LOGGER.info("SUPERNOTIFY configured deliveries %s",
                      ";".join(self.deliveries.keys()))
 
+    async def register_delivery_method(self, delivery_method: DeliveryMethod):
+        ''' available directly for test fixtures supplying class or instance '''
+        if inspect.isclass(delivery_method):
+            self.methods[delivery_method.method] = delivery_method(
+                self.hass, self.context, self.context.deliveries)
+        else:
+            self.methods[delivery_method.method] = delivery_method
+        valid_deliveries = await self.methods[delivery_method.method].initialize()
+        self.deliveries.update(valid_deliveries)
+
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
 
-        notification = Notification(self.context, message, title, target, kwargs)
+        notification = Notification(
+            self.context, message, title, target, kwargs)
         await notification.intialize()
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)
@@ -215,7 +220,7 @@ class SuperNotificationService(BaseNotificationService):
                 delivered, errored = await self.call_method(notification, delivery, delivery_config)
                 stats_delivieries += delivered
                 stats_errors += errored
-                
+
         _LOGGER.debug("SUPERNOTIFY %s deliveries, %s errors",
                       stats_delivieries, stats_errors)
 
@@ -231,7 +236,8 @@ class SuperNotificationService(BaseNotificationService):
         except Exception as e:
             _LOGGER.warning(
                 "SUPERNOTIFY Failed to %s notify using %s: %s", method, delivery, e)
-            _LOGGER.debug("SUPERNOTIFY %s %s delivery failure", method, delivery, exc_info=True)
+            _LOGGER.debug("SUPERNOTIFY %s %s delivery failure",
+                          method, delivery, exc_info=True)
             return (0, 1)
 
     def setup_condition_inputs(self, field, value):

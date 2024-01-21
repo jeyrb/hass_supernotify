@@ -4,19 +4,7 @@ from custom_components.supernotify import CONF_DATA, CONF_PERSON, CONF_RECIPIENT
 from custom_components.supernotify.common import SuperNotificationContext
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.notification import Notification
-
-class DummyDeliveryMethod(DeliveryMethod):
-    def __init__(self, *args, **kwargs):
-        super().__init__("dummy", False, *args, **kwargs)
-        self.test_calls = []
-
-    def recipient_target(self, recipient):
-        return [recipient.get(CONF_PERSON).replace('person.', '')] if recipient else []
-
-    async def _delivery_impl(self, message, title, targets, priority,
-                             scenarios, data, config):
-        self.test_calls.append([message, title, targets, priority,
-                                scenarios, data, config])
+from .doubles_lib import DummyDeliveryMethod
 
 
 async def test_filter_recipients() -> None:
@@ -48,7 +36,7 @@ async def test_default_recipients() -> None:
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context))
     assert uut.test_calls == [
-        [None, None, ['new_home_owner', 'bidey_in'], 'medium', {}, {}, {}]]
+        [None, None, ['dummy.new_home_owner', 'dummy.bidey_in'], 'medium', {}, {}, {}]]
 
 
 async def test_default_recipients_with_override() -> None:
@@ -56,7 +44,7 @@ async def test_default_recipients_with_override() -> None:
     context = SuperNotificationContext(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                    {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
-    await uut.deliver(Notification(context,None,
-                                   service_data={CONF_RECIPIENTS:["person.new_home_owner"]}))
+    await uut.deliver(Notification(context, None,
+                                   service_data={CONF_RECIPIENTS: ["person.new_home_owner"]}))
     assert uut.test_calls == [
-        [None, None, ['new_home_owner'], 'medium', {}, {}, {}]]
+        [None, None, ['dummy.new_home_owner'], 'medium', {}, {}, {}]]

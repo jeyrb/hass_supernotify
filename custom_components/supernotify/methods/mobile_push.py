@@ -20,11 +20,16 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MobilePushDeliveryMethod(DeliveryMethod):
+    method = METHOD_MOBILE_PUSH
+    
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_MOBILE_PUSH, False, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MOBILE_APP, target)
+    
+    def validate_service(self, service):
+        return service is None
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
@@ -40,7 +45,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                              targets=None,
                              priority=PRIORITY_MEDIUM,
                              data=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         config = config or {}
         data = data or {}
         app_url = data.get("app_url")
@@ -104,17 +109,20 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             "message": message,
             ATTR_DATA: data
         }
+        calls = 0
         for mobile_target in targets:
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
                               mobile_target, service_data)
                 await self.hass.services.async_call("notify", mobile_target,
                                                     service_data=service_data)
+                calls +=1
             except Exception as e:
                 _LOGGER.error(
                     "SUPERNOTIFY Mobile push failure (m=%s): %s", message, e)
         _LOGGER.info("SUPERNOTIFY Mobile Push t=%s m=%s d=%s",
                      title, message, data)
+        return calls > 0
 
 
 '''

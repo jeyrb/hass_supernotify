@@ -12,8 +12,9 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SMSDeliveryMethod(DeliveryMethod):
+    method = METHOD_SMS
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_SMS, True, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_PHONE, target)
@@ -27,7 +28,7 @@ class SMSDeliveryMethod(DeliveryMethod):
                              config=None,
                              targets=None,
                              data=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
         config = config or self.default_delivery
         data = data or {}
@@ -46,6 +47,7 @@ class SMSDeliveryMethod(DeliveryMethod):
                 domain, service,
                 service_data=service_data
             )
+            return True
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)

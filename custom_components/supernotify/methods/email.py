@@ -16,11 +16,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class EmailDeliveryMethod(DeliveryMethod):
+    method = METHOD_EMAIL
+
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_EMAIL, True, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.template_path = None
         if self.context.template_path:
-            self.template_path = os.path.join(self.context.template_path, "email")
+            self.template_path = os.path.join(
+                self.context.template_path, "email")
             if not os.path.exists(self.template_path):
                 self.template_path = None
         if self.template_path is None:
@@ -43,7 +46,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                              config=None,
                              targets=None,
                              data=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", config, targets)
         config = config or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
@@ -106,7 +109,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             await self.hass.services.async_call(
                 domain, service,
                 service_data=service_data)
-            return html
+            return True
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via mail (m=%s,addr=%s): %s", message, addresses, e)

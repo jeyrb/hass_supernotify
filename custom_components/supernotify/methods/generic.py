@@ -8,8 +8,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class GenericDeliveryMethod(DeliveryMethod):
+    method = METHOD_GENERIC
+    
     def __init__(self, *args, **kwargs):
-        super().__init__(METHOD_GENERIC, True, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        
+    def validate_service(self, service):
+        return service is not None and "." in service
 
     async def _delivery_impl(self,
                              title=None,
@@ -17,7 +22,7 @@ class GenericDeliveryMethod(DeliveryMethod):
                              config=None,
                              data=None,
                              targets=None,
-                             **kwargs):
+                             **kwargs) -> bool:
         config = config or {}
         data = data or {}
         targets = targets or []
@@ -39,6 +44,8 @@ class GenericDeliveryMethod(DeliveryMethod):
                 service_data = data
             await self.hass.services.async_call(
                 domain, service, service_data=service_data)
+            return True
         except Exception as e:
             _LOGGER.error(
                 "Failed to notify via generic %s.%s (m=%s): %s", domain, service, message, e)
+
