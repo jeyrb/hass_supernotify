@@ -36,7 +36,7 @@ async def test_notify_alexa_with_method_default() -> None:
     hass = Mock()
     context = SuperNotificationContext(method_defaults={METHOD_ALEXA: {
         CONF_SERVICE: "notify.alexa",
-        CONF_ENTITIES: ["media_player.hall",
+        CONF_ENTITIES: ["media_player.hall_1",
                         "media_player.toilet"]
     }})
 
@@ -47,5 +47,5 @@ async def test_notify_alexa_with_method_default() -> None:
     hass.services.async_call.assert_called_with("notify", "alexa",
                                                 service_data={"message": "hello there",
                                                               "data": {"type": "announce"},
-                                                              "target": ["media_player.hall",
+                                                              "target": ["media_player.hall_1",
                                                                          "media_player.toilet"]})

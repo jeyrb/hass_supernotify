@@ -53,26 +53,35 @@ class DeliveryMethod:
         self.hass = hass
         self.context = context
         self.default_delivery = None
-        self.method_deliveries = {d:dc for d,dc in deliveries.items() if dc.get(CONF_METHOD)==self.method} if deliveries else {}
+        self.method_deliveries = {d: dc for d, dc in deliveries.items(
+        ) if dc.get(CONF_METHOD) == self.method} if deliveries else {}
 
     async def initialize(self):
         assert self.method is not None
         self.apply_method_defaults()
         return await self.validate_deliveries()
-    
+
     def validate_service(self, service):
         ''' Override in subclass if delivery method has fixed service or doesn't require one'''
         return service is not None and service.startswith("notify.")
 
     def apply_method_defaults(self):
         method_defaults = self.context.method_defaults.get(self.method, {})
-        for delivery_config in self.method_deliveries.values():
+        for delivery_name, delivery_config in self.method_deliveries.items():
+            if not delivery_config.get(CONF_NAME):
+                delivery_config[CONF_NAME] = delivery_name  # for minimal tests
             if not delivery_config.get(CONF_SERVICE) and method_defaults.get(CONF_SERVICE):
                 delivery_config[CONF_SERVICE] = method_defaults[CONF_SERVICE]
+                _LOGGER.debug("SUPERNOTIFY Defaulting delivery % to service %s",
+                              delivery_name, delivery_config[CONF_SERVICE])
             if not delivery_config.get(CONF_TARGET) and method_defaults.get(CONF_TARGET):
                 delivery_config[CONF_TARGET] = method_defaults[CONF_TARGET]
+                _LOGGER.debug("SUPERNOTIFY Defaulting delivery % to target %s",
+                              delivery_name, delivery_config[CONF_TARGET])
             if not delivery_config.get(CONF_ENTITIES) and method_defaults.get(CONF_ENTITIES):
                 delivery_config[CONF_ENTITIES] = method_defaults[CONF_ENTITIES]
+                _LOGGER.debug("SUPERNOTIFY Defaulting delivery % to entities %s",
+                              delivery_name, delivery_config[CONF_ENTITIES])
 
     async def validate_deliveries(self):
         """
@@ -156,14 +165,14 @@ class DeliveryMethod:
             else:
                 target_data = data
             success = await self._delivery_impl(message=message,
-                                    title=title,
-                                    targets=targets,
-                                    priority=notification.priority,
-                                    scenarios=scenarios,
-                                    data=target_data,
-                                    config=delivery_config)
+                                                title=title,
+                                                targets=targets,
+                                                priority=notification.priority,
+                                                scenarios=scenarios,
+                                                data=target_data,
+                                                config=delivery_config)
             if success:
-                deliveries += 1 
+                deliveries += 1
         return deliveries > 0
 
     @abstractmethod

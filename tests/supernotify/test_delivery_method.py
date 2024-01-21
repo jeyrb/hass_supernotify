@@ -2,7 +2,7 @@
 from unittest.mock import Mock
 
 from homeassistant.const import (
-    CONF_SERVICE,
+    CONF_SERVICE, CONF_NAME
 )
 from homeassistant.core import HomeAssistant
 
@@ -54,6 +54,7 @@ async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> 
     uut = GenericDeliveryMethod(hass, context, delivery)
     valid_deliveries = await uut.initialize()
     assert valid_deliveries == {"chatty":{CONF_METHOD:METHOD_GENERIC,
+                                          CONF_NAME:"chatty",
                                           CONF_SERVICE:"notify.slackity",
                                           CONF_TARGET:["chan1,chan2"]}}
     
