@@ -1,8 +1,6 @@
 import logging
 from homeassistant.components.notify import (
     ATTR_DATA,
-    ATTR_TARGET,
-    ATTR_TITLE,
 )
 from homeassistant.const import (
     CONF_ENABLED,
@@ -12,9 +10,9 @@ from . import (
     ATTR_DELIVERY,
     ATTR_DELIVERY_SELECTION,
     ATTR_PRIORITY,
+    ATTR_RECIPIENTS,
     ATTR_SCENARIOS,
     CONF_DATA,
-    CONF_RECIPIENTS,
     CONF_SELECTION,
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_FIXED,
@@ -22,6 +20,7 @@ from . import (
     PRIORITY_MEDIUM,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
+    SERVICE_DATA_SCHEMA,
 )
 from .common import SuperNotificationContext, ensure_list, ensure_dict
 
@@ -42,33 +41,21 @@ class Notification:
         self.target = ensure_list(target)
         self.title = title
 
+        SERVICE_DATA_SCHEMA(service_data)
+
         self.priority = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
-        self.requested_scenarios = ensure_list(service_data.get(ATTR_SCENARIOS))
+        self.requested_scenarios = ensure_list(
+            service_data.get(ATTR_SCENARIOS))
         self.delivery_selection = service_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides = ensure_dict(service_data.get(ATTR_DELIVERY))
-        self.recipients_override = service_data.get(CONF_RECIPIENTS)
+        self.recipients_override = service_data.get(ATTR_RECIPIENTS)
         self.common_data = service_data.get(ATTR_DATA) or {}
 
         self.selected_delivery_names = []
         self.enabled_scenarios = []
 
     async def intialize(self):
-        '''
-        if self.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
-            self.selected_delivery_names = self.context.delivery_by_scenario.get(
-                SCENARIO_DEFAULT, [])
-        elif self.delivery_selection == DELIVERY_SELECTION_EXPLICIT:
-            pass
-        elif self.delivery_overrides is None:
-            self.selected_delivery_names = self.context.delivery_by_scenario.get(
-                SCENARIO_DEFAULT, [])
-            self.delivery_overrides = {}
-        elif not isinstance(self.delivery_overrides, dict):
-            pass
-        else:
-            self.selected_delivery_names = self.context.delivery_by_scenario.get(
-                SCENARIO_DEFAULT, [])
-        '''
+
         if self.delivery_selection is None:
             if self.delivery_overrides or self.requested_scenarios:
                 self.delivery_selection = DELIVERY_SELECTION_EXPLICIT
@@ -98,7 +85,7 @@ class Notification:
                 override_disable_deliveries.append(delivery)
 
         if self.delivery_selection != DELIVERY_SELECTION_FIXED:
-            scenario_disable_deliveries = [d for d,dc in self.context.deliveries.items()
+            scenario_disable_deliveries = [d for d, dc in self.context.deliveries.items()
                                            if dc.get(CONF_SELECTION) == SELECTION_BY_SCENARIO
                                            and d not in scenario_enable_deliveries]
         all_enabled = list(set(scenario_enable_deliveries +
@@ -108,7 +95,7 @@ class Notification:
             d for d in all_enabled if d not in all_disabled]
 
     def delivery_data(self, delivery_name):
-        return self.delivery_overrides.get(delivery_name,{}).get(CONF_DATA) if delivery_name else {}
+        return self.delivery_overrides.get(delivery_name, {}).get(CONF_DATA) if delivery_name else {}
 
     def delivery_scenarios(self, delivery_name):
         return {k: self.context.scenarios.get(k, {}) for k in self.enabled_scenarios if delivery_name in self.context.delivery_by_scenario.get(k, [])}

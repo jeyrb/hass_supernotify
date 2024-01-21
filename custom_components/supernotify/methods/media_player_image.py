@@ -17,12 +17,13 @@ _LOGGER = logging.getLogger(__name__)
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
-    
+
     def validate_service(self, service):
         return service is None
 

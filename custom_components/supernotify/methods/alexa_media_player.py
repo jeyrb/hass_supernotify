@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     method = METHOD_ALEXA
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -28,7 +28,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
                              config=None,
                              targets=None,
                              data=None,
-                             **kwargs) ->bool:
+                             **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = config or self.default_delivery
         media_players = targets or []

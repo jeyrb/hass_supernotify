@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from custom_components.supernotify import CONF_DATA, CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, METHOD_MEDIA
+from custom_components.supernotify import ATTR_DELIVERY, CONF_DATA, CONF_OVERRIDE_BASE, CONF_OVERRIDE_REPLACE, CONF_OVERRIDES, METHOD_MEDIA
 from custom_components.supernotify.common import SuperNotificationContext
 from custom_components.supernotify.methods.media_player_image import MediaPlayerImageDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_NAME
@@ -26,7 +26,7 @@ async def test_notify_media_image() -> None:
                                          }})
     await uut.initialize()
     await uut.deliver(Notification(context, "hello there", service_data={
-        "delivery": {"alexa_show": {CONF_DATA: {"snapshot_url": "http://10.10.10.10/ftp/pic.jpeg"}}}}))
+        ATTR_DELIVERY: {"alexa_show": {CONF_DATA: {"snapshot_url": "http://10.10.10.10/ftp/pic.jpeg"}}}}))
 
     hass.services.async_call.assert_called_with("media_player", "play_media",
                                                 service_data={"entity_id": ["media_player.echo_show_8",

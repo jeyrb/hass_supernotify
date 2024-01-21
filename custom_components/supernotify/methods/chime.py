@@ -13,12 +13,13 @@ _LOGGER = logging.getLogger(__name__)
 
 class ChimeDeliveryMethod(DeliveryMethod):
     method = METHOD_CHIME
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
     def validate_service(self, service):
         return service is None
-    
+
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
 

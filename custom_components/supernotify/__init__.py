@@ -88,9 +88,8 @@ ATTR_DELIVERY = "delivery"
 ATTR_DEFAULT = "default"
 ATTR_NOTIFICATION_ID = "notification_id"
 ATTR_DELIVERY_SELECTION = "delivery_selection"
-ATTR_SCENARIOS_BY_DELIVERY = "delivery_scenarios"
-ATTR_CONFIGURED_DELIVERIES = "configured_deliveries"
-ATTR_SKIPPED_DELIVERIES = "skipped_deliveries"
+ATTR_RECIPIENTS = "recipients"
+ATTR_DATA = "data"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -101,6 +100,7 @@ DELIVERY_SELECTION_VALUES = [DELIVERY_SELECTION_EXPLICIT,
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
+
 
 SELECTION_FALLBACK_ON_ERROR = "fallback_on_error"
 SELECTION_FALLBACK = "fallback"
@@ -232,3 +232,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA}
     }
 )
+
+SERVICE_DATA_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}),
+    vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
+    vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
+    vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(ATTR_DATA): vol.Any(None, dict)
+})

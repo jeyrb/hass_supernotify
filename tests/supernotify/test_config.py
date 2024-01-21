@@ -7,7 +7,11 @@ from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from custom_components.supernotify import ATTR_DEFAULT, DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
+from custom_components.supernotify import (
+    DOMAIN,
+    PLATFORM_SCHEMA,
+    SCENARIO_DEFAULT,
+)
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath(
     "..", "..", "examples", "maximal.yaml"
@@ -122,6 +126,7 @@ async def test_empty_config(hass: HomeAssistant) -> None:
         blocking=True,
     )
 
+
 async def test_call_supplemental_services(hass: HomeAssistant) -> None:
 
     assert await async_setup_component(
@@ -141,4 +146,4 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
         blocking=True,
         return_response=True
     )
-    assert response == {"DEFAULT":[]}
+    assert response == {"DEFAULT": []}
