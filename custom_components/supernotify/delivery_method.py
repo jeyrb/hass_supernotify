@@ -53,7 +53,7 @@ class DeliveryMethod:
         self.hass = hass
         self.context = context
         self.default_delivery = None
-        self.all_deliveries = deliveries or {}
+        self.method_deliveries = {d:dc for d,dc in deliveries.items() if dc.get(CONF_METHOD)==self.method} if deliveries else {}
 
     async def initialize(self):
         assert self.method is not None
@@ -66,7 +66,7 @@ class DeliveryMethod:
 
     def apply_method_defaults(self):
         method_defaults = self.context.method_defaults.get(self.method, {})
-        for delivery_config in self.all_deliveries.values():
+        for delivery_config in self.method_deliveries.values():
             if not delivery_config.get(CONF_SERVICE) and method_defaults.get(CONF_SERVICE):
                 delivery_config[CONF_SERVICE] = method_defaults[CONF_SERVICE]
             if not delivery_config.get(CONF_TARGET) and method_defaults.get(CONF_TARGET):
@@ -82,28 +82,27 @@ class DeliveryMethod:
             deliveries (dict): Dict of delivery name -> delivery configuration
         """
         valid_deliveries = {}
-        for d, dc in self.all_deliveries.items():
-            if dc and dc.get(CONF_METHOD) == self.method:
-                # don't care about ENABLED here since disabled deliveries can be overridden
-                if not self.validate_service(dc.get(CONF_SERVICE)):
+        for d, dc in self.method_deliveries.items():
+            # don't care about ENABLED here since disabled deliveries can be overridden
+            if not self.validate_service(dc.get(CONF_SERVICE)):
+                _LOGGER.warning(
+                    "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
+                continue
+            delivery_condition = dc.get(CONF_CONDITION)
+            if delivery_condition:
+                if not await condition.async_validate_condition_config(self.hass, delivery_condition):
                     _LOGGER.warning(
-                        "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
+                        "SUPERNOTIFY Invalid delivery condition for %s: %s", d, delivery_condition)
                     continue
-                delivery_condition = dc.get(CONF_CONDITION)
-                if delivery_condition:
-                    if not await condition.async_validate_condition_config(self.hass, delivery_condition):
-                        _LOGGER.warning(
-                            "SUPERNOTIFY Invalid delivery condition for %s: %s", d, delivery_condition)
-                        continue
 
-                valid_deliveries[d] = dc
+            valid_deliveries[d] = dc
 
-                if dc.get(CONF_DEFAULT):
-                    if self.default_delivery:
-                        _LOGGER.warning(
-                            "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
-                    else:
-                        self.default_delivery = dc
+            if dc.get(CONF_DEFAULT):
+                if self.default_delivery:
+                    _LOGGER.warning(
+                        "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
+                else:
+                    self.default_delivery = dc
 
         if not self.default_delivery:
             method_definition = self.context.method_defaults.get(self.method)
