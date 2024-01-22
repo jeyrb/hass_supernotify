@@ -58,7 +58,7 @@ class Notification:
         self.target = ensure_list(target)
         self._title = title
         self.delivery_config = delivery_config or {}
-        self.uuid = str(uuid.uuid1())
+        self.id = str(uuid.uuid1())
         self.snapshot_image_path = None
 
         try:
@@ -191,7 +191,7 @@ class Notification:
                     else:
                         media_ext = "img"
                     image_path = os.path.join(
-                        media_dir, '%s.%s' % (self.uuid, media_ext))
+                        media_dir, '%s.%s' % (self.id, media_ext))
                     with open(image_path, 'wb') as img_file:
                         img_file.write(await r.content.read())
                         img_file.close()

@@ -65,14 +65,14 @@ class EmailDeliveryMethod(DeliveryMethod):
             service_data[ATTR_TARGET] = addresses
             # default to SMTP platform default recipients if no explicit addresses
             
-        if footer and service_data.get(ATTR_MESSAGE):
-            service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
-
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
 
         if not template or not self.template_path:
-            image_path = notification.grab_image()
+            if footer and service_data.get(ATTR_MESSAGE):
+                service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
+
+            image_path = await notification.grab_image()
             if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]

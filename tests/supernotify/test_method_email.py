@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from custom_components.supernotify import CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
+from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
@@ -14,21 +14,27 @@ async def test_deliver() -> None:
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
-        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
+        hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
     await uut.initialize()
-    await uut.deliver(Notification(context, message="hello there", title="testing"))
+    await uut.deliver(Notification(context, message="hello there", title="testing",
+                                   service_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}
+                                                 }),
+                      "plain_email")
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester1@assert.com"],
                                                     "title": "testing",
-                                                    "message": "hello there"})
+                                                    "message": "hello there\n\npytest"})
     hass.reset_mock()
     await uut.deliver(Notification(context, message="hello there", title="testing",
-                                   target=['tester9@assert.com']))
+                                   target=['tester9@assert.com'],
+                                   service_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}
+                                                 }),
+                      "plain_email")
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
-                                                    "title": "testing", "message": "hello there"})
+                                                    "title": "testing", "message": "hello there\n\npytest"})
 
 
 async def test_deliver_with_template() -> None:
