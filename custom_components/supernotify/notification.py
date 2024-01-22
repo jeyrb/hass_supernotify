@@ -153,6 +153,7 @@ class Notification:
         return data
     
     async def grab_image(self):
+        
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)

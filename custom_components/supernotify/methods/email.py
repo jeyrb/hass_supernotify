@@ -66,9 +66,10 @@ class EmailDeliveryMethod(DeliveryMethod):
             service_data[ATTR_DATA] = data.get("data")
 
         if not template or not self.template_path:
-            if image_paths:
+            image_path = notification.grab_image()
+            if image_path:
                 service_data.setdefault("data", {})
-                service_data["data"]["images"] = image_paths
+                service_data["data"]["images"] = [image_path]
         else:
             html = self.render_template(
                 template, service_data[ATTR_TITLE], 
