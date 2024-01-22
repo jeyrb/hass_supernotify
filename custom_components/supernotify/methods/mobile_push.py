@@ -59,7 +59,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         action_groups = data.get("action_groups")
 
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s",
-                     notification.title, targets)
+                     notification.title(delivery), targets)
 
         data = data and data.get(ATTR_DATA) or {}
 
@@ -108,11 +108,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         for group, actions in self.context.mobile_actions.items():
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
-        service_data = {
-            ATTR_TITLE: notification.title,
-            "message": notification.message,
-            ATTR_DATA: data
-        }
+        service_data = notification.core_service_data(delivery)
+        service_data[ATTR_DATA]= data
+
         calls = 0
         for mobile_target in targets:
             try:
@@ -123,9 +121,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                 calls += 1
             except Exception as e:
                 _LOGGER.error(
-                    "SUPERNOTIFY Mobile push failure (m=%s): %s", notification.message, e)
-        _LOGGER.info("SUPERNOTIFY Mobile Push t=%s m=%s d=%s",
-                     notification.title, notification.message, data)
+                    "SUPERNOTIFY Mobile push failure (d=%s): %s", service_data, e)
+        _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s",service_data)
         return calls > 0
 
 

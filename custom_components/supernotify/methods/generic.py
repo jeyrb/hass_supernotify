@@ -29,11 +29,7 @@ class GenericDeliveryMethod(DeliveryMethod):
 
         qualified_service = config.get(CONF_SERVICE)
         if qualified_service.startswith("notify."):
-            service_data = {}
-            if notification.title is not None:
-                service_data[CONF_TITLE] = notification.title
-            if notification.message is not None:
-                service_data[CONF_MESSAGE] = notification.message
+            service_data = notification.core_service_data(delivery)
             if targets is not None:
                 service_data[CONF_TARGET] = targets
             if data is not None:

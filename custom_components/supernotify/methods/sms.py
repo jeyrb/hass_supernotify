@@ -30,13 +30,13 @@ class SMSDeliveryMethod(DeliveryMethod):
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_sms: %s", notification.title)
+        _LOGGER.info("SUPERNOTIFY notify_sms: %s", notification.message(delivery))
         config = notification.delivery_config.get(
             delivery) or self.default_delivery or {}
         data = data or {}
         mobile_numbers = targets or []
 
-        combined = f"{notification.title} {notification.message}"
+        combined = f"{notification.title(delivery)} {notification.message(delivery)}"
         service_data = {
             "message": combined[:158],
             ATTR_TARGET: mobile_numbers

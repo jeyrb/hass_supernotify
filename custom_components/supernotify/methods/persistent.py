@@ -28,9 +28,7 @@ class PersistentDeliveryMethod(DeliveryMethod):
 
         notification_id = data.get(
             ATTR_NOTIFICATION_ID, config.get(ATTR_NOTIFICATION_ID))
-        service_data = {
-            "title": notification.title,
-            "message": notification.message,
-            "notification_id": notification_id
-        }
+        service_data = notification.core_service_data(delivery)
+        service_data["notification_id"]=notification_id
+        
         return await self.call_service(config.get(CONF_SERVICE, "notify.persistent_notification"), service_data)

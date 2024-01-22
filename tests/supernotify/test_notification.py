@@ -20,7 +20,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert uut.enabled_scenarios == []
     assert uut.requested_scenarios == []
     assert uut.target == []
-    assert uut.message == 'testing 123'
+    assert uut.message("plain_email") == 'testing 123'
     assert uut.priority == 'medium'
     assert uut.delivery_overrides == {}
     assert uut.delivery_selection == DELIVERY_SELECTION_IMPLICIT

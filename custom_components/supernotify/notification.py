@@ -52,11 +52,11 @@ class Notification:
                  service_data: dict = None,
                  delivery_config: dict = None) -> None:
 
-        self.message = message
+        self._message = message
         self.context = context
         service_data = service_data or {}
         self.target = ensure_list(target)
-        self.title = title
+        self._title = title
         self.delivery_config = delivery_config or {}
         self.uuid = str(uuid.uuid1())
         self.snapshot_image_path = None
@@ -123,11 +123,11 @@ class Notification:
 
     def message(self, delivery_name):
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.delivery_config.get(CONF_MESSAGE, self.message)
+        return self.delivery_config.get(CONF_MESSAGE, self._message)
     
     def title(self, delivery_name):
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.delivery_config.get(CONF_TITLE, self.title)
+        return self.delivery_config.get(CONF_TITLE, self._title)
     
     def delivery_data(self, delivery_name):
         return self.delivery_overrides.get(delivery_name, {}).get(CONF_DATA) if delivery_name else {}
@@ -141,7 +141,17 @@ class Notification:
             if await scenario.evaluate():
                 scenarios.append(scenario.name)
         return scenarios
-
+    
+    def core_service_data(self, delivery_name):
+        data = {}
+        message = self.message(delivery_name)
+        title = self.title(delivery_name)
+        if message:
+            data[CONF_MESSAGE] = message
+        if title:
+            data[CONF_TITLE] = title
+        return data
+    
     async def grab_image(self):
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path

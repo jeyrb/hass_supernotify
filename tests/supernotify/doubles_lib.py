@@ -18,5 +18,6 @@ class DummyDeliveryMethod(DeliveryMethod):
 
     async def _delivery_impl(self, notification, delivery, targets, data) -> bool:
         self.test_calls.append(
-            [notification.message, notification.title, delivery, targets, data])
+            [notification.message(delivery), notification.title(delivery),
+             delivery, targets, data])
         return True

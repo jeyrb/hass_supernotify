@@ -4,7 +4,7 @@ import re
 
 from jinja2 import Environment, FileSystemLoader
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import CONF_EMAIL, CONF_SERVICE
 
 from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
@@ -56,15 +56,12 @@ class EmailDeliveryMethod(DeliveryMethod):
         image_paths = data.get("image_paths")
         snapshot_url = data.get("snapshot_url")
 
-        service_data = {
-            "message":   notification.message,
-            ATTR_TARGET:   addresses
-        }
-        if len(addresses) == 0:
-            addresses is None  # default to SMTP platform default recipients
+        service_data = notification.core_service_data(delivery)
+        
+        if len(addresses) > 0:
+            service_data[ATTR_TARGET]=addresses
+            # default to SMTP platform default recipients if no explicit addresses
 
-        if notification.title:
-            service_data["title"] = notification.title
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
 
@@ -74,8 +71,8 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data["data"]["images"] = image_paths
         else:
             html = self.render_template(
-                template, notification.title, 
-                notification.message, 
+                template, service_data[ATTR_TITLE], 
+                service_data[ATTR_MESSAGE], 
                 scenarios, 
                 notification.priority, snapshot_url)
             if html:

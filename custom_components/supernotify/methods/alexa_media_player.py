@@ -29,17 +29,18 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_alexa: %s", notification.message)
+        message = notification.message(delivery)
+        title = notification.title(delivery)
+        _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
         config = notification.delivery_config.get(delivery) or self.default_delivery or {}
         media_players = targets or []
 
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        if notification.title:
-            message = "{} {}".format(notification.title, notification.message)
-        else:
-            message = notification.message
+        if title:
+            message = "{} {}".format(title, message)
+
         service_data = {
             "message": message,
             ATTR_DATA: {"type": "announce"},
