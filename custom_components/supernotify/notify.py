@@ -5,7 +5,6 @@ from homeassistant.components.notify import (
 )
 from homeassistant.const import (
     CONF_CONDITION,
-    CONF_NAME,
 )
 import inspect
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
@@ -21,6 +20,7 @@ from . import (
     CONF_ACTIONS,
     CONF_DELIVERY,
     CONF_LINKS,
+    CONF_MEDIA_PATH,
     CONF_METHOD,
     CONF_METHODS,
     CONF_OVERRIDES,
@@ -75,6 +75,7 @@ async def async_get_service(
             CONF_DELIVERY: config.get(CONF_DELIVERY, {}),
             CONF_LINKS: config.get(CONF_LINKS, ()),
             CONF_TEMPLATE_PATH: config.get(CONF_TEMPLATE_PATH),
+            CONF_MEDIA_PATH: config.get(CONF_MEDIA_PATH),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
@@ -90,6 +91,7 @@ async def async_get_service(
         hass,
         deliveries=config[CONF_DELIVERY],
         template_path=config[CONF_TEMPLATE_PATH],
+        media_path=config[CONF_MEDIA_PATH],
         recipients=config[CONF_RECIPIENTS],
         mobile_actions=config[CONF_ACTIONS],
         scenarios=config[CONF_SCENARIOS],
@@ -120,6 +122,7 @@ class SuperNotificationService(BaseNotificationService):
         hass,
         deliveries=None,
         template_path=None,
+        media_path=None,
         recipients=(),
         mobile_actions=None,
         scenarios=None,
@@ -133,9 +136,15 @@ class SuperNotificationService(BaseNotificationService):
             hass,
             hass.config.external_url or self.hass.config.internal_url,
             hass.config.location_name,
-            deliveries, links,
-            recipients, mobile_actions, template_path,
-            overrides, scenarios, method_defaults)
+            deliveries,
+            links,
+            recipients,
+            mobile_actions,
+            template_path,
+            media_path,
+            overrides,
+            scenarios,
+            method_defaults)
         self.methods = {}
         self.valid_deliveries = {}
 
@@ -170,7 +179,7 @@ class SuperNotificationService(BaseNotificationService):
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
 
         notification = Notification(
-            self.context, message, title, target, kwargs)
+            self.context, message, title, target, kwargs, self.valid_deliveries)
         await notification.intialize()
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)
@@ -180,26 +189,25 @@ class SuperNotificationService(BaseNotificationService):
 
         stats_delivieries = stats_errors = 0
 
-        for delivery, delivery_config in self.valid_deliveries.items():
-            if delivery in notification.selected_delivery_names:
-                delivered, errored = await self.call_method(
-                    notification, delivery, delivery_config
-                )
-                stats_delivieries += delivered
-                stats_errors += errored
+        for delivery in notification.selected_delivery_names:
+            delivered, errored = await self.call_method(
+                notification, delivery
+            )
+            stats_delivieries += delivered
+            stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors == 0:
-            for delivery, delivery_config in self.context.fallback_by_default.items():
+            for delivery in self.context.fallback_by_default:
                 delivered, errored = await self.call_method(
-                    notification, delivery, delivery_config
+                    notification, delivery
                 )
                 stats_delivieries += delivered
                 stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors > 0:
-            for delivery, delivery_config in self.context.fallback_on_error.items():
+            for delivery in self.context.fallback_on_error:
                 delivered, errored = await self.call_method(
-                    notification, delivery, delivery_config
+                    notification, delivery
                 )
                 stats_delivieries += delivered
                 stats_errors += errored
@@ -208,13 +216,11 @@ class SuperNotificationService(BaseNotificationService):
             "SUPERNOTIFY %s deliveries, %s errors", stats_delivieries, stats_errors
         )
 
-    async def call_method(self, notification, delivery, delivery_config):
-        method = delivery_config[CONF_METHOD]
-        # TODO consider changing delivery config to list
-        delivery_config[CONF_NAME] = delivery
+    async def call_method(self, notification, delivery):
+        method = self.valid_deliveries[delivery][CONF_METHOD]
 
         try:
-            await self.methods[method].deliver(notification, delivery_config)
+            await self.methods[method].deliver(notification, delivery=delivery)
             return (1, 0)
         except Exception as e:
             _LOGGER.warning(

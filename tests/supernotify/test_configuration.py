@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 async def test_filter_recipients() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
-                                                   {CONF_PERSON: "person.bidey_in"}])
+                                                         {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
     hass_states = {"person.new_home_owner": Mock(state="not_home"),
                    "person.bidey_in": Mock(state="home")}
@@ -33,22 +33,22 @@ async def test_filter_recipients() -> None:
 async def test_default_recipients() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
-                                                   {CONF_PERSON: "person.bidey_in"}])
+                                                         {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context))
     assert uut.test_calls == [
-        [None, None, ['dummy.new_home_owner', 'dummy.bidey_in'], 'medium', {}, {}, {}]]
+        [None, None, None, ['dummy.new_home_owner', 'dummy.bidey_in'], {}]]
 
 
 async def test_default_recipients_with_override() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
-                                                   {CONF_PERSON: "person.bidey_in"}])
+                                                         {CONF_PERSON: "person.bidey_in"}])
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context, None,
                                    service_data={CONF_RECIPIENTS: ["person.new_home_owner"]}))
     assert uut.test_calls == [
-        [None, None, ['dummy.new_home_owner'], 'medium', {}, {}, {}]]
+        [None, None, None, ['dummy.new_home_owner'], {}]]
 
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:

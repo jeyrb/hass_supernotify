@@ -97,7 +97,7 @@ class DeliveryMethod:
             if d in RESERVED_DELIVERY_NAMES:
                 _LOGGER.warning(
                     "SUPERNOTIFY Delivery uses reserved word %s", d)
-                continue             
+                continue
             if not self.validate_service(dc.get(CONF_SERVICE)):
                 _LOGGER.warning(
                     "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
@@ -110,6 +110,7 @@ class DeliveryMethod:
                     continue
 
             valid_deliveries[d] = dc
+            dc[CONF_NAME] = d
 
             if dc.get(CONF_DEFAULT):
                 if self.default_delivery:
@@ -129,7 +130,7 @@ class DeliveryMethod:
 
     async def deliver(self,
                       notification: Notification,
-                      delivery_config: dict = None) -> bool:
+                      delivery: str = None) -> bool:
         """
         Deliver a notification
 
@@ -137,13 +138,9 @@ class DeliveryMethod:
             message (_type_, optional): Message to send. Defaults to None, e.g for methods like chime 
             delivery_config (_type_, optional): Delivery Configuration. Defaults to None.
         """
-        delivery_config = delivery_config or self.default_delivery or {}
+        delivery_config = notification.delivery_config.get(
+            delivery) or self.default_delivery or {}
         data = notification.delivery_data(delivery_config.get(CONF_NAME))
-        scenarios = notification.delivery_scenarios(
-            delivery_config.get(CONF_NAME))
-        # message and title reverse the usual defaulting, delivery config overrides runtime call
-        message = delivery_config.get(CONF_MESSAGE, notification.message)
-        title = delivery_config.get(CONF_TITLE, notification.title)
 
         for reserved in (ATTR_DOMAIN, ATTR_SERVICE):
             if data and reserved in data:
@@ -169,13 +166,10 @@ class DeliveryMethod:
                 target_data |= custom_data
             else:
                 target_data = data
-            success = await self._delivery_impl(message=message,
-                                                title=title,
+            success = await self._delivery_impl(notification,
+                                                delivery,
                                                 targets=targets,
-                                                priority=notification.priority,
-                                                scenarios=scenarios,
-                                                data=target_data,
-                                                config=delivery_config)
+                                                data=target_data)
             if success:
                 deliveries += 1
         return deliveries > 0
@@ -335,3 +329,14 @@ class DeliveryMethod:
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
                 raise
+
+    async def call_service(self, qualified_service, service_data={}):
+        try:
+            domain, service = qualified_service.split(".", 1)
+            await self.hass.services.async_call(
+                domain, service,
+                service_data=service_data)
+            return True
+        except Exception as e:
+            _LOGGER.error(
+                "SUPERNOTIFY Failed to notify via %s: %s", self.method, e)

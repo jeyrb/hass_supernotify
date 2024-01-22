@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class SMSDeliveryMethod(DeliveryMethod):
     method = METHOD_SMS
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -23,31 +24,24 @@ class SMSDeliveryMethod(DeliveryMethod):
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
 
-    async def _delivery_impl(self, message=None,
-                             title=None,
-                             config=None,
+    async def _delivery_impl(self,
+                             notification,
+                             delivery,
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_sms: %s", title)
-        config = config or self.default_delivery
+        _LOGGER.info("SUPERNOTIFY notify_sms: %s", notification.title)
+        config = notification.delivery_config.get(
+            delivery) or self.default_delivery or {}
         data = data or {}
         mobile_numbers = targets or []
 
-        combined = f"{title} {message}"
+        combined = f"{notification.title} {notification.message}"
         service_data = {
             "message": combined[:158],
             ATTR_TARGET: mobile_numbers
         }
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
-        try:
-            domain, service = config.get(CONF_SERVICE).split(".", 1)
-            await self.hass.services.async_call(
-                domain, service,
-                service_data=service_data
-            )
-            return True
-        except Exception as e:
-            _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via SMS (m=%s): %s", message, e)
+            
+        return await self.call_service(config.get(CONF_SERVICE),service_data)

@@ -23,21 +23,23 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_ALEXA, target)
 
-    async def _delivery_impl(self, message=None,
-                             title=None,
-                             config=None,
+    async def _delivery_impl(self, 
+                             notification,
+                             delivery=None,
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
-        config = config or self.default_delivery
+        _LOGGER.info("SUPERNOTIFY notify_alexa: %s", notification.message)
+        config = notification.delivery_config.get(delivery) or self.default_delivery or {}
         media_players = targets or []
 
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        if title:
-            message = "{} {}".format(title, message)
+        if notification.title:
+            message = "{} {}".format(notification.title, notification.message)
+        else:
+            message = notification.message
         service_data = {
             "message": message,
             ATTR_DATA: {"type": "announce"},
@@ -45,10 +47,5 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         }
         if data and data.get("data"):
             service_data[ATTR_DATA].update(data.get("data"))
-        try:
-            domain, service = config.get(CONF_SERVICE).split(".", 1)
-            await self.hass.services.async_call(
-                domain, service, service_data=service_data)
-            return True
-        except Exception as e:
-            _LOGGER.error("Failed to notify via Alexa (m=%s): %s", message, e)
+        return await self.call_service(config.get(CONF_SERVICE),service_data)
+    

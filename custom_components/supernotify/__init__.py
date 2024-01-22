@@ -28,7 +28,7 @@ DOMAIN = "supernotify"
 
 PLATFORMS = [Platform.NOTIFY]
 TEMPLATE_DIR = "/config/templates/supernotify"
-
+MEDIA_DIR = "/config/media/supernotify"
 
 CONF_ACTIONS = "actions"
 CONF_ACTION = "action"
@@ -36,6 +36,7 @@ CONF_TITLE = "title"
 CONF_URI = "uri"
 CONF_RECIPIENTS = "recipients"
 CONF_TEMPLATE_PATH = "template_path"
+CONF_MEDIA_PATH = "media_path"
 CONF_TEMPLATE = "template"
 CONF_LINKS = "links"
 CONF_PERSON = "person"
@@ -90,6 +91,12 @@ ATTR_NOTIFICATION_ID = "notification_id"
 ATTR_DELIVERY_SELECTION = "delivery_selection"
 ATTR_RECIPIENTS = "recipients"
 ATTR_DATA = "data"
+ATTR_MEDIA = "media"
+ATTR_MEDIA_SNAPSHOT_URL = "snapshot_url"
+ATTR_MEDIA_CAMERA_ENTITY_ID = "camera_entity_id"
+ATTR_MEDIA_CAMERA_DELAY = "camera_delay"
+ATTR_MEDIA_CAMERA_PTZ_PRESET = "camera_ptz_preset"
+ATTR_MEDIA_CLIP_URL = "clip_url"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -174,10 +181,12 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}
 })
 MEDIA_SCHEMA = vol.Schema({
-    vol.Optional(CONF_CAMERA): cv.entity_id,
+    vol.Optional(ATTR_MEDIA_CAMERA_ENTITY_ID): cv.entity_id,
+    vol.Optional(ATTR_MEDIA_CAMERA_DELAY, default=0): int,
+    vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): cv.string,
     vol.Optional(CONF_MQTT_TOPIC): cv.string,
-    vol.Optional(CONF_CLIP_URL): cv.url,
-    vol.Optional(CONF_SNAPSHOT_URL): cv.url
+    vol.Optional(ATTR_MEDIA_CLIP_URL): cv.url,
+    vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): cv.url
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -221,6 +230,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_TEMPLATE_PATH, default=TEMPLATE_DIR):
             cv.path,
+        vol.Optional(CONF_MEDIA_PATH, default=MEDIA_DIR): cv.path,
         vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
         vol.Optional(CONF_ACTIONS, default={}): {cv.string: [PUSH_ACTION_SCHEMA]},
         vol.Optional(CONF_RECIPIENTS, default=[]):
@@ -239,5 +249,6 @@ SERVICE_DATA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
     vol.Optional(ATTR_DATA): vol.Any(None, dict)
 })

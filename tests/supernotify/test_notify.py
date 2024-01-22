@@ -55,8 +55,8 @@ RECIPIENTS = [
         ],
         CONF_DELIVERY: {
             "dummy": {CONF_DATA: {"emoji_id": 912393},
-                     CONF_TARGET: ["xyz123"]
-                     }
+                      CONF_TARGET: ["xyz123"]
+                      }
         }
      },
     {
@@ -114,9 +114,10 @@ async def test_recipient_delivery_data_override() -> None:
                                      "dummy": {}
                                  })
     assert dummy.test_calls == unordered([
-        ['testing 123', 'test_title', ['dummy.bidey_in', 'abc789'], 'medium', {}, None, {'method': 'dummy', 'name': 'dummy'}],
-        ['testing 123', 'test_title', ['dummy.new_home_owner', 'xyz123'], 'medium', {}, {'emoji_id': 912393}, {'method': 'dummy', 'name': 'dummy'}]
-         ])
+        ['testing 123', 'test_title', 'dummy', ['dummy.bidey_in', 'abc789'], None],
+        ['testing 123', 'test_title', 'dummy', [
+            'dummy.new_home_owner', 'xyz123'], {'emoji_id': 912393}]
+    ])
 
 
 async def test_null_delivery() -> None:
@@ -140,7 +141,6 @@ async def test_fallback_delivery() -> None:
     await uut.initialize()
     await uut.async_send_message("just a test")
     hass.services.async_call.assert_not_called()
-
 
 
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:

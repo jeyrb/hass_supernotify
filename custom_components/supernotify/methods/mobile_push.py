@@ -3,6 +3,9 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
+    ATTR_MEDIA_CAMERA_ENTITY_ID,
+    ATTR_MEDIA_CLIP_URL,
+    ATTR_MEDIA_SNAPSHOT_URL,
     CONF_MOBILE_DEVICES,
     CONF_NOTIFY_SERVICE,
     CONF_PERSON,
@@ -21,13 +24,13 @@ _LOGGER = logging.getLogger(__name__)
 
 class MobilePushDeliveryMethod(DeliveryMethod):
     method = METHOD_MOBILE_PUSH
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MOBILE_APP, target)
-    
+
     def validate_service(self, service):
         return service is None
 
@@ -39,45 +42,45 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         else:
             return []
 
-    async def _delivery_impl(self, message=None,
-                             title=None,
-                             config=None,
+    async def _delivery_impl(self,
+                             notification,
+                             delivery,
                              targets=None,
-                             priority=PRIORITY_MEDIUM,
                              data=None,
                              **kwargs) -> bool:
-        config = config or {}
+
         data = data or {}
         app_url = data.get("app_url")
         app_url_title = data.get("app_url_title")
-        camera_entity_id = data.get("camera_entity_id")
-        clip_url = data.get("clip_url")
-        snapshot_url = data.get("snapshot_url")
+        camera_entity_id = data.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
+        clip_url = data.get(ATTR_MEDIA_CLIP_URL)
+        snapshot_url = data.get(ATTR_MEDIA_SNAPSHOT_URL)
         category = data.get("category", "general")
         action_groups = data.get("action_groups")
 
-        title = title or ""
-        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", title, targets)
+        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s",
+                     notification.title, targets)
 
         data = data and data.get(ATTR_DATA) or {}
 
-        if priority == PRIORITY_CRITICAL:
+        if notification.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
-        elif priority == PRIORITY_HIGH:
+        elif notification.priority == PRIORITY_HIGH:
             push_priority = "time-sensitive"
-        elif priority == PRIORITY_MEDIUM:
+        elif notification.priority == PRIORITY_MEDIUM:
             push_priority = "active"
-        elif priority == PRIORITY_LOW:
+        elif notification.priority == PRIORITY_LOW:
             push_priority = "passive"
         else:
             push_priority = "active"
-            _LOGGER.warning("SUPERNOTIFY Unexpected priority %s", priority)
+            _LOGGER.warning("SUPERNOTIFY Unexpected priority %s",
+                            notification.priority)
 
         data.setdefault("actions", [])
         data.setdefault("push", {})
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
-            data["push"].setdefault("sound",{})
+            data["push"].setdefault("sound", {})
             data['push']['sound']['name'] = 'default'
             data['push']['sound']['critical'] = 1
             data['push']['sound']['volume'] = 1.0
@@ -106,8 +109,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
         service_data = {
-            ATTR_TITLE: title,
-            "message": message,
+            ATTR_TITLE: notification.title,
+            "message": notification.message,
             ATTR_DATA: data
         }
         calls = 0
@@ -117,12 +120,12 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                               mobile_target, service_data)
                 await self.hass.services.async_call("notify", mobile_target,
                                                     service_data=service_data)
-                calls +=1
+                calls += 1
             except Exception as e:
                 _LOGGER.error(
-                    "SUPERNOTIFY Mobile push failure (m=%s): %s", message, e)
+                    "SUPERNOTIFY Mobile push failure (m=%s): %s", notification.message, e)
         _LOGGER.info("SUPERNOTIFY Mobile Push t=%s m=%s d=%s",
-                     title, message, data)
+                     notification.title, notification.message, data)
         return calls > 0
 
 

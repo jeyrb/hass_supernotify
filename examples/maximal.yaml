@@ -126,7 +126,7 @@ notify:
       doorbell:
         delivery_selection: implicit
         media:
-          camera: camera.doorbell
+          camera_entity_id: camera.doorbell
         delivery:
           doorbell_chime_alexa: 
             data:

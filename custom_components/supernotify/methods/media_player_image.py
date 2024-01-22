@@ -27,14 +27,15 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is None
 
-    async def _delivery_impl(self, message=None,
-                             title=None,
-                             config=None,
+    async def _delivery_impl(self,
+                             notification,
+                             delivery,
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_media: %s", message)
-        config = config or self.default_delivery
+        _LOGGER.info("SUPERNOTIFY notify_media: %s", data)
+        config = notification.delivery_config.get(
+            delivery) or self.default_delivery or {}
         data = data or {}
         media_players = targets or []
         if not media_players:
@@ -62,13 +63,4 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data["extra"] = data.get("data")
 
-        try:
-            domain, service = config.get(
-                CONF_SERVICE, "media_player.play_media").split(".", 1)
-            await self.hass.services.async_call(
-                domain, service,
-                service_data=service_data)
-            return True
-        except Exception as e:
-            _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via media player (url=%s): %s", snapshot_url, e)
+        return await self.call_service(config.get(CONF_SERVICE, "media_player.play_media"), service_data)

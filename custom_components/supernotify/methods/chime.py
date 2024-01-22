@@ -24,11 +24,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return re.fullmatch(RE_VALID_CHIME, target)
 
     async def _delivery_impl(self,
-                             config=None,
+                             notification,
+                             delivery,
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
-        config = config or {}
         data = data or {}
         targets = targets or []
 

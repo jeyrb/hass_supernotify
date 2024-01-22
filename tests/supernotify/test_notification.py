@@ -1,8 +1,13 @@
 from homeassistant.core import HomeAssistant
-from custom_components.supernotify import CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_SCENARIOS, DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT
+import pytest
+from pytest_httpserver import BlockingHTTPServer
+from custom_components.supernotify import ATTR_MEDIA_SNAPSHOT_URL, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, CONF_SCENARIOS, DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT
 from custom_components.supernotify.notification import Notification
 from unittest.mock import Mock
 from pytest_unordered import unordered
+import os.path
+import tempfile
+import io
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
@@ -48,3 +53,27 @@ async def test_scenario_delivery(hass: HomeAssistant) -> None:
     })
     await uut.intialize()
     assert uut.selected_delivery_names == ["chime"]
+
+
+@pytest.mark.enable_socket
+async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+    context = Mock()
+    context.hass = hass
+    context.scenarios = {}
+    context.deliveries = {}
+    context.delivery_by_scenario = {}
+    context.media_path = tempfile.mkdtemp()
+    uut = Notification(context, "testing 123", service_data={
+        CONF_MEDIA: {
+            ATTR_MEDIA_SNAPSHOT_URL: httpserver_ipv4.url_for("/snapshot_image")}
+    })
+    await uut.intialize()
+    original_image_path = os.path.join(
+        "tests", "supernotify", "fixtures", "media", "example_image.png")
+    original_image = io.FileIO(original_image_path, "rb").readall()
+    httpserver_ipv4.expect_request(
+        "/snapshot_image").respond_with_data(original_image, content_type="image/png")
+    retrieved_image_path = await uut.grab_image()
+    assert retrieved_image_path is not None
+    retrieved_image = io.FileIO(retrieved_image_path, "rb").readall()
+    assert retrieved_image == original_image

@@ -36,7 +36,8 @@ class SupernotificationConfiguration:
                  links=(),
                  recipients=(),
                  mobile_actions=None,
-                 template_path=(),
+                 template_path=None,
+                 media_path=None,
                  overrides=None,
                  scenarios=None,
                  method_defaults=None):
@@ -44,10 +45,11 @@ class SupernotificationConfiguration:
         self.hass_url = hass_url
         self.hass_name = hass_name
         self.links = ensure_list(links)
-        self.deliveries = deliveries or {}
+        self.deliveries = deliveries if isinstance(deliveries,dict) else {}
         self.recipients = ensure_list(recipients)
         self.mobile_actions = mobile_actions or {}
         self.template_path = template_path
+        self.media_path = media_path
         self.method_defaults = method_defaults or {}
         self.scenarios = {}
         self.overrides = overrides or {}
