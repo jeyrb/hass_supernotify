@@ -39,28 +39,34 @@ class EmailDeliveryMethod(DeliveryMethod):
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
-    async def _delivery_impl(self, 
+    async def _delivery_impl(self,
                              notification,
                              delivery,
                              targets=None,
                              data=None,
                              **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", delivery, targets)
-        config = notification.delivery_config.get(delivery) or self.default_delivery or {}
+        config = notification.delivery_config.get(
+            delivery) or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
         data = data or {}
         scenarios = notification.delivery_scenarios(delivery) or []
         html = data.get("html")
         template = data.get("template", config.get("template"))
         addresses = targets or []
-        image_paths = data.get("image_paths")
         snapshot_url = data.get("snapshot_url")
+        # TODO centralize in config
+        footer = data.get(
+            "footer", "Delivered by SuperNotify (MsgId:%s)" % notification.id)
 
         service_data = notification.core_service_data(delivery)
-        
+
         if len(addresses) > 0:
-            service_data[ATTR_TARGET]=addresses
+            service_data[ATTR_TARGET] = addresses
             # default to SMTP platform default recipients if no explicit addresses
+            
+        if footer and service_data.get(ATTR_MESSAGE):
+            service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
 
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
@@ -72,15 +78,15 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data["data"]["images"] = [image_path]
         else:
             html = self.render_template(
-                template, service_data[ATTR_TITLE], 
-                service_data[ATTR_MESSAGE], 
-                scenarios, 
+                template, service_data[ATTR_TITLE],
+                service_data[ATTR_MESSAGE],
+                scenarios,
                 notification.priority, snapshot_url)
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
-        return await self.call_service(config.get(CONF_SERVICE),service_data)
-     
+        return await self.call_service(config.get(CONF_SERVICE), service_data)
+
     def render_template(self, template, title, message, scenarios, priority, snapshot_url):
         alert = {}
         try:
