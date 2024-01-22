@@ -30,7 +30,6 @@ from . import (
     DOMAIN,
     PLATFORM_SCHEMA,
     PLATFORMS,
-    RESERVED_DELIVERY_NAMES,
 )
 from .configuration import SupernotificationConfiguration
 from .notification import Notification
