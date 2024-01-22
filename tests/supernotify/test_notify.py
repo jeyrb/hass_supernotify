@@ -1,5 +1,5 @@
 from unittest.mock import Mock
-from .hass_setup_lib import register_mobile_app
+
 from homeassistant.const import (
     CONF_CONDITION,
     CONF_CONDITIONS,
@@ -9,9 +9,7 @@ from homeassistant.const import (
 )
 from pytest_unordered import unordered
 from .doubles_lib import DummyDeliveryMethod
-from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 from custom_components.supernotify import (
     CONF_DATA,
     CONF_DELIVERY,
@@ -107,6 +105,7 @@ async def test_recipient_delivery_data_override() -> None:
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     await uut.initialize()
     dummy = DummyDeliveryMethod(hass, uut.context)
+    await dummy.initialize()
     await uut.register_delivery_method(dummy)
     await uut.async_send_message(title="test_title", message="testing 123",
                                  delivery_selection=DELIVERY_SELECTION_EXPLICIT,
@@ -142,28 +141,6 @@ async def test_fallback_delivery() -> None:
     await uut.async_send_message("just a test")
     hass.services.async_call.assert_not_called()
 
-
-async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
-    uut = SuperNotificationService(hass)
-    await uut.initialize()
-    assert uut.mobile_devices_for_person("person.test_user") == []
-
-
-async def test_autoresolve_mobile_devices_for_devices(hass: HomeAssistant,
-                                                      device_registry: dr.DeviceRegistry,
-                                                      entity_registry: er.EntityRegistry,) -> None:
-    uut = SuperNotificationService(hass)
-    await uut.initialize()
-    hass.states.async_set("person.test_user", "home", attributes={
-                          "device_trackers": ["device_tracker.mobile_app_phone_bob", "dev002"]})
-    register_mobile_app(hass, device_registry,
-                        entity_registry,
-                        device_name="phone_bob",
-                        title="Bobs Phone")
-    assert uut.mobile_devices_for_person("person.test_user") == [{'device_tracker': 'device_tracker.mobile_app_phone_bob',
-                                                                  'manufacturer': "xUnit",
-                                                                  'model': "PyTest001",
-                                                                  'notify_service': 'mobile_app_bobs_phone'}]
 
 
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:

@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from custom_components.supernotify import METHOD_CHIME
-from custom_components.supernotify.common import  SuperNotificationContext
+from custom_components.supernotify.configuration import  SupernotificationConfiguration
 from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD
 from custom_components.supernotify.notification import Notification
@@ -9,7 +9,7 @@ from custom_components.supernotify.notification import Notification
 async def test_deliver() -> None:
     """Test on_notify_persistent"""
     hass = Mock()
-    context = SuperNotificationContext()
+    context = SupernotificationConfiguration()
     uut = ChimeDeliveryMethod(
         hass, context, {"chimes": {CONF_METHOD: METHOD_CHIME,
                                    CONF_DEFAULT: True,

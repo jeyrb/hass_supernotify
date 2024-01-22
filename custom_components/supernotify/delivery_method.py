@@ -37,9 +37,10 @@ from . import (
     OCCUPANCY_NONE,
     OCCUPANCY_ONLY_IN,
     OCCUPANCY_ONLY_OUT,
+    RESERVED_DELIVERY_NAMES,
 )
 from .notification import Notification
-from .common import SuperNotificationContext
+from .configuration import SupernotificationConfiguration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class DeliveryMethod:
     @abstractmethod
     def __init__(self,
                  hass: HomeAssistant,
-                 context: SuperNotificationContext,
+                 context: SupernotificationConfiguration,
                  deliveries: dict):
         self.hass = hass
         self.context = context
@@ -59,7 +60,7 @@ class DeliveryMethod:
     async def initialize(self):
         assert self.method is not None
         self.apply_method_defaults()
-        return await self.validate_deliveries()
+        self.valid_deliveries = await self.validate_deliveries()
 
     def validate_service(self, service):
         ''' Override in subclass if delivery method has fixed service or doesn't require one'''
@@ -93,6 +94,10 @@ class DeliveryMethod:
         valid_deliveries = {}
         for d, dc in self.method_deliveries.items():
             # don't care about ENABLED here since disabled deliveries can be overridden
+            if d in RESERVED_DELIVERY_NAMES:
+                _LOGGER.warning(
+                    "SUPERNOTIFY Delivery uses reserved word %s", d)
+                continue             
             if not self.validate_service(dc.get(CONF_SERVICE)):
                 _LOGGER.warning(
                     "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))

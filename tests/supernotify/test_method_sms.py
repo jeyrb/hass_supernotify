@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from custom_components.supernotify import CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.sms import SMSDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
@@ -11,7 +11,7 @@ from custom_components.supernotify.notification import Notification
 async def test_deliver() -> None:
     """Test on_notify_email."""
     hass = Mock()
-    context = SuperNotificationContext(recipients=[
+    context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_PHONE_NUMBER: "+447979123456"}])
 
     uut = SMSDeliveryMethod(

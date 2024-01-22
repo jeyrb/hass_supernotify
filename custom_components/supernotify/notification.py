@@ -1,4 +1,5 @@
 import logging
+import voluptuous as vol
 from homeassistant.components.notify import (
     ATTR_DATA,
 )
@@ -22,14 +23,14 @@ from . import (
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
 )
-from .common import SuperNotificationContext, ensure_list, ensure_dict
+from .configuration import SupernotificationConfiguration, ensure_list, ensure_dict
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class Notification:
     def __init__(self,
-                 context: SuperNotificationContext,
+                 context: SupernotificationConfiguration,
                  message: str = None,
                  title: str = None,
                  target: list = None,
@@ -41,7 +42,11 @@ class Notification:
         self.target = ensure_list(target)
         self.title = title
 
-        SERVICE_DATA_SCHEMA(service_data)
+        try:
+            SERVICE_DATA_SCHEMA(service_data)
+        except vol.Invalid as e:
+            _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
+            raise
 
         self.priority = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.requested_scenarios = ensure_list(

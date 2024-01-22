@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from custom_components.supernotify import CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
 from custom_components.supernotify.notification import Notification
@@ -10,7 +10,7 @@ from custom_components.supernotify.notification import Notification
 async def test_deliver() -> None:
     """Test on_notify_email."""
     hass = Mock()
-    context = SuperNotificationContext(recipients=[
+    context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
@@ -33,7 +33,7 @@ async def test_deliver() -> None:
 
 async def test_deliver_with_template() -> None:
     hass = Mock()
-    context = SuperNotificationContext(recipients=[
+    context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}],
         template_path="tests/supernotify/fixtures/templates")
 

@@ -34,8 +34,8 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     context = Mock()
     context.method_defaults = {}
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
-    valid_deliveries = await uut.initialize()
-    assert valid_deliveries == {
+    await uut.initialize()
+    assert uut.valid_deliveries == {
         d: dc for d, dc in DELIVERY.items() if dc[CONF_METHOD] == METHOD_GENERIC}
     assert uut.default_delivery is None
 
@@ -45,8 +45,8 @@ async def test_method_default_used_for_default_delivery(hass: HomeAssistant) -> 
     context.method_defaults = {
         METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
-    valid_deliveries = await uut.initialize()
-    assert valid_deliveries == {
+    await uut.initialize()
+    assert uut.valid_deliveries == {
         d: dc for d, dc in DELIVERY.items() if dc[CONF_METHOD] == METHOD_GENERIC}
     assert uut.default_delivery == {CONF_SERVICE: "notify.slackity"}
 
@@ -58,8 +58,8 @@ async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> 
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC,
                            CONF_TARGET: ["chan1,chan2"]}}
     uut = GenericDeliveryMethod(hass, context, delivery)
-    valid_deliveries = await uut.initialize()
-    assert valid_deliveries == {"chatty": {CONF_METHOD: METHOD_GENERIC,
+    await uut.initialize()
+    assert uut.valid_deliveries == {"chatty": {CONF_METHOD: METHOD_GENERIC,
                                            CONF_NAME: "chatty",
                                            CONF_SERVICE: "notify.slackity",
                                            CONF_TARGET: ["chan1,chan2"]}}

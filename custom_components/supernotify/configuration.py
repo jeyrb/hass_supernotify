@@ -4,8 +4,16 @@ from homeassistant.const import (
     CONF_ENABLED,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.util import slugify
+from homeassistant.helpers import device_registry, entity_registry
 
 from . import (
+    CONF_DEVICE_TRACKER,
+    CONF_MANUFACTURER,
+    CONF_MOBILE_DEVICES,
+    CONF_MOBILE_DISCOVERY,
+    CONF_MODEL,
+    CONF_NOTIFY_SERVICE,
     CONF_PERSON,
     CONF_SELECTION,
     DELIVERY_SELECTION_IMPLICIT,
@@ -19,7 +27,7 @@ from .scenario import Scenario
 _LOGGER = logging.getLogger(__name__)
 
 
-class SuperNotificationContext:
+class SupernotificationConfiguration:
     def __init__(self,
                  hass: HomeAssistant = None,
                  hass_url: str = None,
@@ -50,8 +58,8 @@ class SuperNotificationContext:
         self.fallback_by_default = {}
 
     async def initialize(self):
-        self.people = {
-            r[CONF_PERSON]: r for r in self.recipients} if self.recipients else {}
+        self.people = self.setup_people(self.recipients)
+
         if self.configured_scenarios:
             for scenario_name, scenario_definition in self.configured_scenarios .items():
                 scenario = Scenario(
@@ -93,6 +101,51 @@ class SuperNotificationContext:
         if SCENARIO_DEFAULT not in self.delivery_by_scenario:
             self.delivery_by_scenario[SCENARIO_DEFAULT] = list(
                 default_deliveries.keys())
+
+    def setup_people(self, recipients):
+        dev_reg = ent_reg = None
+        try:
+            dev_reg = device_registry.async_get(self.hass)
+            ent_reg = entity_registry.async_get(self.hass)
+        except Exception as e:
+            _LOGGER.warning("SUPERNOTIFY Unable to get device/entity registry, mobile app discovery disabled: %s", e)
+       
+        people = {}
+        for r in recipients:
+            if r.get(CONF_MOBILE_DISCOVERY) and dev_reg and ent_reg:
+                r[CONF_MOBILE_DEVICES].extend(
+                    self.mobile_devices_for_person(r[CONF_PERSON], dev_reg, ent_reg))
+                if r.get(CONF_MOBILE_DEVICES):
+                    _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s",
+                                 r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
+                else:
+                    _LOGGER.warning(
+                        "SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
+            people[r[CONF_PERSON]] = r
+        return people
+
+    def mobile_devices_for_person(self, person_entity_id: str,
+                                  dev_reg: device_registry.DeviceRegistry = None,
+                                  ent_reg: entity_registry.EntityRegistry = None) -> list:
+
+        mobile_devices = []
+        person_state = self.hass.states.get(person_entity_id)
+        if not person_state:
+            _LOGGER.warning("SUPERNOTIFY Unable to resolve %s",
+                            person_entity_id)
+        else:
+            for d_t in person_state.attributes.get('device_trackers', ()):
+                entity = ent_reg.async_get(d_t)
+                if entity and entity.platform == 'mobile_app':
+                    device = dev_reg.async_get(entity.device_id)
+                    if device:
+                        mobile_devices.append({
+                            CONF_MANUFACTURER: device.manufacturer,
+                            CONF_MODEL: device.model,
+                            CONF_NOTIFY_SERVICE: 'mobile_app_%s' % slugify(device.name),
+                            CONF_DEVICE_TRACKER: d_t
+                        })
+        return mobile_devices
 
 
 def delivery_enabled(delivery):

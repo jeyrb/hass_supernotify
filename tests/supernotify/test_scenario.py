@@ -3,7 +3,7 @@ from homeassistant.const import (
     CONF_CONDITION,
 )
 from homeassistant.core import HomeAssistant
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
 
@@ -42,7 +42,7 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
     assert await uut.evaluate()
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
-    context = SuperNotificationContext(hass, scenarios={"select_only": {},
+    context = SupernotificationConfiguration(hass, scenarios={"select_only": {},
                                                     "cold_day": {
         "alias": "Its a cold day",
         "condition": {

@@ -69,41 +69,17 @@ class EmailDeliveryMethod(DeliveryMethod):
             service_data["title"] = title
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
-        try:
-            if not template or not self.template_path:
-                if image_paths:
-                    service_data.setdefault("data", {})
-                    service_data["data"]["images"] = image_paths
-            else:
-                alert = {"title": title,
-                         "message": message,
-                         "subheading": "Home Assistant Notification",
-                         "site": self.context.hass_name,
-                         "priority": priority,
-                         "scenarios": scenarios,
-                         "img": None,
-                         "server": {
-                             "url": self.context.hass_url,
-                             "name":  "Home Assistant"
 
-                         }
-                         }
-                if snapshot_url:
-                    alert["img"] = {
-                        "text": "Snapshot Image",
-                        "url": snapshot_url
-                    }
-                env = Environment(loader=FileSystemLoader(self.template_path))
-                template_obj = env.get_template(template)
-                html = template_obj.render(alert=alert)
-                if not html:
-                    _LOGGER.error("Empty result from template %s" % template)
-                else:
-                    service_data.setdefault("data", {})
-                    service_data["data"]["html"] = html
-        except Exception as e:
-            _LOGGER.error(
-                "SUPERNOTIFY Failed to generate html mail: (data=%s) %s", data, e)
+        if not template or not self.template_path:
+            if image_paths:
+                service_data.setdefault("data", {})
+                service_data["data"]["images"] = image_paths
+        else:
+            html = self.render_template(
+                template, title, message, scenarios, priority, snapshot_url)
+            if html:
+                service_data.setdefault("data", {})
+                service_data["data"]["html"] = html
         try:
             domain, service = config.get(CONF_SERVICE).split(".", 1)
             await self.hass.services.async_call(
@@ -113,3 +89,36 @@ class EmailDeliveryMethod(DeliveryMethod):
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via mail (m=%s,addr=%s): %s", message, addresses, e)
+
+    def render_template(self, template, title, message, scenarios, priority, snapshot_url):
+        alert = {}
+        try:
+            alert = {"title": title,
+                     "message": message,
+                     "subheading": "Home Assistant Notification",
+                     "site": self.context.hass_name,
+                     "priority": priority,
+                     "scenarios": scenarios,
+                     "img": None,
+                     "server": {
+                         "url": self.context.hass_url,
+                         "name":  "Home Assistant"
+
+                     }
+                     }
+            if snapshot_url:
+                alert["img"] = {
+                    "text": "Snapshot Image",
+                    "url": snapshot_url
+                }
+            env = Environment(loader=FileSystemLoader(self.template_path))
+            template_obj = env.get_template(template)
+            html = template_obj.render(alert=alert)
+            if not html:
+                _LOGGER.error("Empty result from template %s" % template)
+            else:
+                return html
+        except Exception as e:
+            _LOGGER.error("SUPERNOTIFY Failed to generate html mail: %s", e)
+            _LOGGER.debug("SUPERNOTIFY Template failure: %s",
+                          alert, exc_info=True)

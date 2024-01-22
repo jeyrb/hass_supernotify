@@ -9,10 +9,9 @@ from homeassistant.const import (
 )
 import inspect
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.helpers import condition, device_registry, entity_registry
+from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.util import slugify
 
 from custom_components.supernotify.delivery_method import DeliveryMethod
 
@@ -21,17 +20,10 @@ from . import (
     ATTR_DELIVERY_SCENARIOS,
     CONF_ACTIONS,
     CONF_DELIVERY,
-    CONF_DEVICE_TRACKER,
     CONF_LINKS,
-    CONF_MANUFACTURER,
     CONF_METHOD,
     CONF_METHODS,
-    CONF_MOBILE_DEVICES,
-    CONF_MOBILE_DISCOVERY,
-    CONF_MODEL,
-    CONF_NOTIFY_SERVICE,
     CONF_OVERRIDES,
-    CONF_PERSON,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
     CONF_TEMPLATE_PATH,
@@ -40,7 +32,7 @@ from . import (
     PLATFORMS,
     RESERVED_DELIVERY_NAMES,
 )
-from .common import SuperNotificationContext
+from .configuration import SupernotificationConfiguration
 from .notification import Notification
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
@@ -129,44 +121,29 @@ class SuperNotificationService(BaseNotificationService):
                  method_defaults={}):
         """Initialize the service."""
         self.hass = hass
-        hass_url = hass.config.external_url or self.hass.config.internal_url
-        self.context = SuperNotificationContext(
+        self.context = SupernotificationConfiguration(
             hass,
-            hass_url, hass.config.location_name,
+            hass.config.external_url or self.hass.config.internal_url, 
+            hass.config.location_name,
             deliveries, links,
             recipients, mobile_actions, template_path,
             overrides, scenarios, method_defaults)
         self.methods = {}
-        self.deliveries = {}
-        self.people = {}
+        self.valid_deliveries = {}
 
     async def initialize(self):
         await self.context.initialize()
 
-        for r in self.context.recipients:
-            if r.get(CONF_MOBILE_DISCOVERY):
-                r[CONF_MOBILE_DEVICES].extend(
-                    self.mobile_devices_for_person(r[CONF_PERSON]))
-                if r.get(CONF_MOBILE_DEVICES):
-                    _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s",
-                                 r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
-                else:
-                    _LOGGER.warning(
-                        "SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
-            self.people[r[CONF_PERSON]] = r
-
         for method in METHODS:
             await self.register_delivery_method(method)
 
-        unknown_deliveries = {
-            d: dc for d, dc in self.context.deliveries.items() if dc.get(CONF_METHOD) not in METHODS or d in RESERVED_DELIVERY_NAMES}
-
-        if unknown_deliveries:
-            _LOGGER.info(
-                "SUPERNOTIFY Ignoring deliveries without known methods: %s", unknown_deliveries)
+        for d, dc in self.context.deliveries.items():
+            if dc.get(CONF_METHOD) not in METHODS:
+                _LOGGER.info(
+                    "SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s",
-                     ";".join(self.deliveries.keys()))
+                     "; ".join(self.valid_deliveries.keys()))
 
     async def register_delivery_method(self, delivery_method: DeliveryMethod):
         ''' available directly for test fixtures supplying class or instance '''
@@ -175,8 +152,8 @@ class SuperNotificationService(BaseNotificationService):
                 self.hass, self.context, self.context.deliveries)
         else:
             self.methods[delivery_method.method] = delivery_method
-        valid_deliveries = await self.methods[delivery_method.method].initialize()
-        self.deliveries.update(valid_deliveries)
+        await self.methods[delivery_method.method].initialize()
+        self.valid_deliveries.update(self.methods[delivery_method.method].valid_deliveries)
 
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
@@ -192,7 +169,7 @@ class SuperNotificationService(BaseNotificationService):
 
         stats_delivieries = stats_errors = 0
 
-        for delivery, delivery_config in self.deliveries.items():
+        for delivery, delivery_config in self.valid_deliveries.items():
             if delivery in notification.selected_delivery_names:
 
                 delivered, errored = await self.call_method(notification,
@@ -234,30 +211,6 @@ class SuperNotificationService(BaseNotificationService):
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
-
-    def mobile_devices_for_person(self, person_entity_id):
-
-        dev_reg = device_registry.async_get(self.hass)
-        ent_reg = entity_registry.async_get(self.hass)
-
-        mobile_devices = []
-        person_state = self.hass.states.get(person_entity_id)
-        if not person_state:
-            _LOGGER.warning("SUPERNOTIFY Unable to resolve %s",
-                            person_entity_id)
-        else:
-            for d_t in person_state.attributes.get('device_trackers', ()):
-                entity = ent_reg.async_get(d_t)
-                if entity and entity.platform == 'mobile_app':
-                    device = dev_reg.async_get(entity.device_id)
-                    if device:
-                        mobile_devices.append({
-                            CONF_MANUFACTURER: device.manufacturer,
-                            CONF_MODEL: device.model,
-                            CONF_NOTIFY_SERVICE: 'mobile_app_%s' % slugify(device.name),
-                            CONF_DEVICE_TRACKER: d_t
-                        })
-        return mobile_devices
 
     def enquire_deliveries_by_scenario(self):
         return self.context.delivery_by_scenario

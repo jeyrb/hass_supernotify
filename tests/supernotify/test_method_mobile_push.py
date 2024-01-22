@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 from custom_components.supernotify import CONF_PRIORITY, PRIORITY_CRITICAL
 
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.mobile_push import (
     MobilePushDeliveryMethod,
 )
@@ -11,7 +11,7 @@ from custom_components.supernotify.notification import Notification
 async def test_on_notify_mobile_push_with_explicit_target() -> None:
     """Test on_notify_mobile_push."""
     hass = Mock()
-    context = SuperNotificationContext()
+    context = SupernotificationConfiguration()
 
     uut = MobilePushDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context, message="hello there",
@@ -29,7 +29,7 @@ async def test_on_notify_mobile_push_with_explicit_target() -> None:
 async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
     """Test on_notify_mobile_push."""
     hass = Mock()
-    context = SuperNotificationContext(recipients=[{"person": "person.test_user",
+    context = SupernotificationConfiguration(recipients=[{"person": "person.test_user",
                                                     "mobile_devices": [
                                                         {"notify_service": "mobile_app_test_user_iphone"}
                                                     ]
@@ -48,7 +48,7 @@ async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
 async def test_on_notify_mobile_push_with_critical_priority() -> None:
     """Test on_notify_mobile_push."""
     hass = Mock()
-    context = SuperNotificationContext(recipients=[{"person": "person.test_user",
+    context = SupernotificationConfiguration(recipients=[{"person": "person.test_user",
                                                     "mobile_devices": [
                                                         {"notify_service": "mobile_app_test_user_iphone"}
                                                     ]

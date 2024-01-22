@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
 from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE, CONF_NAME
 from custom_components.supernotify.notification import Notification
@@ -10,7 +10,7 @@ from custom_components.supernotify.notification import Notification
 
 async def test_deliver() -> None:
     hass = Mock()
-    context = SuperNotificationContext()
+    context = SupernotificationConfiguration()
     uut = GenericDeliveryMethod(
         hass, context, {"teleport": {CONF_METHOD: METHOD_GENERIC,
                                      CONF_NAME: "teleport",
@@ -40,7 +40,7 @@ async def test_deliver() -> None:
 
 async def test_not_notify_deliver() -> None:
     hass = Mock()
-    context = SuperNotificationContext()
+    context = SupernotificationConfiguration()
     uut = GenericDeliveryMethod(
         hass, context, {"broker": {CONF_METHOD: METHOD_GENERIC,
                                    CONF_NAME: "broker",

@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from custom_components.supernotify import METHOD_ALEXA
-from custom_components.supernotify.common import SuperNotificationContext
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_SERVICE
 from custom_components.supernotify.notification import Notification
@@ -14,7 +14,7 @@ DELIVERY = {
 async def test_notify_alexa() -> None:
     """Test on_notify_alexa."""
     hass = Mock()
-    context = SuperNotificationContext()
+    context = SupernotificationConfiguration()
 
     uut = AlexaMediaPlayerDeliveryMethod(hass, context,
                                          {"default": {CONF_METHOD: METHOD_ALEXA,
@@ -34,7 +34,7 @@ async def test_notify_alexa() -> None:
 async def test_notify_alexa_with_method_default() -> None:
     """Test on_notify_alexa."""
     hass = Mock()
-    context = SuperNotificationContext(method_defaults={METHOD_ALEXA: {
+    context = SupernotificationConfiguration(method_defaults={METHOD_ALEXA: {
         CONF_SERVICE: "notify.alexa",
         CONF_ENTITIES: ["media_player.hall_1",
                         "media_player.toilet"]
