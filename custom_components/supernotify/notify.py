@@ -53,7 +53,7 @@ METHODS = {
     MediaPlayerImageDeliveryMethod,
     ChimeDeliveryMethod,
     PersistentDeliveryMethod,
-    GenericDeliveryMethod,
+    GenericDeliveryMethod
 }
 
 
@@ -80,7 +80,7 @@ async def async_get_service(
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {}),
-            CONF_METHODS: config.get(CONF_METHODS, {}),
+            CONF_METHODS: config.get(CONF_METHODS, {})
         },
     )
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
@@ -96,7 +96,7 @@ async def async_get_service(
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
         overrides=config[CONF_OVERRIDES],
-        method_defaults=config[CONF_METHODS],
+        method_defaults=config[CONF_METHODS]
     )
     await service.initialize()
 
@@ -132,7 +132,7 @@ class SuperNotificationService(BaseNotificationService):
         self.hass = hass
         self.context = SupernotificationConfiguration(
             hass,
-            hass.config.external_url or self.hass.config.internal_url, 
+            hass.config.external_url or self.hass.config.internal_url,
             hass.config.location_name,
             deliveries, links,
             recipients, mobile_actions, template_path,
@@ -163,15 +163,18 @@ class SuperNotificationService(BaseNotificationService):
         else:
             self.methods[delivery_method.method] = delivery_method
         await self.methods[delivery_method.method].initialize()
-        self.valid_deliveries.update(self.methods[delivery_method.method].valid_deliveries)
+        self.valid_deliveries.update(
+            self.methods[delivery_method.method].valid_deliveries)
 
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
 
-        notification = Notification(self.context, message, title, target, kwargs)
+        notification = Notification(
+            self.context, message, title, target, kwargs)
         await notification.intialize()
-        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
+        self.setup_condition_inputs(
+            ATTR_DELIVERY_PRIORITY, notification.priority)
         self.setup_condition_inputs(
             ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios
         )
