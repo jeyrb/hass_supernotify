@@ -13,18 +13,18 @@ async def test_deliver() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_PHONE_NUMBER: "+447979123456"}])
-
+    await context.initialize()
     uut = SMSDeliveryMethod(
         hass, context, {"default": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.smsify", CONF_DEFAULT: True}})
     await uut.initialize()
-    await uut.deliver(Notification(context,message="hello there", 
+    await uut.deliver(Notification(context, message="hello there",
                                    title="testing"))
     hass.services.async_call.assert_called_with("notify", "smsify",
                                                 service_data={
                                                     "target": ["+447979123456"],
                                                     "message": "testing hello there"})
     hass.reset_mock()
-    await uut.deliver(Notification(context,message="explicit target", 
+    await uut.deliver(Notification(context, message="explicit target",
                                    title="testing",
                                    target=["+19876123456"]))
     hass.services.async_call.assert_called_with("notify", "smsify",

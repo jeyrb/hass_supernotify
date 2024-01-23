@@ -106,7 +106,7 @@ async def test_recipient_delivery_data_override() -> None:
     await uut.initialize()
     dummy = DummyDeliveryMethod(hass, uut.context)
     await dummy.initialize()
-    await uut.register_delivery_method(dummy)
+    await uut.context.register_delivery_methods([dummy])
     await uut.async_send_message(title="test_title", message="testing 123",
                                  delivery_selection=DELIVERY_SELECTION_EXPLICIT,
                                  delivery={

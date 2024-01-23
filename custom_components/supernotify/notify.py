@@ -6,13 +6,11 @@ from homeassistant.components.notify import (
 from homeassistant.const import (
     CONF_CONDITION,
 )
-import inspect
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from custom_components.supernotify.delivery_method import DeliveryMethod
 
 from . import (
     ATTR_DELIVERY_PRIORITY,
@@ -54,7 +52,6 @@ METHODS = {
     PersistentDeliveryMethod,
     GenericDeliveryMethod
 }
-
 
 async def async_get_service(
     hass: HomeAssistant,
@@ -145,41 +142,17 @@ class SuperNotificationService(BaseNotificationService):
             overrides,
             scenarios,
             method_defaults)
-        self.methods = {}
-        self.valid_deliveries = {}
 
     async def initialize(self):
         await self.context.initialize()
-
-        for method in METHODS:
-            await self.register_delivery_method(method)
-
-        for d, dc in self.context.deliveries.items():
-            if dc.get(CONF_METHOD) not in METHODS:
-                _LOGGER.info(
-                    "SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
-
-        _LOGGER.info("SUPERNOTIFY configured deliveries %s",
-                     "; ".join(self.valid_deliveries.keys()))
-
-    async def register_delivery_method(self, delivery_method: DeliveryMethod):
-        """available directly for test fixtures supplying class or instance"""
-        if inspect.isclass(delivery_method):
-            self.methods[delivery_method.method] = delivery_method(
-                self.hass, self.context, self.context.deliveries
-            )
-        else:
-            self.methods[delivery_method.method] = delivery_method
-        await self.methods[delivery_method.method].initialize()
-        self.valid_deliveries.update(
-            self.methods[delivery_method.method].valid_deliveries)
+        await self.context.register_delivery_methods(METHODS)
 
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
         _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
 
         notification = Notification(
-            self.context, message, title, target, kwargs, self.valid_deliveries)
+            self.context, message, title, target, kwargs)
         await notification.intialize()
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)
@@ -190,9 +163,7 @@ class SuperNotificationService(BaseNotificationService):
         stats_delivieries = stats_errors = 0
 
         for delivery in notification.selected_delivery_names:
-            delivered, errored = await self.call_method(
-                notification, delivery
-            )
+            delivered, errored = await self.call_method(notification, delivery)
             stats_delivieries += delivered
             stats_errors += errored
 
@@ -217,17 +188,15 @@ class SuperNotificationService(BaseNotificationService):
         )
 
     async def call_method(self, notification, delivery):
-        method = self.valid_deliveries[delivery][CONF_METHOD]
-
         try:
-            await self.methods[method].deliver(notification, delivery=delivery)
+            await self.context.delivery_method(delivery).deliver(notification, delivery=delivery)
             return (1, 0)
         except Exception as e:
             _LOGGER.warning(
-                "SUPERNOTIFY Failed to %s notify using %s: %s", method, delivery, e
+                "SUPERNOTIFY Failed to notify using %s: %s", delivery, e
             )
             _LOGGER.debug(
-                "SUPERNOTIFY %s %s delivery failure", method, delivery, exc_info=True
+                "SUPERNOTIFY %s delivery failure", delivery, exc_info=True
             )
             return (0, 1)
 

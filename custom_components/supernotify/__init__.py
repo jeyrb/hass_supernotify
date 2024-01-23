@@ -9,6 +9,8 @@ from homeassistant.components.notify import (
 from homeassistant.const import (
     CONF_ALIAS,
     CONF_CONDITION,
+    ATTR_DOMAIN,
+    ATTR_SERVICE,
     CONF_DEFAULT,
     CONF_DESCRIPTION,
     CONF_EMAIL,
@@ -145,7 +147,11 @@ SCENARIO_NULL = "NULL"
 
 RESERVED_DELIVERY_NAMES = ["ALL"]
 RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
+RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE]
 
+DATA_SCHEMA = vol.Schema({
+    vol.NotIn(RESERVED_DATA_KEYS): vol.Any(str, int, bool, float, dict, list)
+})
 MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_MANUFACTURER): cv.string,
     vol.Optional(CONF_MODEL): cv.string,
@@ -156,7 +162,7 @@ DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-    vol.Optional(CONF_DATA): dict
+    vol.Optional(CONF_DATA): DATA_SCHEMA
 })
 LINK_SCHEMA = vol.Schema({
     vol.Optional(CONF_ID): cv.string,
@@ -173,7 +179,7 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema({
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
     vol.Optional(CONF_ALIAS): cv.string,
-    vol.Optional(CONF_EMAIL): cv.string,
+    vol.Optional(CONF_EMAIL): vol.Email(),
     vol.Optional(CONF_TARGET): cv.string,
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
     vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
@@ -200,7 +206,7 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_MESSAGE): cv.string,
     vol.Optional(CONF_TITLE): cv.string,
-    vol.Optional(CONF_DATA): dict,
+    vol.Optional(CONF_DATA): DATA_SCHEMA,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
@@ -208,6 +214,7 @@ DELIVERY_SCHEMA = vol.Schema({
         vol.In(OCCUPANCY_VALUES),
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA
 })
+
 SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
@@ -250,5 +257,5 @@ SERVICE_DATA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
-    vol.Optional(ATTR_DATA): vol.Any(None, dict)
+    vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA)
 })

@@ -25,7 +25,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
 
     def validate_service(self, service):
-        return service is None
+        return service is None or service == 'media_player.play_media'
 
     async def _delivery_impl(self,
                              notification,
@@ -34,7 +34,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
                              data=None,
                              **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_media: %s", data)
-        config = notification.delivery_config.get(
+        config = self.context.deliveries.get(
             delivery) or self.default_delivery or {}
         data = data or {}
         media_players = targets or []

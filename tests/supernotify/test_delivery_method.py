@@ -18,6 +18,7 @@ from custom_components.supernotify import (
     METHOD_SMS,
     SELECTION_BY_SCENARIO,
 )
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 
 DELIVERY = {
@@ -40,10 +41,11 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert uut.default_delivery is None
 
 
-async def test_method_default_used_for_default_delivery(hass: HomeAssistant) -> None:
+async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
     context = Mock()
     context.method_defaults = {
         METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
+
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
     await uut.initialize()
     assert uut.valid_deliveries == {
@@ -52,14 +54,15 @@ async def test_method_default_used_for_default_delivery(hass: HomeAssistant) -> 
 
 
 async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> None:
-    context = Mock()
-    context.method_defaults = {
-        METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC,
-                           CONF_TARGET: ["chan1,chan2"]}}
+                           CONF_TARGET: ["chan1", "chan2"]}}
+    context = SupernotificationConfiguration(deliveries=delivery,
+                                             method_defaults={
+                                                 METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}})
+    await context.initialize()
     uut = GenericDeliveryMethod(hass, context, delivery)
     await uut.initialize()
     assert uut.valid_deliveries == {"chatty": {CONF_METHOD: METHOD_GENERIC,
-                                           CONF_NAME: "chatty",
-                                           CONF_SERVICE: "notify.slackity",
-                                           CONF_TARGET: ["chan1,chan2"]}}
+                                               CONF_NAME: "chatty",
+                                               CONF_SERVICE: "notify.slackity",
+                                               CONF_TARGET: ["chan1", "chan2"]}}

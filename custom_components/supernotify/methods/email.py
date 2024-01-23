@@ -25,6 +25,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             self.template_path = os.path.join(
                 self.context.template_path, "email")
             if not os.path.exists(self.template_path):
+                _LOGGER.warning("SUPERNOTIFY Email templates not available at %s", self.template_path)
                 self.template_path = None
         if self.template_path is None:
             _LOGGER.warning("SUPERNOTIFY Email templates not available")
@@ -46,7 +47,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                              data=None,
                              **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", delivery, targets)
-        config = notification.delivery_config.get(
+        config = self.context.deliveries.get(
             delivery) or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
         data = data or {}

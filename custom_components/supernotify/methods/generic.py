@@ -22,7 +22,7 @@ class GenericDeliveryMethod(DeliveryMethod):
                              data=None,
                              targets=None,
                              **kwargs) -> bool:
-        config = notification.delivery_config.get(
+        config = self.context.deliveries.get(
             delivery) or self.default_delivery or {}
         data = data or {}
         targets = targets or []

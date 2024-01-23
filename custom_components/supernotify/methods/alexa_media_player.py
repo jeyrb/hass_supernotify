@@ -32,7 +32,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         message = notification.message(delivery)
         title = notification.title(delivery)
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", message)
-        config = notification.delivery_config.get(delivery) or self.default_delivery or {}
+        config = self.context.deliveries.get(delivery) or self.default_delivery or {}
         media_players = targets or []
 
         if not media_players:

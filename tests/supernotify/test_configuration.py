@@ -10,30 +10,33 @@ from homeassistant.core import HomeAssistant
 
 async def test_filter_recipients() -> None:
     hass = Mock()
-    context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
-                                                         {CONF_PERSON: "person.bidey_in"}])
-    uut = DummyDeliveryMethod(hass, context, {})
+    uut = SupernotificationConfiguration(hass,
+                                        recipients=[{CONF_PERSON: "person.new_home_owner"},
+                                                     {CONF_PERSON: "person.bidey_in"}])
+    await uut.initialize()
+
     hass_states = {"person.new_home_owner": Mock(state="not_home"),
                    "person.bidey_in": Mock(state="home")}
     hass.states.get = hass_states.get
 
-    assert len(uut.filter_recipients_by_occupancy("all_in")) == 0
-    assert len(uut.filter_recipients_by_occupancy("all_out")) == 0
-    assert len(uut.filter_recipients_by_occupancy("any_in")) == 2
-    assert len(uut.filter_recipients_by_occupancy("any_out")) == 2
-    assert len(uut.filter_recipients_by_occupancy("only_in")) == 1
-    assert len(uut.filter_recipients_by_occupancy("only_out")) == 1
+    assert len(uut.filter_people_by_occupancy("all_in")) == 0
+    assert len(uut.filter_people_by_occupancy("all_out")) == 0
+    assert len(uut.filter_people_by_occupancy("any_in")) == 2
+    assert len(uut.filter_people_by_occupancy("any_out")) == 2
+    assert len(uut.filter_people_by_occupancy("only_in")) == 1
+    assert len(uut.filter_people_by_occupancy("only_out")) == 1
 
-    assert {r["person"] for r in uut.filter_recipients_by_occupancy(
+    assert {r["person"] for r in uut.filter_people_by_occupancy(
         "only_out")} == {"person.new_home_owner"}
     assert {r["person"]
-            for r in uut.filter_recipients_by_occupancy("only_in")} == {"person.bidey_in"}
+            for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
 
 
 async def test_default_recipients() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
+    await context.initialize()
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context))
     assert uut.test_calls == [
@@ -44,6 +47,7 @@ async def test_default_recipients_with_override() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
+    await context.initialize()
     uut = DummyDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context, None,
                                    service_data={CONF_RECIPIENTS: ["person.new_home_owner"]}))

@@ -31,7 +31,7 @@ class SMSDeliveryMethod(DeliveryMethod):
                              data=None,
                              **kwargs) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_sms: %s", notification.message(delivery))
-        config = notification.delivery_config.get(
+        config = self.context.deliveries.get(
             delivery) or self.default_delivery or {}
         data = data or {}
         mobile_numbers = targets or []

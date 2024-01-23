@@ -12,7 +12,7 @@ async def test_deliver() -> None:
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
-
+    await context.initialize()
     uut = EmailDeliveryMethod(
         hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
     await uut.initialize()
