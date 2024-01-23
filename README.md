@@ -16,6 +16,16 @@ for sending only to people in or out of the property
 * Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
 * Reloadable configuration
 
+## Installation
+
+* Add git repo to HACS as custom repo
+* Select *SuperNotify* in the list of available integrations in HACS and install
+* Add a `notify` config for the `supernotifier` integration, see `examples` folder
+* In order to use email attachments, e.g. from camera snapshot or a `snapshot_url`,
+you must set the `allowlist_external_dirs` in main HomeAssistant config to the same as
+`media_path` in the supernotify configuration
+
+
 ## Usage
 
 ### Minimal

@@ -30,7 +30,7 @@ DOMAIN = "supernotify"
 
 PLATFORMS = [Platform.NOTIFY]
 TEMPLATE_DIR = "/config/templates/supernotify"
-MEDIA_DIR = "/config/media/supernotify"
+MEDIA_DIR = "supernotify/media"
 
 CONF_ACTIONS = "actions"
 CONF_ACTION = "action"

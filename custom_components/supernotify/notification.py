@@ -94,9 +94,8 @@ class Notification:
 
         self.selected_delivery_names = []
         self.enabled_scenarios = []
-        self.media_config = service_data.get(ATTR_MEDIA) or {}
 
-    async def intialize(self):
+    async def initialize(self):
 
         if self.delivery_selection is None:
             if self.delivery_overrides_type in ('list', 'str'):
@@ -147,13 +146,8 @@ class Notification:
         return self.context.deliveries.get(CONF_TITLE, self._title)
 
     def delivery_data(self, delivery_name):
-        data = self.delivery_overrides.get(delivery_name, {}).get(CONF_DATA) if delivery_name else {}
-        for reserved in (ATTR_DOMAIN, ATTR_SERVICE):
-            if data and reserved in data:
-                _LOGGER.warning(
-                    "SUPERNOTIFY Removing reserved keyword from data %s:%s", reserved, data.get(reserved))
-                del data[reserved]
-        return data
+        delivery_override = self.delivery_overrides.get(delivery_name)
+        return delivery_override.get(CONF_DATA) if delivery_override else {}
   
     def delivery_scenarios(self, delivery_name):
         return {k: self.context.scenarios.get(k, {}) for k in self.enabled_scenarios if delivery_name in self.context.delivery_by_scenario.get(k, [])}
@@ -280,7 +274,7 @@ class Notification:
 
         image_path = None
 
-        if snapshot_url:
+        if snapshot_url and self.context.media_path:
             try:
                 media_dir = os.path.join(self.context.media_path, "snapshot")
                 os.makedirs(media_dir, exist_ok=True)

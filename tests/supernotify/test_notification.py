@@ -36,7 +36,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
     uut = Notification(context, "testing 123")
-    await uut.intialize()
+    await uut.initialize()
     assert uut.enabled_scenarios == []
     assert uut.requested_scenarios == []
     assert uut.target == []
@@ -57,7 +57,7 @@ async def test_explicit_delivery(hass: HomeAssistant) -> None:
         CONF_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT,
         CONF_DELIVERY: "mobile"}
     )
-    await uut.intialize()
+    await uut.initialize()
     assert uut.delivery_selection == DELIVERY_SELECTION_EXPLICIT
     assert uut.selected_delivery_names == ["mobile"]
 
@@ -71,7 +71,7 @@ async def test_scenario_delivery(hass: HomeAssistant) -> None:
     uut = Notification(context, "testing 123", service_data={
         CONF_SCENARIOS: "Alarm"
     })
-    await uut.intialize()
+    await uut.initialize()
     assert uut.selected_delivery_names == unordered(
         "plain_email", "mobile", "chime")
 
@@ -85,7 +85,7 @@ async def test_explicit_list_of_deliveries(hass: HomeAssistant) -> None:
     uut = Notification(context, "testing 123", service_data={
         CONF_DELIVERY: "mobile"
     })
-    await uut.intialize()
+    await uut.initialize()
     assert uut.selected_delivery_names == ["mobile"]
 
 async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssistant) -> None:
@@ -126,7 +126,7 @@ async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(hass: HomeAs
     uut = Notification(context, "testing 123", service_data={
         CONF_DELIVERY: {"mobile": {}}
     })
-    await uut.intialize()
+    await uut.initialize()
     assert uut.selected_delivery_names == unordered(
         "plain_email", "mobile")
 
@@ -143,7 +143,7 @@ async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPSe
         CONF_MEDIA: {
             ATTR_MEDIA_SNAPSHOT_URL: httpserver_ipv4.url_for("/snapshot_image")}
     })
-    await uut.intialize()
+    await uut.initialize()
     original_image_path = os.path.join(
         "tests", "supernotify", "fixtures", "media", "example_image.png")
     original_image = io.FileIO(original_image_path, "rb").readall()

@@ -13,6 +13,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 
 from . import (
+    ATTR_DATA,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
     CONF_ACTIONS,
@@ -52,6 +53,7 @@ METHODS = {
     PersistentDeliveryMethod,
     GenericDeliveryMethod
 }
+
 
 async def async_get_service(
     hass: HomeAssistant,
@@ -149,11 +151,13 @@ class SuperNotificationService(BaseNotificationService):
 
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
-        _LOGGER.debug("Message: %s, kwargs: %s", message, kwargs)
+        data = kwargs.get(ATTR_DATA, {})
+        _LOGGER.debug("Message: %s, target: %s, data: %s",
+                      message, target, data)
 
         notification = Notification(
-            self.context, message, title, target, kwargs)
-        await notification.intialize()
+            self.context, message, title, target, data)
+        await notification.initialize()
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)
         self.setup_condition_inputs(

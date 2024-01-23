@@ -95,11 +95,17 @@ class SupernotificationConfiguration:
             _LOGGER.warning("SUPERNOTIFY template path not found at %s",
                             self.template_path)
             self.template_path = None
-            
+
         if self.media_path and not os.path.exists(self.media_path):
-            _LOGGER.warning("SUPERNOTIFY media path not found at %s",
-                            self.media_path)
-            self.media_path = None
+            _LOGGER.info("SUPERNOTIFY media path not found at %s", self.media_path)
+            try:
+                os.makedirs(self.media_path)
+            except Exception as e:
+                _LOGGER.warning(
+                    "SUPERNOTIFY media path %s cannot be created: %s", self.media_path, e)
+                self.media_path = None
+        if self.media_path is not None:
+            _LOGGER.info("SUPERNOTIFY abs media path: %s", os.path.abspath(self.media_path))
 
         default_deliveries = {}
         if self._deliveries:
