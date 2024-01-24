@@ -1,7 +1,7 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
+from homeassistant.components.notify.const import ATTR_DATA
 from custom_components.supernotify import (
     ATTR_ACTION_CATEGORY,
     ATTR_ACTION_GROUPS,
@@ -113,7 +113,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
         service_data = notification.core_service_data(delivery)
-        service_data[ATTR_DATA]= data
+        service_data[ATTR_DATA] = data
 
         calls = 0
         for mobile_target in targets:
@@ -126,7 +126,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             except Exception as e:
                 _LOGGER.error(
                     "SUPERNOTIFY Mobile push failure (d=%s): %s", service_data, e)
-        _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s",service_data)
+        _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s", service_data)
         return calls > 0
 
 

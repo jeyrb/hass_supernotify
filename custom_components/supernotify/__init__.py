@@ -74,7 +74,10 @@ CONF_CAMERA = "camera"
 CONF_MQTT_TOPIC = "mqtt_topic"
 CONF_CLIP_URL = "clip_url"
 CONF_SNAPSHOT_URL = "snapshot_url"
-
+CONF_PTZ_DELAY = "ptz_delay"
+CONF_PTZ_PRESET_DEFAULT = "ptz_default_preset"
+CONF_ALT_CAMERA = "alt_camera"
+CONF_CAMERAS = "cameras"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -190,13 +193,22 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}
 })
+CAMERA_SCHEMA = vol.Schema({
+    vol.Required(CONF_CAMERA): cv.entity_id,
+    vol.Optional(CONF_ALT_CAMERA): vol.All(cv.ensure_list, [cv.entity_id]),
+    vol.Optional(CONF_ALIAS): cv.string,
+    vol.Optional(CONF_DEVICE_TRACKER): cv.entity_id,
+    vol.Optional(CONF_PTZ_PRESET_DEFAULT): vol.Any(int, cv.string),
+    vol.Optional(CONF_PTZ_DELAY, default=0): int
+})
 MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_ENTITY_ID): cv.entity_id,
     vol.Optional(ATTR_MEDIA_CAMERA_DELAY, default=0): int,
     vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): cv.string,
     vol.Optional(CONF_MQTT_TOPIC): cv.string,
     vol.Optional(ATTR_MEDIA_CLIP_URL): cv.url,
-    vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): cv.url
+    # URL fragments allowed
+    vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string)
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -250,7 +262,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             vol.All(cv.ensure_list, [LINK_SCHEMA]),
         vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
         vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA},
-        vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA}
+        vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA},
+        vol.Optional(CONF_CAMERAS, default=[]): vol.All(cv.ensure_list, [CAMERA_SCHEMA])
     }
 )
 

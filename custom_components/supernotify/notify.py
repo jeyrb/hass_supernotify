@@ -17,10 +17,10 @@ from . import (
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
     CONF_ACTIONS,
+    CONF_CAMERAS,
     CONF_DELIVERY,
     CONF_LINKS,
     CONF_MEDIA_PATH,
-    CONF_METHOD,
     CONF_METHODS,
     CONF_OVERRIDES,
     CONF_RECIPIENTS,
@@ -79,7 +79,8 @@ async def async_get_service(
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_OVERRIDES: config.get(CONF_OVERRIDES, {}),
-            CONF_METHODS: config.get(CONF_METHODS, {})
+            CONF_METHODS: config.get(CONF_METHODS, {}),
+            CONF_CAMERAS: config.get(CONF_CAMERAS, {})
         },
     )
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
@@ -96,7 +97,8 @@ async def async_get_service(
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
         overrides=config[CONF_OVERRIDES],
-        method_defaults=config[CONF_METHODS]
+        method_defaults=config[CONF_METHODS],
+        cameras=config[CONF_CAMERAS]
     )
     await service.initialize()
 
@@ -128,6 +130,7 @@ class SuperNotificationService(BaseNotificationService):
         links=(),
         overrides=None,
         method_defaults={},
+        cameras=None
     ):
         """Initialize the service."""
         self.hass = hass
@@ -143,7 +146,8 @@ class SuperNotificationService(BaseNotificationService):
             media_path,
             overrides,
             scenarios,
-            method_defaults)
+            method_defaults,
+            cameras)
 
     async def initialize(self):
         await self.context.initialize()

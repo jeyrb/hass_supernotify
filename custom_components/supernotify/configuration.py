@@ -17,9 +17,9 @@ from homeassistant.const import (
 from custom_components.supernotify.common import safe_get, ensure_list
 
 from . import (
+    CONF_CAMERA,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
-    CONF_METHOD,
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
@@ -58,7 +58,8 @@ class SupernotificationConfiguration:
                  media_path=None,
                  overrides=None,
                  scenarios=None,
-                 method_defaults=None):
+                 method_defaults=None,
+                 cameras=None):
         self.hass = hass
         self.hass_url = hass_url
         self.hass_name = hass_name
@@ -71,6 +72,7 @@ class SupernotificationConfiguration:
         self.mobile_actions = mobile_actions or {}
         self.template_path = template_path
         self.media_path = media_path
+        self.cameras = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
         self.methods = {}
         self.method_defaults = method_defaults or {}
         self.scenarios = {}
@@ -97,7 +99,8 @@ class SupernotificationConfiguration:
             self.template_path = None
 
         if self.media_path and not os.path.exists(self.media_path):
-            _LOGGER.info("SUPERNOTIFY media path not found at %s", self.media_path)
+            _LOGGER.info("SUPERNOTIFY media path not found at %s",
+                         self.media_path)
             try:
                 os.makedirs(self.media_path)
             except Exception as e:
@@ -105,7 +108,8 @@ class SupernotificationConfiguration:
                     "SUPERNOTIFY media path %s cannot be created: %s", self.media_path, e)
                 self.media_path = None
         if self.media_path is not None:
-            _LOGGER.info("SUPERNOTIFY abs media path: %s", os.path.abspath(self.media_path))
+            _LOGGER.info("SUPERNOTIFY abs media path: %s",
+                         os.path.abspath(self.media_path))
 
         default_deliveries = {}
         if self._deliveries:

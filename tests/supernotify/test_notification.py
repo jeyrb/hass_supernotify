@@ -6,28 +6,20 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from custom_components.supernotify.notification import Notification
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from pytest_unordered import unordered
-import os.path
-import tempfile
-import io
+
 
 from homeassistant.const import (
-    CONF_SERVICE, CONF_NAME, CONF_EMAIL
+    CONF_SERVICE, CONF_EMAIL
 )
 from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify import (
     CONF_METHOD,
-    CONF_SELECTION,
     CONF_TARGET,
-    METHOD_ALEXA,
-    METHOD_CHIME,
     METHOD_EMAIL,
     METHOD_GENERIC,
-    METHOD_PERSISTENT,
-    METHOD_SMS,
-    SELECTION_BY_SCENARIO,
 )
 
 async def test_simple_create(hass: HomeAssistant) -> None:
@@ -138,18 +130,20 @@ async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPSe
     context.scenarios = {}
     context.deliveries = {}
     context.delivery_by_scenario = {}
-    context.media_path = tempfile.mkdtemp()
+    context.hass_base_url = "http://hass-dev"
+    context.media_path = "/nosuchpath"
     uut = Notification(context, "testing 123", service_data={
         CONF_MEDIA: {
-            ATTR_MEDIA_SNAPSHOT_URL: httpserver_ipv4.url_for("/snapshot_image")}
+            ATTR_MEDIA_SNAPSHOT_URL: "/my_local_image"}
     })
     await uut.initialize()
-    original_image_path = os.path.join(
-        "tests", "supernotify", "fixtures", "media", "example_image.png")
-    original_image = io.FileIO(original_image_path, "rb").readall()
-    httpserver_ipv4.expect_request(
-        "/snapshot_image").respond_with_data(original_image, content_type="image/png")
-    retrieved_image_path = await uut.grab_image()
-    assert retrieved_image_path is not None
-    retrieved_image = io.FileIO(retrieved_image_path, "rb").readall()
-    assert retrieved_image == original_image
+    original_image_path = "/tmp/image_a.jpg"
+    with patch("custom_components.supernotify.notification.snapshot_from_url", return_value=original_image_path) as mock_snapshot:
+        retrieved_image_path = await uut.grab_image()
+        assert retrieved_image_path == original_image_path
+        assert mock_snapshot.called
+        mock_snapshot.reset_mock()
+        retrieved_image_path = await uut.grab_image()
+        assert retrieved_image_path == original_image_path
+        assert mock_snapshot.assert_not_called # notification caches image for multiple deliveries
+

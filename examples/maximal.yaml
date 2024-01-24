@@ -157,6 +157,18 @@ notify:
               after: "06:30:00"
               before: "21:30:00"
 
+    cameras:
+      - camera: camera.front_door
+        alias: Front Door
+        device_tracker: device_tracker.cam_axis_door
+        alt_camera: camera.front_garden
+        ptz_default_preset: 1
+        ptz_delay: 5
+      - camera: camera.front_garden
+        alias: Front Garden
+        device_tracker: device_tracker.cam_dah_garden
+        alt_camera: camera.front_door
+    
     actions:
       examples:
         - identifier: action-1
