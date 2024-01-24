@@ -266,7 +266,7 @@ class Notification:
                                                  self.id, self.context.media_path,
                                                  self.context.hass_base_url)
         elif camera_entity_id:
-            active_camera_entity_id = select_avail_camera(self.context.hass,
+            active_camera_entity_id = await select_avail_camera(self.context.hass,
                                                           self.context.cameras,
                                                           camera_entity_id)
             camera_config = self.context.cameras.get(
