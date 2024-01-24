@@ -75,7 +75,7 @@ async def snap_camera(hass, camera_entity_id, camera_delay=None, media_path=None
 
     image_path = None
 
-    if camera_delay > 0:
+    if camera_delay is not None and camera_delay > 0:
         await asyncio.sleep(camera_delay)
 
     try:
