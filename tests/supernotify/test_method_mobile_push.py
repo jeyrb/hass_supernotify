@@ -23,7 +23,7 @@ async def test_on_notify_mobile_push_with_explicit_target() -> None:
                                                               "message": "hello there",
                                                               "data": {"actions": [],
                                                                        "push": {"interruption-level": "active"},
-                                                                       "group": "general-appd"}})
+                                                                       "group": "general"}})
 
 
 async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
@@ -42,7 +42,7 @@ async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
                                                               "message": "hello there",
                                                               "data": {"actions": [],
                                                                        "push": {"interruption-level": "active"},
-                                                                       "group": "general-appd"}})
+                                                                       "group": "general"}})
 
 
 async def test_on_notify_mobile_push_with_critical_priority() -> None:

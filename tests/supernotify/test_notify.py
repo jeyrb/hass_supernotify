@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 from homeassistant.const import (
     CONF_CONDITION,
@@ -74,24 +74,27 @@ RECIPIENTS = [
 async def test_send_message_with_scenario_mismatch() -> None:
     hass = Mock()
     hass.states = Mock()
+    hass.services.async_call = AsyncMock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, scenarios=SCENARIOS, recipients=RECIPIENTS)
     await uut.initialize()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
-                                 delivery={
-                                     "pigeon": {},
-                                     "persistent": {}
-                                 })
+                                 data={
+                                     "delivery_selection": DELIVERY_SELECTION_EXPLICIT,
+                                     "delivery": {
+                                         "pigeon": {},
+                                         "persistent": {}
+                                     }})
     hass.services.async_call.assert_not_called()
     hass.reset_mock()
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
-                                 delivery={
-                                     "pigeon": {},
-                                     "persistent": {}
-                                 },
-                                 scenarios=["scenario1"])
+                                 data={
+                                     "delivery_selection": DELIVERY_SELECTION_EXPLICIT,
+                                     "delivery": {
+                                         "pigeon": {},
+                                         "persistent": {}
+                                     },
+                                     "scenarios": ["scenario1"]})
     hass.services.async_call.assert_called_with("notify", "persistent_notification",
                                                 service_data={"title": "test_title", "message": "testing 123",
                                                               "notification_id": None})
@@ -100,7 +103,7 @@ async def test_send_message_with_scenario_mismatch() -> None:
 async def test_recipient_delivery_data_override() -> None:
     hass = Mock()
     hass.states = Mock()
-
+    hass.services.async_call = AsyncMock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     await uut.initialize()
@@ -108,13 +111,14 @@ async def test_recipient_delivery_data_override() -> None:
     await dummy.initialize()
     await uut.context.register_delivery_methods([dummy])
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 delivery_selection=DELIVERY_SELECTION_EXPLICIT,
-                                 delivery={
-                                     "pigeon": {},
-                                     "dummy": {}
-                                 })
+                                 data={
+                                     "delivery_selection": DELIVERY_SELECTION_EXPLICIT,
+                                     "delivery": {
+                                         "pigeon": {},
+                                         "dummy": {}
+                                     }})
     assert dummy.test_calls == unordered([
-        ['testing 123', 'test_title', 'dummy', ['dummy.bidey_in', 'abc789'], None],
+        ['testing 123', 'test_title', 'dummy', ['dummy.bidey_in', 'abc789'], {}],
         ['testing 123', 'test_title', 'dummy', [
             'dummy.new_home_owner', 'xyz123'], {'emoji_id': 912393}]
     ])
@@ -191,14 +195,15 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         "alarm_control_panel.home_alarm_control", "armed_away")
 
     await uut.async_send_message(title="test_title", message="testing 123",
-                                 priority="high",
-                                 delivery={
-                                     "testablity": {
-                                         CONF_DATA: {
-                                             "test": "unit"
+                                 data={
+                                     "priority": "high",
+                                     "delivery": {
+                                         "testablity": {
+                                             CONF_DATA: {
+                                                 "test": "unit"
+                                             }
                                          }
-                                     }
-                                 },
+                                     }}
                                  )
     await hass.async_block_till_done()
     assert calls_service_data == [
