@@ -101,6 +101,8 @@ ATTR_MEDIA_CAMERA_PTZ_PRESET = "camera_ptz_preset"
 ATTR_MEDIA_CLIP_URL = "clip_url"
 ATTR_ACTION_GROUPS = "action_groups"
 ATTR_ACTION_CATEGORY = "action_category"
+ATTR_ACTION_URL = "action_url"
+ATTR_ACTION_URL_TITLE = "action_url_title"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -261,5 +263,7 @@ SERVICE_DATA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
     vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
+    vol.Optional(ATTR_ACTION_URL): cv.url,
+    vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
     vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA)
 })

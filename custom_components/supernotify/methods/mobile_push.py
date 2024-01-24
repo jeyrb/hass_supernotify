@@ -5,6 +5,8 @@ from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
     ATTR_ACTION_CATEGORY,
     ATTR_ACTION_GROUPS,
+    ATTR_ACTION_URL,
+    ATTR_ACTION_URL_TITLE,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
@@ -52,8 +54,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                              **kwargs) -> bool:
 
         data = data or {}
-        app_url = data.get("app_url")
-        app_url_title = data.get("app_url_title")
+        app_url = data.get(ATTR_ACTION_URL)
+        app_url_title = data.get(ATTR_ACTION_URL_TITLE)
         camera_entity_id = data.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = data.get(ATTR_MEDIA_CLIP_URL)
         snapshot_url = data.get(ATTR_MEDIA_SNAPSHOT_URL)
@@ -88,8 +90,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data['push']['sound']['volume'] = 1.0
         else:
             # critical notifications cant be grouped on iOS
-            data.setdefault("group", "%s-%s" %
-                            (category, camera_entity_id or "appd"))
+            category = category or camera_entity_id or "appd"
+            data.setdefault("group", category)
 
         if camera_entity_id:
             data["entity_id"] = camera_entity_id
