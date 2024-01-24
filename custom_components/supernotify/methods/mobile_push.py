@@ -3,6 +3,8 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TITLE
 from custom_components.supernotify import (
+    ATTR_ACTION_CATEGORY,
+    ATTR_ACTION_GROUPS,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
@@ -55,8 +57,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         camera_entity_id = data.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = data.get(ATTR_MEDIA_CLIP_URL)
         snapshot_url = data.get(ATTR_MEDIA_SNAPSHOT_URL)
-        category = data.get("category", "general")
-        action_groups = data.get("action_groups")
+        category = data.get(ATTR_ACTION_CATEGORY, "general")
+        action_groups = data.get(ATTR_ACTION_GROUPS)
 
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s",
                      notification.title(delivery), targets)
