@@ -100,7 +100,9 @@ async def snap_camera(hass, camera_entity_id, camera_delay=None, media_path=None
 
     except Exception as e:
         _LOGGER.warning(
-            'Failed to snap avail camera %s: %s', camera_entity_id, e)
+            'Failed to snap avail camera %s to %s: %s', camera_entity_id, image_path, e)
+        image_path = None
+        
     return image_path
 
 
