@@ -56,9 +56,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data = data or {}
         app_url = data.get(ATTR_ACTION_URL)
         app_url_title = data.get(ATTR_ACTION_URL_TITLE)
-        camera_entity_id = data.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
-        clip_url = data.get(ATTR_MEDIA_CLIP_URL)
-        snapshot_url = data.get(ATTR_MEDIA_SNAPSHOT_URL)
+        
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
 
@@ -66,7 +64,11 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                      notification.title(delivery), targets)
 
         data = data and data.get(ATTR_DATA) or {}
-
+        media = notification.media or {}
+        camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
+        clip_url = media.get(ATTR_MEDIA_CLIP_URL)
+        snapshot_url = media.get(ATTR_MEDIA_SNAPSHOT_URL)
+        
         if notification.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
         elif notification.priority == PRIORITY_HIGH:
