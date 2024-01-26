@@ -221,8 +221,8 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(CONF_MESSAGE): cv.string,
-    vol.Optional(CONF_TITLE): cv.string,
+    vol.Optional(CONF_MESSAGE): cv.Any(None, cv.string),
+    vol.Optional(CONF_TITLE): cv.Any(None, cv.string),
     vol.Optional(CONF_DATA): DATA_SCHEMA,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
