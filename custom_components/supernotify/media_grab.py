@@ -102,43 +102,47 @@ async def snap_camera(hass, camera_entity_id, camera_delay=None, media_path=None
         _LOGGER.warning(
             'Failed to snap avail camera %s to %s: %s', camera_entity_id, image_path, e)
         image_path = None
-        
+
     return image_path
 
 
 async def select_avail_camera(hass, cameras, camera_entity_id):
-
-    preferred_cam = cameras.get(camera_entity_id)
     avail_camera_entity_id = None
 
-    if not preferred_cam or not preferred_cam.get(CONF_DEVICE_TRACKER):
-        # assume unconfigured camera, or configured without tracker, available
-        avail_camera_entity_id = camera_entity_id
-    elif hass.get_tracker_state(preferred_cam[CONF_DEVICE_TRACKER]) == "home":
-        avail_camera_entity_id = camera_entity_id
-    else:
-        alt_cams_with_tracker = [cameras[c] for c in preferred_cam.get(
-            CONF_ALT_CAMERA, []) if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)]
-        for alt_cam in alt_cams_with_tracker:
-            if hass.get_tracker_state(alt_cam.get(CONF_DEVICE_TRACKER)) == "home":
-                avail_camera_entity_id = alt_cam[CONF_CAMERA]
-                _LOGGER.info("SUPERNOTIFY Selecting available camera %s rather than %s",
-                             avail_camera_entity_id, camera_entity_id)
-                break
-        if avail_camera_entity_id is None:
-            alt_cam_ids_without_tracker = [c for c in preferred_cam.get(
-                        CONF_ALT_CAMERA, []) if c not in cameras or not cameras[c].get(CONF_DEVICE_TRACKER)]
-            if len(alt_cam_ids_without_tracker) > 0:
-                _LOGGER.info("SUPERNOTIFY Selecting untracked camera %s rather than %s",
-                             avail_camera_entity_id, camera_entity_id)
-                avail_camera_entity_id = alt_cam_ids_without_tracker[0]
+    try:
+        preferred_cam = cameras.get(camera_entity_id)
 
-    if avail_camera_entity_id is None:
-        _LOGGER.warning(
-            "%s not available and no alternative available", camera_entity_id)
-        for c in cameras.values():
-            if c.get(CONF_DEVICE_TRACKER):
-                _LOGGER.debug('TRACKER %s: %s', c.get(CONF_CAMERA), hass.get_tracker_state(
-                    c[CONF_DEVICE_TRACKER]))
-        return
+        if not preferred_cam or not preferred_cam.get(CONF_DEVICE_TRACKER):
+            # assume unconfigured camera, or configured without tracker, available
+            avail_camera_entity_id = camera_entity_id
+        elif hass.states.get(preferred_cam[CONF_DEVICE_TRACKER]) == "home":
+            avail_camera_entity_id = camera_entity_id
+        else:
+            alt_cams_with_tracker = [cameras[c] for c in preferred_cam.get(
+                CONF_ALT_CAMERA, []) if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)]
+            for alt_cam in alt_cams_with_tracker:
+                if hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER)) == "home":
+                    avail_camera_entity_id = alt_cam[CONF_CAMERA]
+                    _LOGGER.info("SUPERNOTIFY Selecting available camera %s rather than %s",
+                                 avail_camera_entity_id, camera_entity_id)
+                    break
+            if avail_camera_entity_id is None:
+                alt_cam_ids_without_tracker = [c for c in preferred_cam.get(
+                    CONF_ALT_CAMERA, []) if c not in cameras or not cameras[c].get(CONF_DEVICE_TRACKER)]
+                if len(alt_cam_ids_without_tracker) > 0:
+                    _LOGGER.info("SUPERNOTIFY Selecting untracked camera %s rather than %s",
+                                 avail_camera_entity_id, camera_entity_id)
+                    avail_camera_entity_id = alt_cam_ids_without_tracker[0]
+
+        if avail_camera_entity_id is None:
+            _LOGGER.warning(
+                "%s not available and no alternative available", camera_entity_id)
+            for c in cameras.values():
+                if c.get(CONF_DEVICE_TRACKER):
+                    _LOGGER.debug('TRACKER %s: %s', c.get(CONF_CAMERA), hass.states.get(
+                        c[CONF_DEVICE_TRACKER]))
+
+    except Exception as e:
+        _LOGGER.warning("SUPERNOTIFY Unable to select available camera: %s", e)
+
     return avail_camera_entity_id

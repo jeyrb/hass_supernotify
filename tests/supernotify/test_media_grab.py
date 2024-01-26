@@ -6,7 +6,6 @@ import os.path
 import tempfile
 import io
 
-from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify.media_grab import select_avail_camera, snapshot_from_url
 
@@ -52,13 +51,13 @@ async def test_select_untracked_primary_camera() -> None:
 
 async def test_select_tracked_primary_camera() -> None:
     hass = Mock()
-    hass.get_tracker_state.return_value = "home"
+    hass.states.get.return_value = "home"
     assert "camera.tracked" == await select_avail_camera(hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
 
 
 async def test_no_select_unavail_primary_camera() -> None:
     hass = Mock()
-    hass.get_tracker_state.return_value = "not_home"
+    hass.states.get.return_value = "not_home"
     assert await select_avail_camera(hass, {"camera.tracked": {"camera":"camera.tracked",
                                                                "device_tracker": "device_tracker.cam1"}}, 
                                      "camera.tracked") is None
@@ -66,7 +65,7 @@ async def test_no_select_unavail_primary_camera() -> None:
 
 async def test_select_avail_alt_camera() -> None:
     hass = Mock()
-    hass.get_tracker_state.side_effect = lambda v: {
+    hass.states.get.side_effect = lambda v: {
         "device_tracker.altcam2": "home"}.get(v, "not_home")
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera":"camera.tracked","device_tracker": "device_tracker.cam1",
@@ -79,7 +78,7 @@ async def test_select_avail_alt_camera() -> None:
 
 async def test_select_untracked_alt_camera() -> None:
     hass = Mock()
-    hass.get_tracker_state.side_effect = lambda v: {
+    hass.states.get.side_effect = lambda v: {
         "device_tracker.alt2": "home"}.get(v, "not_home")
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera":"camera.tracked","device_tracker": "device_tracker.cam1",
