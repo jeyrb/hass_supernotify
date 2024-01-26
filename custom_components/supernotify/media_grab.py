@@ -53,7 +53,7 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
 
 async def move_camera_to_ptz_preset(hass, camera_entity_id, preset):
     try:
-        _LOGGER.info("SUPERNOTIFY Executing PTZ to default %s for %s",
+        _LOGGER.info("SUPERNOTIFY Executing PTZ to %s for %s",
                      preset, camera_entity_id)
         await hass.services.async_call("onvif", "ptz",
                                        service_data={
