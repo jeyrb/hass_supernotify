@@ -71,12 +71,9 @@ async def snap_mqtt_topic(topic):
     pass
 
 
-async def snap_camera(hass, camera_entity_id, camera_delay=None, media_path=None):
+async def snap_camera(hass, camera_entity_id, media_path=None):
 
     image_path = None
-
-    if camera_delay is not None and camera_delay > 0:
-        await asyncio.sleep(camera_delay)
 
     try:
         media_dir = os.path.join(media_path, "camera")
@@ -139,7 +136,7 @@ async def select_avail_camera(hass, cameras, camera_entity_id):
                 "%s not available and no alternative available", camera_entity_id)
             for c in cameras.values():
                 if c.get(CONF_DEVICE_TRACKER):
-                    _LOGGER.debug('TRACKER %s: %s', c.get(CONF_CAMERA), hass.states.get(
+                    _LOGGER.debug('SUPERNOTIFY Tracker %s: %s', c.get(CONF_DEVICE_TRACKER), hass.states.get(
                         c[CONF_DEVICE_TRACKER]))
 
     except Exception as e:

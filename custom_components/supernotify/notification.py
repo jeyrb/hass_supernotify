@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import voluptuous as vol
 from homeassistant.components.notify import (
@@ -276,9 +277,12 @@ class Notification:
             camera_ptz_preset_default = camera_config.get(
                 CONF_PTZ_PRESET_DEFAULT)
             camera_ptz_preset = self.media.get(ATTR_MEDIA_CAMERA_PTZ_PRESET)
-
+            _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id, 
+                          camera_ptz_preset, camera_ptz_preset_default, camera_delay)
             if camera_ptz_preset:
                 await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset)
+            if camera_delay:
+                await asyncio.sleep(camera_delay)
             image_path = await snap_camera(self.context.hass,
                                            active_camera_entity_id,
                                            camera_delay, self.context.media_path)
