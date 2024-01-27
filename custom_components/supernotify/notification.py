@@ -120,7 +120,7 @@ class Notification:
 
         override_enable_deliveries = []
         override_disable_deliveries = []
-        
+
         for delivery, delivery_override in self.delivery_overrides.items():
             if (delivery_override is None or delivery_override.get(CONF_ENABLED, True)) and delivery in self.context.deliveries:
                 override_enable_deliveries.append(delivery)
@@ -262,6 +262,9 @@ class Notification:
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         mqtt_topic = self.media.get(CONF_MQTT_TOPIC)
+        if not snapshot_url and not camera_entity_id and not mqtt_topic:
+            return
+        
         image_path = None
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path
@@ -295,6 +298,7 @@ class Notification:
             pass
 
         if image_path is None:
-            _LOGGER.warning("SUPERNOTIFY No media available to attach")
+            _LOGGER.warning("SUPERNOTIFY No media available to attach (%s,%s,%s)",
+                            snapshot_url, camera_entity_id, mqtt_topic)
         else:
             return image_path
