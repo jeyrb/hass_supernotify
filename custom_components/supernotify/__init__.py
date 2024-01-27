@@ -208,8 +208,8 @@ MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_DELAY, default=0): int,
     vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): vol.Any(cv.positive_int, cv.string),
     vol.Optional(CONF_MQTT_TOPIC): cv.string,
-    vol.Optional(ATTR_MEDIA_CLIP_URL): cv.url,
     # URL fragments allowed
+    vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string)
 })
 DELIVERY_SCHEMA = vol.Schema({

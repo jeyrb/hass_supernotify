@@ -54,7 +54,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                              **kwargs) -> bool:
 
         data = data or {}
-        app_url = data.get(ATTR_ACTION_URL)
+        app_url = self.abs_url(data.get(ATTR_ACTION_URL))
         app_url_title = data.get(ATTR_ACTION_URL_TITLE)
         
         category = data.get(ATTR_ACTION_CATEGORY, "general")
