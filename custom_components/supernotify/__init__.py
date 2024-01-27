@@ -106,6 +106,7 @@ ATTR_ACTION_GROUPS = "action_groups"
 ATTR_ACTION_CATEGORY = "action_category"
 ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
+ATTR_MESSAGE_HTML = "message_html"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -275,6 +276,7 @@ SERVICE_DATA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
+    vol.Optional(ATTR_MESSAGE_HTML): cv.string,
     vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
     vol.Optional(ATTR_ACTION_URL): cv.url,

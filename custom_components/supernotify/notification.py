@@ -25,6 +25,7 @@ from . import (
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_CAMERA_PTZ_PRESET,
     ATTR_MEDIA_SNAPSHOT_URL,
+    ATTR_MESSAGE_HTML,
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS,
@@ -79,6 +80,7 @@ class Notification:
             raise
 
         self.priority = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        self.message_html = service_data.get(ATTR_MESSAGE_HTML)
         self.requested_scenarios = ensure_list(
             service_data.get(ATTR_SCENARIOS))
         self.delivery_selection = service_data.get(ATTR_DELIVERY_SELECTION)

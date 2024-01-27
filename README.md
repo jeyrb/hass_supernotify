@@ -168,9 +168,19 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 See `examples` directory for working minimal and maximal configuration examples.
 
+## Tips
+
+### Message formatting
+
+To send a glob of html to include in email, set `message_html` in service_data. This will be ignored
+by other delivery methods that don't handle email. This can be also be used to have a notification
+with only a title ( that gets picked up for mobile push, alexa and other brief communications ) with
+a much more detailed body only for email.
+
+Use `data_template` to build the `data` dictionary with Jinja2 logic from automations or scripts.
+
 TODO:
 
-* Migrate driveway camera handling incl PTZ
 * Configurable links for email
 * Rate limiting
 

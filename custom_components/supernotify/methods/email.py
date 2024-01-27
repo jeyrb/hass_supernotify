@@ -7,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import CONF_EMAIL, CONF_SERVICE
 
-from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
+from custom_components.supernotify import ATTR_MESSAGE_HTML, CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.delivery_method import DeliveryMethod
 
 RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
@@ -74,21 +74,27 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
 
             image_path = await notification.grab_image()
-            if image_path:
+            if image_path: 
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
+            if notification.message_html:
+                service_data.setdefault("data", {})
+                service_data["data"]["html"] = notification.message_html
         else:
             html = self.render_template(
                 template, service_data[ATTR_TITLE],
                 service_data[ATTR_MESSAGE],
                 scenarios,
-                notification.priority, snapshot_url)
+                notification.priority, 
+                snapshot_url,
+                notification.message_html)
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
         return await self.call_service(config.get(CONF_SERVICE), service_data)
 
-    def render_template(self, template, title, message, scenarios, priority, snapshot_url):
+    def render_template(self, template, title, message, scenarios, 
+                        priority, snapshot_url, preformatted_html):
         alert = {}
         try:
             alert = {"title": title,
@@ -97,6 +103,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                      "site": self.context.hass_name,
                      "priority": priority,
                      "scenarios": scenarios,
+                     "preformatted_html":preformatted_html,
                      "img": None,
                      "server": {
                          "url": self.context.hass_url,

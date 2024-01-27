@@ -59,3 +59,30 @@ async def test_deliver_with_template() -> None:
                                                     "title": "testing",
                                                     "message": "hello there",
                                                     'data': {'html': '<H1>testing</H1>'}})
+
+
+async def test_deliver_with_preformatted_html() -> None:
+    hass = Mock()
+    context = SupernotificationConfiguration(recipients=[
+        {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
+
+    uut = EmailDeliveryMethod(
+        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
+                                    CONF_SERVICE: "notify.smtp",
+                                    CONF_DEFAULT: True}})
+    await uut.initialize()
+    notification = Notification(context,
+                                   message="hello there",
+                                   title="testing",
+                                   target=['tester9@assert.com'],
+                                   service_data={"message_html": "<H3>testing</H3>",
+                                                 "delivery": {"default": {"data": {"footer": ""}}}}
+                                   )
+    await notification.initialize()
+    await uut.deliver(notification)
+    hass.services.async_call.assert_called_with("notify", "smtp",
+                                                service_data={
+                                                    "target": ["tester9@assert.com"],
+                                                    "title": "testing",
+                                                    "message": "hello there",
+                                                    'data': {'html': '<H3>testing</H3>'}})
