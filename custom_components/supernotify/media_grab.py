@@ -71,7 +71,7 @@ async def snap_mqtt_topic(topic):
     pass
 
 
-async def snap_camera(hass, camera_entity_id, media_path=None):
+async def snap_camera(hass, camera_entity_id, media_path=None, timeout=20):
 
     image_path = None
 
@@ -89,7 +89,7 @@ async def snap_camera(hass, camera_entity_id, media_path=None):
                                        )
 
         # give async service time
-        cutoff_time = time.time() + 20
+        cutoff_time = time.time() + timeout
         while time.time() < cutoff_time and not os.path.exists(image_path):
             _LOGGER.info(
                 'Image file not available yet at %s, pausing', image_path)
