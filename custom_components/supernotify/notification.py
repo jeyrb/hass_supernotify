@@ -106,8 +106,6 @@ class Notification:
         self.enabled_scenarios.extend(await self.select_scenarios())
         scenario_enable_deliveries = []
         default_enable_deliveries = []
-        override_enable_deliveries = []
-        override_disable_deliveries = []
         scenario_disable_deliveries = []
 
         if self.delivery_selection != DELIVERY_SELECTION_FIXED:
@@ -118,6 +116,9 @@ class Notification:
                 default_enable_deliveries = self.context.delivery_by_scenario.get(
                     SCENARIO_DEFAULT, [])
 
+        override_enable_deliveries = []
+        override_disable_deliveries = []
+        
         for delivery, delivery_override in self.delivery_overrides.items():
             if (delivery_override is None or delivery_override.get(CONF_ENABLED, True)) and delivery in self.context.deliveries:
                 override_enable_deliveries.append(delivery)
@@ -268,8 +269,8 @@ class Notification:
                                                  self.context.hass_base_url)
         elif camera_entity_id:
             active_camera_entity_id = await select_avail_camera(self.context.hass,
-                                                          self.context.cameras,
-                                                          camera_entity_id)
+                                                                self.context.cameras,
+                                                                camera_entity_id)
             camera_config = self.context.cameras.get(
                 active_camera_entity_id, {})
             camera_delay = self.media.get(
@@ -277,7 +278,7 @@ class Notification:
             camera_ptz_preset_default = camera_config.get(
                 CONF_PTZ_PRESET_DEFAULT)
             camera_ptz_preset = self.media.get(ATTR_MEDIA_CAMERA_PTZ_PRESET)
-            _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id, 
+            _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id,
                           camera_ptz_preset, camera_ptz_preset_default, camera_delay)
             if camera_ptz_preset:
                 await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset)
@@ -285,7 +286,7 @@ class Notification:
                 await asyncio.sleep(camera_delay)
             image_path = await snap_camera(self.context.hass,
                                            active_camera_entity_id,
-                                           camera_delay, self.context.media_path)
+                                           self.context.media_path)
             if camera_ptz_preset and camera_ptz_preset_default:
                 await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset_default)
         elif mqtt_topic:

@@ -13,7 +13,6 @@ from pytest_unordered import unordered
 from homeassistant.const import (
     CONF_SERVICE, CONF_EMAIL
 )
-from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify import (
     CONF_METHOD,
@@ -21,6 +20,7 @@ from custom_components.supernotify import (
     METHOD_EMAIL,
     METHOD_GENERIC,
 )
+
 
 async def test_simple_create(hass: HomeAssistant) -> None:
     context = Mock()
@@ -80,6 +80,7 @@ async def test_explicit_list_of_deliveries(hass: HomeAssistant) -> None:
     await uut.initialize()
     assert uut.selected_delivery_names == ["mobile"]
 
+
 async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssistant) -> None:
     context = SupernotificationConfiguration()
     await context.initialize()
@@ -99,7 +100,8 @@ async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssis
     await email.initialize()
     bundles = uut.build_targets(delivery["mail"], email)
     assert bundles == [(["bob@test.com", "jane@test.com"], None)]
-    
+
+
 async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:
     context = SupernotificationConfiguration()
     await context.initialize()
@@ -108,6 +110,7 @@ async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:
     uut = Notification(context, "testing 123")
     bundles = uut.build_targets({}, method)
     assert bundles == [([], None)]
+
 
 async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(hass: HomeAssistant) -> None:
     context = Mock()
@@ -145,5 +148,5 @@ async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPSe
         mock_snapshot.reset_mock()
         retrieved_image_path = await uut.grab_image()
         assert retrieved_image_path == original_image_path
-        assert mock_snapshot.assert_not_called # notification caches image for multiple deliveries
-
+        # notification caches image for multiple deliveries
+        assert mock_snapshot.assert_not_called

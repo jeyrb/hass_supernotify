@@ -1,6 +1,7 @@
 # SuperNotifier
 
-Simplified notifications for complex scenarios, including multi-channel notifications, conditional notifications, mobile actions, chimes and template based HTML emails.
+An extension of HomeAssistant's built in `notify.notify` that can greatly simplify multiple notification channels and
+complex scenarios, including multi-channel notifications, conditional notifications, mobile actions, chimes and template based HTML emails.
 
 ## Features
 
@@ -15,6 +16,7 @@ for sending only to people in or out of the property
 * Defaulting of targets and data in static config, and overridable at notification time
 * Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
 * Reloadable configuration
+* Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
 
 ## Installation
 
@@ -54,6 +56,18 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
                 data:
                     clickAction: https://my.home.net/dashboard
                     
+```
+
+### Templated
+```yaml
+  - service: notify.supernotifier
+    data:
+        message:
+    data_template:
+        title: Tank Notification
+        message:  "Fuel tank depth is {{ state_attr('sensor.tank', 'depth') }}"
+        data:
+            priority: {% if {{ state_attr('sensor.tank', 'depth') }}<10 }critical{% else %}medium {% endif %}               
 ```
 
 ## Delivery Methods

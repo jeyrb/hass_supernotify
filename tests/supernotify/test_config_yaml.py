@@ -6,7 +6,9 @@ from homeassistant import config as hass_config
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
-
+import pytest
+from .doubles_lib import MockService
+from homeassistant.helpers.service import async_call_from_config
 from custom_components.supernotify import (
     DOMAIN,
     PLATFORM_SCHEMA,
@@ -21,6 +23,9 @@ FIXTURE = pathlib.Path(__file__).parent.joinpath(
 SIMPLE_CONFIG = {
     "name": DOMAIN,
     "platform": DOMAIN,
+    "delivery": {
+        "testing": {"method": "generic","service":"notify.mock"},
+    },
     "recipients": [
         {
             "person": "person.house_owner",
@@ -30,7 +35,19 @@ SIMPLE_CONFIG = {
     ]
 }
 
+@pytest.fixture
+def mock_notify(hass: HomeAssistant) -> MockService:
+    mockService = MockService()
+    hass.services.async_register(
+        notify.DOMAIN,
+        "mock",
+        mockService,
+        supports_response=False
+    )
+    return mockService
+  
 
+    
 async def test_schema():
     assert PLATFORM_SCHEMA(SIMPLE_CONFIG)
 
@@ -81,7 +98,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert len(uut.context.deliveries) == 11
 
 
-async def test_call_service(hass: HomeAssistant) -> None:
+async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:
 
     assert await async_setup_component(
         hass,
@@ -96,9 +113,18 @@ async def test_call_service(hass: HomeAssistant) -> None:
     await hass.services.async_call(
         notify.DOMAIN,
         DOMAIN,
-        {"title": "my title", "message": "unit test"},
+        {"title": "my title", "message": "unit test 9484"},
         blocking=True,
     )
+    notification = await hass.services.async_call(
+        "supernotify",
+        "enquire_last_notification",
+        None,
+        blocking=True,
+        return_response=True
+    )
+    assert notification["_message"] == "unit test 9484"
+    assert notification["priority"] == "medium"
 
 
 async def test_empty_config(hass: HomeAssistant) -> None:
@@ -123,11 +149,11 @@ async def test_empty_config(hass: HomeAssistant) -> None:
         notify.DOMAIN,
         DOMAIN,
         {"title": "my title", "message": "unit test"},
-        blocking=True,
+        blocking=True
     )
 
 
-async def test_call_supplemental_services(hass: HomeAssistant) -> None:
+async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: MockService) -> None:
 
     assert await async_setup_component(
         hass,
@@ -146,4 +172,39 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
         blocking=True,
         return_response=True
     )
-    assert response == {"DEFAULT": []}
+    assert response == {"DEFAULT": ["testing"]}
+
+
+async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
+    assert await async_setup_component(
+        hass,
+        notify.DOMAIN,
+        {
+            notify.DOMAIN: [SIMPLE_CONFIG]
+        }
+    )
+    await hass.async_block_till_done()
+    await async_call_from_config(hass,
+                                     {
+                                         "service": "notify.supernotify",
+                                         "data_template": """{
+                                             "title": "my title",
+                                             "message": "unit test {{ 100+5 }}",
+                                             "data": {
+                                                 "priority": "{% if 3>5 %}low{% else %}high{%endif%}",
+                                                 "delivery": {"email": {"data": {"footer": ""}}}}
+                                            }"""
+                                         },
+                                     blocking=True
+                                     )
+    notification = await hass.services.async_call(
+        "supernotify",
+        "enquire_last_notification",
+        None,
+        blocking=True,
+        return_response=True
+    )
+    assert notification["_message"] == "unit test 105"
+    assert notification["priority"] == "high"
+
+

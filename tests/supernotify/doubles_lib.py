@@ -1,3 +1,6 @@
+import homeassistant
+from homeassistant.core import callback
+
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
 from custom_components.supernotify.delivery_method import DeliveryMethod
 
@@ -21,3 +24,15 @@ class DummyDeliveryMethod(DeliveryMethod):
             [notification.message(delivery), notification.title(delivery),
              delivery, targets, data])
         return True
+
+
+class MockService(homeassistant.components.notify.BaseNotificationService):
+    """A test class for notification services."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.calls = []
+
+    @callback
+    async def async_send_message(self, message="", title=None, target=None, **kwargs):
+        self.calls.append([message, title, target, kwargs])

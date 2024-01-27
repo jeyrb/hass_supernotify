@@ -1,3 +1,4 @@
+from operator import call
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.const import (
@@ -100,16 +101,24 @@ async def test_send_message_with_scenario_mismatch() -> None:
                                                               "notification_id": None})
 
 
+async def inject_dummy_delivery_method(hass: HomeAssistant, uut: SuperNotificationService) -> None:
+    dummy = DummyDeliveryMethod(hass, uut.context)
+    await dummy.initialize()
+    await uut.context.register_delivery_methods([dummy])
+    return dummy
+
+
 async def test_recipient_delivery_data_override() -> None:
     hass = Mock()
     hass.states = Mock()
     hass.services.async_call = AsyncMock()
+    hass.data = {}
+    hass.data["device_registry"] = Mock()
+    hass.data["entity_registry"] = Mock()
     uut = SuperNotificationService(
         hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     await uut.initialize()
-    dummy = DummyDeliveryMethod(hass, uut.context)
-    await dummy.initialize()
-    await uut.context.register_delivery_methods([dummy])
+    dummy = await inject_dummy_delivery_method(hass, uut)
     await uut.async_send_message(title="test_title", message="testing 123",
                                  data={
                                      "delivery_selection": DELIVERY_SELECTION_EXPLICIT,
@@ -135,16 +144,16 @@ async def test_null_delivery() -> None:
 
 async def test_fallback_delivery() -> None:
     hass = Mock()
-    hass.states = Mock()
-    uut = SuperNotificationService(hass, deliveries={"email": {CONF_METHOD: METHOD_EMAIL,
-                                                               CONF_SELECTION: SELECTION_FALLBACK,
-                                                               CONF_SERVICE: "notify.smtp"},
+    uut = SuperNotificationService(hass, deliveries={"generic": {CONF_METHOD: METHOD_GENERIC,
+                                                                 CONF_SELECTION: SELECTION_FALLBACK,
+                                                                 CONF_SERVICE: "notify.dummy"},
                                                      "push": {CONF_METHOD: METHOD_GENERIC,
                                                               CONF_SERVICE: "notify.push",
                                                               CONF_PRIORITY: "critical"}})
     await uut.initialize()
-    await uut.async_send_message("just a test")
-    hass.services.async_call.assert_not_called()
+    await uut.async_send_message("just a test", data={"priority": "low"})
+    hass.services.async_call.assert_called_once_with(
+        "notify", "dummy", service_data={"message": "just a test",'target': [], 'data': {}})
 
 
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:

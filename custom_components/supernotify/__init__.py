@@ -205,7 +205,7 @@ CAMERA_SCHEMA = vol.Schema({
 MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_ENTITY_ID): cv.entity_id,
     vol.Optional(ATTR_MEDIA_CAMERA_DELAY, default=0): int,
-    vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): vol.Any(cv.positive_int,cv.string),
+    vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): vol.Any(cv.positive_int, cv.string),
     vol.Optional(CONF_MQTT_TOPIC): cv.string,
     vol.Optional(ATTR_MEDIA_CLIP_URL): cv.url,
     # URL fragments allowed
@@ -221,8 +221,8 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(CONF_MESSAGE): cv.Any(None, cv.string),
-    vol.Optional(CONF_TITLE): cv.Any(None, cv.string),
+    vol.Optional(CONF_MESSAGE): vol.Any(None, cv.string),
+    vol.Optional(CONF_TITLE): vol.Any(None, cv.string),
     vol.Optional(CONF_DATA): DATA_SCHEMA,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):

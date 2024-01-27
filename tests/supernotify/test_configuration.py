@@ -1,17 +1,20 @@
 from unittest.mock import Mock
+
 from .hass_setup_lib import register_mobile_app
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry, entity_registry
+
 from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from homeassistant.helpers import device_registry, entity_registry
 from custom_components.supernotify.notification import Notification
+
 from .doubles_lib import DummyDeliveryMethod
-from homeassistant.core import HomeAssistant
 
 
 async def test_filter_recipients() -> None:
     hass = Mock()
     uut = SupernotificationConfiguration(hass,
-                                        recipients=[{CONF_PERSON: "person.new_home_owner"},
+                                         recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                      {CONF_PERSON: "person.bidey_in"}])
     await uut.initialize()
 

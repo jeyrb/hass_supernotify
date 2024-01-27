@@ -104,11 +104,20 @@ async def async_get_service(
 
     def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> [str]:
         return service.enquire_deliveries_by_scenario()
-
+    
+    def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
+        return service.last_notification.__dict__ if service.last_notification else None
+    
     hass.services.async_register(
         DOMAIN,
         "enquire_deliveries_by_scenario",
         supplemental_service_enquire_deliveries_by_scenario,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "enquire_last_notification",
+        supplemental_service_enquire_last_notification,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -134,6 +143,7 @@ class SuperNotificationService(BaseNotificationService):
     ):
         """Initialize the service."""
         self.hass = hass
+        self.last_notification = None
         self.context = SupernotificationConfiguration(
             hass,
             hass.config.external_url or self.hass.config.internal_url,
@@ -177,19 +187,23 @@ class SuperNotificationService(BaseNotificationService):
 
         if stats_delivieries == 0 and stats_errors == 0:
             for delivery in self.context.fallback_by_default:
-                delivered, errored = await self.call_method(
-                    notification, delivery
-                )
-                stats_delivieries += delivered
-                stats_errors += errored
+                if delivery not in notification.selected_delivery_names:
+                    delivered, errored = await self.call_method(
+                        notification, delivery
+                    )
+                    stats_delivieries += delivered
+                    stats_errors += errored
 
         if stats_delivieries == 0 and stats_errors > 0:
             for delivery in self.context.fallback_on_error:
-                delivered, errored = await self.call_method(
-                    notification, delivery
-                )
-                stats_delivieries += delivered
-                stats_errors += errored
+                if delivery not in notification.selected_delivery_names:
+                    delivered, errored = await self.call_method(
+                        notification, delivery
+                    )
+                    stats_delivieries += delivered
+                    stats_errors += errored
+                
+        self.last_notification = notification
 
         _LOGGER.debug(
             "SUPERNOTIFY %s deliveries, %s errors", stats_delivieries, stats_errors
@@ -197,8 +211,8 @@ class SuperNotificationService(BaseNotificationService):
 
     async def call_method(self, notification, delivery):
         try:
-            await self.context.delivery_method(delivery).deliver(notification, delivery=delivery)
-            return (1, 0)
+            delivered = await self.context.delivery_method(delivery).deliver(notification, delivery=delivery)
+            return (1 if delivered else 0, 0)
         except Exception as e:
             _LOGGER.warning(
                 "SUPERNOTIFY Failed to notify using %s: %s", delivery, e
