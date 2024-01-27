@@ -164,3 +164,12 @@ class DeliveryMethod:
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via %s: %s", self.method, e)
+            
+    def abs_url(self, fragment):
+        if fragment:
+            if fragment.startswith("http"):
+                return fragment
+            elif fragment.startswith("/"):
+                return self.context.base_url + fragment
+            else:
+                return self.context.base_url + "/" + fragment

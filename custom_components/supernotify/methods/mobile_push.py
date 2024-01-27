@@ -66,8 +66,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data = data and data.get(ATTR_DATA) or {}
         media = notification.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
-        clip_url = media.get(ATTR_MEDIA_CLIP_URL)
-        snapshot_url = media.get(ATTR_MEDIA_SNAPSHOT_URL)
+        clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
+        snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
         
         if notification.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
