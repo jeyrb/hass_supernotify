@@ -133,7 +133,7 @@ async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPSe
     context.scenarios = {}
     context.deliveries = {}
     context.delivery_by_scenario = {}
-    context.hass_base_url = "http://hass-dev"
+    context.base_url = "http://hass-dev"
     context.media_path = "/nosuchpath"
     uut = Notification(context, "testing 123", service_data={
         CONF_MEDIA: {

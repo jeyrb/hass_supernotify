@@ -271,7 +271,7 @@ class Notification:
         elif snapshot_url and self.context.media_path:
             image_path = await snapshot_from_url(self.context.hass, snapshot_url,
                                                  self.id, self.context.media_path,
-                                                 self.context.hass_base_url)
+                                                 self.context.hass_url)
         elif camera_entity_id:
             active_camera_entity_id = await select_avail_camera(self.context.hass,
                                                                 self.context.cameras,
