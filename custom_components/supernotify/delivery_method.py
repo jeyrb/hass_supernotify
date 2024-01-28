@@ -170,6 +170,6 @@ class DeliveryMethod:
             if fragment.startswith("http"):
                 return fragment
             elif fragment.startswith("/"):
-                return self.context.base_url + fragment
+                return self.context.hass_url + fragment
             else:
-                return self.context.base_url + "/" + fragment
+                return self.context.hass_url + "/" + fragment
