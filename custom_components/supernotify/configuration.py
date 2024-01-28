@@ -66,6 +66,9 @@ class SupernotificationConfiguration:
             self.hass = None
             self.hass_url = ""
             self.hass_name = "!UNDEFINED!"
+            
+        _LOGGER.debug("SUPERNOTIFY Configured for HomeAssistant instance %s at %s", self.hass_name, self.hass_url)
+            
         if not self.hass_url or not self.hass_url.startswith("http"):
             _LOGGER.warning("SUPERNOTIFY invalid hass_url %s", self.hass_url)
 
