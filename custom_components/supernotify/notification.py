@@ -264,7 +264,7 @@ class Notification:
         mqtt_topic = self.media.get(CONF_MQTT_TOPIC)
         if not snapshot_url and not camera_entity_id and not mqtt_topic:
             return
-        
+
         image_path = None
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path
@@ -276,24 +276,26 @@ class Notification:
             active_camera_entity_id = await select_avail_camera(self.context.hass,
                                                                 self.context.cameras,
                                                                 camera_entity_id)
-            camera_config = self.context.cameras.get(
-                active_camera_entity_id, {})
-            camera_delay = self.media.get(
-                ATTR_MEDIA_CAMERA_DELAY, camera_config.get(CONF_PTZ_DELAY))
-            camera_ptz_preset_default = camera_config.get(
-                CONF_PTZ_PRESET_DEFAULT)
-            camera_ptz_preset = self.media.get(ATTR_MEDIA_CAMERA_PTZ_PRESET)
-            _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id,
-                          camera_ptz_preset, camera_ptz_preset_default, camera_delay)
-            if camera_ptz_preset:
-                await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset)
-            if camera_delay:
-                await asyncio.sleep(camera_delay)
-            image_path = await snap_camera(self.context.hass,
-                                           active_camera_entity_id,
-                                           self.context.media_path)
-            if camera_ptz_preset and camera_ptz_preset_default:
-                await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset_default)
+            if active_camera_entity_id:
+                camera_config = self.context.cameras.get(
+                    active_camera_entity_id, {})
+                camera_delay = self.media.get(
+                    ATTR_MEDIA_CAMERA_DELAY, camera_config.get(CONF_PTZ_DELAY))
+                camera_ptz_preset_default = camera_config.get(
+                    CONF_PTZ_PRESET_DEFAULT)
+                camera_ptz_preset = self.media.get(
+                    ATTR_MEDIA_CAMERA_PTZ_PRESET)
+                _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id,
+                              camera_ptz_preset, camera_ptz_preset_default, camera_delay)
+                if camera_ptz_preset:
+                    await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset)
+                if camera_delay:
+                    await asyncio.sleep(camera_delay)
+                image_path = await snap_camera(self.context.hass,
+                                               active_camera_entity_id,
+                                               self.context.media_path)
+                if camera_ptz_preset and camera_ptz_preset_default:
+                    await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset_default)
         elif mqtt_topic:
             pass
 

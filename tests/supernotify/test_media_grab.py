@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, Mock
 from homeassistant.core import HomeAssistant
+from homeassistant.const import STATE_HOME, STATE_NOT_HOME
 import pytest
 from pytest_httpserver import BlockingHTTPServer
 import os.path
@@ -58,7 +59,8 @@ async def test_select_untracked_primary_camera() -> None:
 
 async def test_select_tracked_primary_camera() -> None:
     hass = Mock()
-    hass.states.get.return_value = "home"
+    home_state, _ = tracker_states()
+    hass.states.get.return_value = home_state
     assert "camera.tracked" == await select_avail_camera(hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
 
 
@@ -72,8 +74,9 @@ async def test_no_select_unavail_primary_camera() -> None:
 
 async def test_select_avail_alt_camera() -> None:
     hass = Mock()
+    home_state, not_home_state = tracker_states()
     hass.states.get.side_effect = lambda v: {
-        "device_tracker.altcam2": "home"}.get(v, "not_home")
+        "device_tracker.altcam2": home_state}.get(v, not_home_state)
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
                                              "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},
@@ -82,11 +85,19 @@ async def test_select_avail_alt_camera() -> None:
                                             },
                                      "camera.tracked") == "camera.alt2"
 
+def tracker_states():
+    home_state = Mock()
+    home_state.state.return_value = STATE_HOME
+    not_home_state = Mock()
+    not_home_state.state.return_value = STATE_NOT_HOME
+    return home_state, not_home_state
 
 async def test_select_untracked_alt_camera() -> None:
     hass = Mock()
+    home_state, not_home_state = tracker_states()
+
     hass.states.get.side_effect = lambda v: {
-        "device_tracker.alt2": "home"}.get(v, "not_home")
+        "device_tracker.alt2": home_state}.get(v, not_home_state)
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
                                              "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},

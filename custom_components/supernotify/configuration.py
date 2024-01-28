@@ -2,7 +2,7 @@ import logging
 import os.path
 import inspect
 from homeassistant.const import (
-    CONF_ENABLED,
+    CONF_ENABLED, STATE_HOME
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
@@ -265,7 +265,7 @@ class SupernotificationConfiguration:
             # all recipients checked for occupancy, regardless of override
             try:
                 tracker = self.hass.states.get(person)
-                if tracker is not None and tracker.state == "home":
+                if tracker is not None and tracker.state == STATE_HOME:
                     at_home.append(person_config)
                 else:
                     away.append(person_config)

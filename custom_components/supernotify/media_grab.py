@@ -3,6 +3,7 @@ from http import HTTPStatus
 import logging
 from aiohttp import ClientTimeout
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.const import STATE_HOME
 import time
 
 import os
@@ -75,13 +76,16 @@ async def snap_mqtt_topic(topic):
 async def snap_camera(hass, camera_entity_id, media_path=None, timeout=20):
 
     image_path = None
+    if not camera_entity_id:
+        _LOGGER.warning("SUPERNOTIFY Empty camera entity id for snap")
+        return image_path
 
     try:
         media_dir = os.path.join(media_path, "camera")
         os.makedirs(media_dir, exist_ok=True)
-
+        timed = str(time.time()).replace('.', '_')
         image_path = os.path.join(
-            media_dir, "%s-%s.jpg" % (camera_entity_id, time.time()))
+            media_dir, "%s_%s.jpg" % (camera_entity_id, timed))
         await hass.services.async_call("camera", "snapshot",
                                        service_data={
                                            'entity_id': camera_entity_id,
@@ -113,13 +117,14 @@ async def select_avail_camera(hass, cameras, camera_entity_id):
         if not preferred_cam or not preferred_cam.get(CONF_DEVICE_TRACKER):
             # assume unconfigured camera, or configured without tracker, available
             avail_camera_entity_id = camera_entity_id
-        elif hass.states.get(preferred_cam[CONF_DEVICE_TRACKER]) == "home":
+        elif hass.states.get(preferred_cam[CONF_DEVICE_TRACKER]).state == STATE_HOME:
             avail_camera_entity_id = camera_entity_id
         else:
             alt_cams_with_tracker = [cameras[c] for c in preferred_cam.get(
                 CONF_ALT_CAMERA, []) if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)]
             for alt_cam in alt_cams_with_tracker:
-                if hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER)) == "home":
+                alt_cam_state = hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER))
+                if alt_cam_state.state == STATE_HOME:
                     avail_camera_entity_id = alt_cam[CONF_CAMERA]
                     _LOGGER.info("SUPERNOTIFY Selecting available camera %s rather than %s",
                                  avail_camera_entity_id, camera_entity_id)
