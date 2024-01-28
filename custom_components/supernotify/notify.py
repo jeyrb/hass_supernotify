@@ -108,6 +108,9 @@ async def async_get_service(
     def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
         return service.last_notification.__dict__ if service.last_notification else None
     
+    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
+        return service.enquire_active_scenarios()
+    
     hass.services.async_register(
         DOMAIN,
         "enquire_deliveries_by_scenario",
@@ -118,6 +121,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_last_notification",
         supplemental_service_enquire_last_notification,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "enquire_active_scenarios",
+        supplemental_service_enquire_active_scenarios,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -225,3 +234,10 @@ class SuperNotificationService(BaseNotificationService):
 
     def enquire_deliveries_by_scenario(self):
         return self.context.delivery_by_scenario
+    
+    async def enquire_active_scenarios(self):
+        scenarios = []
+        for scenario in self.context.scenarios.values():
+            if await scenario.evaluate():
+                scenarios.append(scenario.name)
+        return scenarios
