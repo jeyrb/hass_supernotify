@@ -146,8 +146,6 @@ class SuperNotificationService(BaseNotificationService):
         self.last_notification = None
         self.context = SupernotificationConfiguration(
             hass,
-            hass.config.external_url or self.hass.config.internal_url,
-            hass.config.location_name,
             deliveries,
             links,
             recipients,

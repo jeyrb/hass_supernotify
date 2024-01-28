@@ -48,8 +48,6 @@ _LOGGER = logging.getLogger(__name__)
 class SupernotificationConfiguration:
     def __init__(self,
                  hass: HomeAssistant = None,
-                 hass_url: str = None,
-                 hass_name: str = None,
                  deliveries=None,
                  links=(),
                  recipients=(),
@@ -60,9 +58,17 @@ class SupernotificationConfiguration:
                  scenarios=None,
                  method_defaults=None,
                  cameras=None):
-        self.hass = hass
-        self.hass_url = hass_url
-        self.hass_name = hass_name
+        if hass:
+            self.hass = hass
+            self.hass_url = hass.config.external_url or hass.config.internal_url
+            self.hass_name = hass.config.location_name
+        else:
+            self.hass = None
+            self.hass_url = ""
+            self.hass_name = "!UNDEFINED!"
+        if not self.hass_url or not self.hass_url.startswith("http"):
+            _LOGGER.warning("SUPERNOTIFY invalid hass_url %s", self.hass_url)
+
         self.links = ensure_list(links)
         # raw configured deliveries
         self._deliveries = deliveries if isinstance(deliveries, dict) else {}

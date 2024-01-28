@@ -18,6 +18,7 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
                             timeout=15):
 
     image_path = None
+    hass_base_url = hass_base_url or ""
     try:
         media_dir = os.path.join(media_path, "snapshot")
         os.makedirs(media_dir, exist_ok=True)

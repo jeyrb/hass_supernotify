@@ -179,10 +179,5 @@ a much more detailed body only for email.
 
 Use `data_template` to build the `data` dictionary with Jinja2 logic from automations or scripts.
 
-TODO:
-
-* Configurable links for email
-* Rate limiting
-
 
             
