@@ -7,6 +7,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers.network import get_url
+import socket
 from homeassistant.const import (
     CONF_ENTITIES,
     CONF_METHOD,
@@ -60,17 +62,28 @@ class SupernotificationConfiguration:
                  cameras=None):
         if hass:
             self.hass = hass
-            self.hass_url = hass.config.external_url or hass.config.internal_url
             self.hass_name = hass.config.location_name
+            try:
+                self.hass_internal_url = get_url(hass, prefer_external=False)
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY could not get internal hass url: %s", e)
+                self.hass_internal_url = "http://%s" % socket.gethostname()
+            try:
+                self.hass_external_url = get_url(hass, prefer_external=True)
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY could not get external hass url: %s", e)
+                self.hass_external_url = self.hass_internal_url            
         else:
             self.hass = None
-            self.hass_url = ""
+            self.hass_internal_url = ""
+            self.hass_external_url = ""
             self.hass_name = "!UNDEFINED!"
             
-        _LOGGER.debug("SUPERNOTIFY Configured for HomeAssistant instance %s at %s", self.hass_name, self.hass_url)
+        _LOGGER.debug("SUPERNOTIFY Configured for HomeAssistant instance %s at %s , %s", 
+                      self.hass_name, self.hass_internal_url, self.hass_external_url)
             
-        if not self.hass_url or not self.hass_url.startswith("http"):
-            _LOGGER.warning("SUPERNOTIFY invalid hass_url %s", self.hass_url)
+        if not self.hass_internal_url or not self.hass_internal_url.startswith("http"):
+            _LOGGER.warning("SUPERNOTIFY invalid internal hass url %s", self.hass_internal_url)
 
         self.links = ensure_list(links)
         # raw configured deliveries

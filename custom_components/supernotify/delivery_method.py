@@ -165,11 +165,12 @@ class DeliveryMethod:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via %s: %s", self.method, e)
             
-    def abs_url(self, fragment):
+    def abs_url(self, fragment, prefer_external=True):
+        base_url = self.context.hass_external_url if prefer_external else self.context.hass_internal_url
         if fragment:
             if fragment.startswith("http"):
                 return fragment
             elif fragment.startswith("/"):
-                return self.context.hass_url + fragment
+                return base_url + fragment
             else:
-                return self.context.hass_url + "/" + fragment
+                return base_url + "/" + fragment

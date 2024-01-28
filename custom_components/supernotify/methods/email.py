@@ -106,7 +106,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                      "preformatted_html":preformatted_html,
                      "img": None,
                      "server": {
-                         "url": self.context.hass_url,
+                         "url": self.context.hass_external_url,
                          "name":  "Home Assistant"
 
                      }
