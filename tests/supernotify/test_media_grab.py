@@ -47,6 +47,15 @@ async def test_snap_camera() -> None:
                                                                     'filename': image_path})
 
 
+def set_states(hass, at_home=(), not_at_home=()):
+    home_state = Mock(name="At Home")
+    home_state.state = STATE_HOME
+    not_home_state = Mock(name="Not at Home")
+    not_home_state.state = STATE_NOT_HOME
+    hass.states.get = Mock()
+    hass.states.get.side_effect = lambda v: home_state if v in at_home else not_home_state if v in not_at_home else None
+
+
 async def test_select_camera_not_in_config() -> None:
     hass = Mock()
     assert "camera.unconfigured" == await select_avail_camera(hass, {}, "camera.unconfigured")
@@ -59,14 +68,14 @@ async def test_select_untracked_primary_camera() -> None:
 
 async def test_select_tracked_primary_camera() -> None:
     hass = Mock()
-    home_state, _ = tracker_states()
-    hass.states.get.return_value = home_state
-    assert "camera.tracked" == await select_avail_camera(hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
+    set_states(hass, ["device_tracker.cam1"])
+    assert "camera.tracked" == await select_avail_camera(hass, {"camera.tracked":
+                                                                {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
 
 
 async def test_no_select_unavail_primary_camera() -> None:
     hass = Mock()
-    hass.states.get.return_value = "not_home"
+    set_states(hass, [], ["device_tracker.cam1"])
     assert await select_avail_camera(hass, {"camera.tracked": {"camera": "camera.tracked",
                                                                "device_tracker": "device_tracker.cam1"}},
                                      "camera.tracked") is None
@@ -74,9 +83,8 @@ async def test_no_select_unavail_primary_camera() -> None:
 
 async def test_select_avail_alt_camera() -> None:
     hass = Mock()
-    home_state, not_home_state = tracker_states()
-    hass.states.get.side_effect = lambda v: {
-        "device_tracker.altcam2": home_state}.get(v, not_home_state)
+    set_states(hass, ["device_tracker.altcam2"],
+               ["device_tracker.cam1", "device_tracker.altcam1"])
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
                                              "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},
@@ -85,19 +93,11 @@ async def test_select_avail_alt_camera() -> None:
                                             },
                                      "camera.tracked") == "camera.alt2"
 
-def tracker_states():
-    home_state = Mock()
-    home_state.state.return_value = STATE_HOME
-    not_home_state = Mock()
-    not_home_state.state.return_value = STATE_NOT_HOME
-    return home_state, not_home_state
 
 async def test_select_untracked_alt_camera() -> None:
     hass = Mock()
-    home_state, not_home_state = tracker_states()
-
-    hass.states.get.side_effect = lambda v: {
-        "device_tracker.alt2": home_state}.get(v, not_home_state)
+    set_states(hass, [],
+               ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
     assert await select_avail_camera(hass, {"camera.tracked":
                                             {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
                                              "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},

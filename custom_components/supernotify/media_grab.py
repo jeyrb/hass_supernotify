@@ -124,6 +124,7 @@ async def select_avail_camera(hass, cameras, camera_entity_id):
                 CONF_ALT_CAMERA, []) if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)]
             for alt_cam in alt_cams_with_tracker:
                 alt_cam_state = hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER))
+                x=alt_cam_state.state
                 if alt_cam_state.state == STATE_HOME:
                     avail_camera_entity_id = alt_cam[CONF_CAMERA]
                     _LOGGER.info("SUPERNOTIFY Selecting available camera %s rather than %s",
