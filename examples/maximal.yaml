@@ -114,6 +114,8 @@ notify:
     methods:
       email:
         service: notify.smtp
+        data:
+          footer: Delivered by SuperNotify (MsgId:{n.id})
       alexa:
         target:
           - media_player.kitchen_2

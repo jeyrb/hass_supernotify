@@ -168,6 +168,14 @@ Configure in the main Home Assistant config yaml, or an included notify.yaml
 
 See `examples` directory for working minimal and maximal configuration examples.
 
+### Cameras
+
+Use this for additional camera info:
+
+* Link a `device_tracker` to the camera, so notifications will first check its online, then use an alternative
+* Define alternative cameras to use if first fails
+* For ONVIF cameras, a PTZ home preset can be defined, and a delay between PTZ command and snapshot
+
 ## Tips
 
 ### Message formatting

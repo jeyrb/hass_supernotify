@@ -25,7 +25,8 @@ class EmailDeliveryMethod(DeliveryMethod):
             self.template_path = os.path.join(
                 self.context.template_path, "email")
             if not os.path.exists(self.template_path):
-                _LOGGER.warning("SUPERNOTIFY Email templates not available at %s", self.template_path)
+                _LOGGER.warning(
+                    "SUPERNOTIFY Email templates not available at %s", self.template_path)
                 self.template_path = None
         if self.template_path is None:
             _LOGGER.warning("SUPERNOTIFY Email templates not available")
@@ -57,24 +58,26 @@ class EmailDeliveryMethod(DeliveryMethod):
         addresses = targets or []
         snapshot_url = data.get("snapshot_url")
         # TODO centralize in config
-        footer = data.get(
-            "footer", "Delivered by SuperNotify (MsgId:%s)" % notification.id)
+        footer_template = data.get("footer")
+        footer = footer_template.format(
+            n=notification) if footer_template else None
 
         service_data = notification.core_service_data(delivery)
 
         if len(addresses) > 0:
             service_data[ATTR_TARGET] = addresses
             # default to SMTP platform default recipients if no explicit addresses
-            
+
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
 
         if not template or not self.template_path:
             if footer and service_data.get(ATTR_MESSAGE):
-                service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
+                service_data[ATTR_MESSAGE] = "%s\n\n%s" % (
+                    service_data[ATTR_MESSAGE], footer)
 
             image_path = await notification.grab_image()
-            if image_path: 
+            if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
             if notification.message_html:
@@ -82,10 +85,9 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data["data"]["html"] = notification.message_html
         else:
             html = self.render_template(
-                template, service_data[ATTR_TITLE],
-                service_data[ATTR_MESSAGE],
-                scenarios,
-                notification.priority, 
+                template,
+                notification,
+                service_data,
                 snapshot_url,
                 notification.message_html)
             if html:
@@ -93,23 +95,16 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data["data"]["html"] = html
         return await self.call_service(config.get(CONF_SERVICE), service_data)
 
-    def render_template(self, template, title, message, scenarios, 
-                        priority, snapshot_url, preformatted_html):
+    def render_template(self, template, notification, service_data, snapshot_url, preformatted_html):
         alert = {}
         try:
-            alert = {"title": title,
-                     "message": message,
+            alert = {"message": service_data.get(ATTR_MESSAGE),
+                     "title": service_data.get(ATTR_TITLE),
+                     "notification": notification,
                      "subheading": "Home Assistant Notification",
-                     "site": self.context.hass_name,
-                     "priority": priority,
-                     "scenarios": scenarios,
-                     "preformatted_html":preformatted_html,
+                     "configuration": self.context,
+                     "preformatted_html": preformatted_html,
                      "img": None,
-                     "server": {
-                         "url": self.context.hass_external_url,
-                         "name":  "Home Assistant"
-
-                     }
                      }
             if snapshot_url:
                 alert["img"] = {

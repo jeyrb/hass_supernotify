@@ -20,6 +20,7 @@ from custom_components.supernotify.common import safe_get, ensure_list
 
 from . import (
     CONF_CAMERA,
+    CONF_DATA,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
     CONF_MOBILE_DEVICES,
@@ -150,6 +151,7 @@ class SupernotificationConfiguration:
                 self.set_method_default(dc, CONF_SERVICE)
                 self.set_method_default(dc, CONF_TARGET)
                 self.set_method_default(dc, CONF_ENTITIES)
+                self.set_method_default(dc, CONF_DATA)
 
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])

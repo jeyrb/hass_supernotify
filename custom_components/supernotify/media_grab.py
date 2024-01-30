@@ -4,8 +4,9 @@ import logging
 from aiohttp import ClientTimeout
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.const import STATE_HOME
+from PIL import Image
 import time
-
+import io
 import os
 import os.path
 
@@ -40,14 +41,20 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
             elif r.content_type == "image/gif":
                 media_ext = "gif"
             else:
+                _LOGGER.info(
+                    "SUPERNOTIFY Unexpected MIME type %s from snap of %s", r.content_type, image_url)
                 media_ext = "img"
+
+            # TODO configure image rewrite
             image_path = os.path.join(
                 media_dir, '%s.%s' % (notification_id, media_ext))
-            with open(image_path, 'wb') as img_file:
-                img_file.write(await r.content.read())
-                img_file.close()
-                _LOGGER.debug(
-                    'SUPERNOTIFY Fetched image from %s to %s', image_url, image_path)
+            image = Image.open(io.BytesIO(await r.content.read()))
+            # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
+            clean_image = Image.new(image.mode, image.size)
+            clean_image.putdata(image.getdata())
+            clean_image.save(image_path)
+            _LOGGER.debug(
+                'SUPERNOTIFY Fetched image from %s to %s', image_url, image_path)
             return image_path
     except Exception as e:
         _LOGGER.error('SUPERNOTIFY Image snap fail: %s', e)
@@ -123,8 +130,8 @@ async def select_avail_camera(hass, cameras, camera_entity_id):
             alt_cams_with_tracker = [cameras[c] for c in preferred_cam.get(
                 CONF_ALT_CAMERA, []) if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)]
             for alt_cam in alt_cams_with_tracker:
-                alt_cam_state = hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER))
-                x=alt_cam_state.state
+                alt_cam_state = hass.states.get(
+                    alt_cam.get(CONF_DEVICE_TRACKER))
                 if alt_cam_state.state == STATE_HOME:
                     avail_camera_entity_id = alt_cam[CONF_CAMERA]
                     _LOGGER.info("SUPERNOTIFY Selecting available camera %s rather than %s",

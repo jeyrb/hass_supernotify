@@ -6,6 +6,8 @@ from pytest_httpserver import BlockingHTTPServer
 import os.path
 import tempfile
 import io
+from PIL import Image
+from PIL import ImageChops
 
 
 from custom_components.supernotify.media_grab import select_avail_camera, snap_camera, snapshot_from_url
@@ -17,15 +19,18 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, httpserver_ipv4: 
 
     original_image_path = os.path.join(
         "tests", "supernotify", "fixtures", "media", "example_image.png")
-    original_image = io.FileIO(original_image_path, "rb").readall()
+    original_binary = io.FileIO(original_image_path, "rb").readall()
     snapshot_url = httpserver_ipv4.url_for("/snapshot_image")
     httpserver_ipv4.expect_request(
-        "/snapshot_image").respond_with_data(original_image, content_type="image/png")
+        "/snapshot_image").respond_with_data(original_binary, content_type="image/png")
     retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1", media_path, None)
 
     assert retrieved_image_path is not None
-    retrieved_image = io.FileIO(retrieved_image_path, "rb").readall()
-    assert retrieved_image == original_image
+    retrieved_image = Image.open(retrieved_image_path)
+    original_image = Image.open(original_image_path)
+    assert retrieved_image.size == original_image.size
+    diff = ImageChops.difference(retrieved_image, original_image)
+    assert diff.getbbox() is None
 
 
 @pytest.mark.enable_socket
