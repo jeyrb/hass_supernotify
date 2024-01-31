@@ -75,6 +75,7 @@ CONF_MQTT_TOPIC = "mqtt_topic"
 CONF_CLIP_URL = "clip_url"
 CONF_SNAPSHOT_URL = "snapshot_url"
 CONF_PTZ_DELAY = "ptz_delay"
+CONF_PTZ_METHOD = "ptz_method"
 CONF_PTZ_PRESET_DEFAULT = "ptz_default_preset"
 CONF_ALT_CAMERA = "alt_camera"
 CONF_CAMERAS = "cameras"
@@ -114,6 +115,9 @@ DELIVERY_SELECTION_FIXED = "fixed"
 
 DELIVERY_SELECTION_VALUES = [DELIVERY_SELECTION_EXPLICIT,
                              DELIVERY_SELECTION_FIXED, DELIVERY_SELECTION_IMPLICIT]
+PTZ_METHOD_ONVIF = "onvif"
+PTZ_METHOD_FRIGATE = "frigate"
+PTZ_METHOD_VALUES = [PTZ_METHOD_ONVIF, PTZ_METHOD_FRIGATE]
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
@@ -202,7 +206,8 @@ CAMERA_SCHEMA = vol.Schema({
     vol.Optional(CONF_URL): cv.url,
     vol.Optional(CONF_DEVICE_TRACKER): cv.entity_id,
     vol.Optional(CONF_PTZ_PRESET_DEFAULT, default=1): vol.Any(cv.positive_int, cv.string),
-    vol.Optional(CONF_PTZ_DELAY, default=0): int
+    vol.Optional(CONF_PTZ_DELAY, default=0): int,
+    vol.Optional(CONF_PTZ_METHOD, default=PTZ_METHOD_ONVIF): vol.In(PTZ_METHOD_VALUES)
 })
 MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_ENTITY_ID): cv.entity_id,

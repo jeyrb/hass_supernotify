@@ -8,7 +8,7 @@ from custom_components.supernotify.common import safe_extend
 from homeassistant.components.notify import (
     ATTR_TARGET,
 )
-from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snapshot_from_url
+from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snap_image, snapshot_from_url
 from homeassistant.const import (
     CONF_ENABLED,
     CONF_ENTITIES,
@@ -36,6 +36,7 @@ from . import (
     CONF_OCCUPANCY,
     CONF_PERSON,
     CONF_PTZ_DELAY,
+    CONF_PTZ_METHOD,
     CONF_PTZ_PRESET_DEFAULT,
     CONF_RECIPIENTS,
     CONF_SELECTION,
@@ -272,6 +273,9 @@ class Notification:
             image_path = await snapshot_from_url(self.context.hass, snapshot_url,
                                                  self.id, self.context.media_path,
                                                  self.context.hass_internal_url)
+        elif camera_entity_id and camera_entity_id.startswith("image."):
+            image_path = await snap_image(self.context.hass, camera_entity_id,
+                                          self.context.media_path, self.id)
         elif camera_entity_id:
             active_camera_entity_id = await select_avail_camera(self.context.hass,
                                                                 self.context.cameras,
@@ -283,19 +287,26 @@ class Notification:
                     ATTR_MEDIA_CAMERA_DELAY, camera_config.get(CONF_PTZ_DELAY))
                 camera_ptz_preset_default = camera_config.get(
                     CONF_PTZ_PRESET_DEFAULT)
+                camera_ptz_method = camera_config.get(CONF_PTZ_METHOD)
                 camera_ptz_preset = self.media.get(
                     ATTR_MEDIA_CAMERA_PTZ_PRESET)
                 _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id,
                               camera_ptz_preset, camera_ptz_preset_default, camera_delay)
                 if camera_ptz_preset:
-                    await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset)
+                    await move_camera_to_ptz_preset(self.context.hass, 
+                                                    active_camera_entity_id, 
+                                                    camera_ptz_preset,
+                                                    method=camera_ptz_method)
                 if camera_delay:
                     await asyncio.sleep(camera_delay)
                 image_path = await snap_camera(self.context.hass,
                                                active_camera_entity_id,
                                                self.context.media_path)
                 if camera_ptz_preset and camera_ptz_preset_default:
-                    await move_camera_to_ptz_preset(self.context.hass, active_camera_entity_id, camera_ptz_preset_default)
+                    await move_camera_to_ptz_preset(self.context.hass, 
+                                                    active_camera_entity_id,
+                                                    camera_ptz_preset_default,
+                                                    method=camera_ptz_method)
         elif mqtt_topic:
             pass
 

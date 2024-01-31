@@ -10,7 +10,7 @@ from PIL import Image
 from PIL import ImageChops
 
 
-from custom_components.supernotify.media_grab import select_avail_camera, snap_camera, snapshot_from_url
+from custom_components.supernotify.media_grab import select_avail_camera, snap_camera, snap_image, snapshot_from_url
 
 
 @pytest.mark.enable_socket
@@ -110,3 +110,7 @@ async def test_select_untracked_alt_camera() -> None:
                                             "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
                                             },
                                      "camera.tracked") == "camera.alt3"
+
+async def test_image_snapshot(hass: HomeAssistant) -> None:
+    image_path = await snap_image(hass, "image.doorbell_person_snapshot", ".", "123")
+    print(image_path)

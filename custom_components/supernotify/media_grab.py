@@ -1,16 +1,23 @@
 import asyncio
-from http import HTTPStatus
-import logging
-from aiohttp import ClientTimeout
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.const import STATE_HOME
-from PIL import Image
-import time
 import io
+import logging
 import os
 import os.path
+import time
+from http import HTTPStatus
 
-from custom_components.supernotify import CONF_ALT_CAMERA, CONF_CAMERA, CONF_DEVICE_TRACKER
+from aiohttp import ClientTimeout
+from homeassistant.const import STATE_HOME
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from PIL import Image
+
+from custom_components.supernotify import (
+    CONF_ALT_CAMERA,
+    CONF_CAMERA,
+    CONF_DEVICE_TRACKER,
+    PTZ_METHOD_FRIGATE,
+    PTZ_METHOD_ONVIF,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,24 +67,50 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
         _LOGGER.error('SUPERNOTIFY Image snap fail: %s', e)
 
 
-async def move_camera_to_ptz_preset(hass, camera_entity_id, preset):
+async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, method=PTZ_METHOD_ONVIF):
     try:
         _LOGGER.info("SUPERNOTIFY Executing PTZ to %s for %s",
                      preset, camera_entity_id)
-        await hass.services.async_call("onvif", "ptz",
-                                       service_data={
-                                                "move_mode": 'GotoPreset',
-                                                "entity_id": camera_entity_id,
-                                                "preset": preset
-                                       }
-                                       )
+        if method == PTZ_METHOD_FRIGATE:
+            await hass.services.async_call("frigate", "ptz",
+                                           service_data={
+                                               "action": 'preset',
+                                               "argument": preset
+                                           },
+                                           target={
+                                               "entity_id": camera_entity_id,
+                                           }
+                                           )
+        elif method == PTZ_METHOD_ONVIF:
+            await hass.services.async_call("onvif", "ptz",
+                                           service_data={
+                                               "move_mode": 'GotoPreset',
+                                               "preset": preset
+                                           },
+                                           target={
+                                               "entity_id": camera_entity_id,
+                                           }
+                                           )
+        else:
+            _LOGGER.warning("SUPERNOTIFY Unknown PTZ method %s", method)
     except Exception as e:
         _LOGGER.warning(
             "SUPERNOTIFY Unable to move %s to ptz preset %s: %s", camera_entity_id, preset, e)
 
 
-async def snap_mqtt_topic(topic):
-    pass
+async def snap_image(hass, entity_id, media_path, notification_id):
+    ''' Use for any image, including MQTT Image '''
+    image_path = None
+
+    image_entity = hass.states.get(entity_id)
+    if image_entity:
+        image = Image.open(io.BytesIO(image_entity.image))
+        media_dir = os.path.join(media_path, "image")
+        media_ext = image.format.lower()
+        image_path = os.path.join(
+            media_dir, '%s.%s' % (notification_id, media_ext))
+        image.save(image_path)
+    return image_path
 
 
 async def snap_camera(hass, camera_entity_id, media_path=None, timeout=20):
