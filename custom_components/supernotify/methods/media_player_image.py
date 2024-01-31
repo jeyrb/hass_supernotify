@@ -2,11 +2,9 @@ import logging
 import re
 
 from custom_components.supernotify import (
-    CONF_OVERRIDE_BASE,
-    CONF_OVERRIDE_REPLACE,
-    CONF_OVERRIDES,
     METHOD_MEDIA,
 )
+import urllib.parse
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
@@ -46,14 +44,9 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         if snapshot_url is None:
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
             return False
-
-        override_config = config.get(CONF_OVERRIDES, {}).get("image_url")
-        if override_config:
-            new_url = snapshot_url.replace(
-                override_config[CONF_OVERRIDE_BASE], override_config[CONF_OVERRIDE_REPLACE])
-            _LOGGER.debug(
-                "SUPERNOTIFY Overriding image url from %s to %s", snapshot_url, new_url)
-            snapshot_url = new_url
+        else:
+            # absolutize relative URL for external URl, probably preferred by Alexa Show etc
+            snapshot_url=urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
 
         service_data = {
             "media_content_id": snapshot_url,

@@ -57,7 +57,6 @@ class SupernotificationConfiguration:
                  mobile_actions=None,
                  template_path=None,
                  media_path=None,
-                 overrides=None,
                  scenarios=None,
                  method_defaults=None,
                  cameras=None):
@@ -99,7 +98,6 @@ class SupernotificationConfiguration:
         self.methods = {}
         self.method_defaults = method_defaults or {}
         self.scenarios = {}
-        self.overrides = overrides or {}
         self.people = {}
         self.configured_scenarios = scenarios or {}
         self.delivery_by_scenario = {}

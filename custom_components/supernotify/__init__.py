@@ -45,9 +45,6 @@ CONF_PERSON = "person"
 CONF_METHOD = "method"
 CONF_METHODS = "methods"
 CONF_DELIVERY = "delivery"
-CONF_OVERRIDES = "overrides"
-CONF_OVERRIDE_BASE = "base"
-CONF_OVERRIDE_REPLACE = "replace"
 CONF_SELECTION = "selection"
 
 CONF_DATA = "data"
@@ -193,7 +190,7 @@ RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_EMAIL): vol.Email(),
-    vol.Optional(CONF_TARGET): cv.string,
+    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_PHONE_NUMBER): cv.string,
     vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
     vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
@@ -246,10 +243,7 @@ SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}
 })
-OVERRIDE_SCHEMA = vol.Schema({
-    vol.Required(CONF_OVERRIDE_BASE): cv.string,
-    vol.Required(CONF_OVERRIDE_REPLACE): cv.string
-})
+
 PUSH_ACTION_SCHEMA = vol.Schema({
     vol.Exclusive(CONF_ACTION, CONF_ACTION_TEMPLATE): cv.string,
     vol.Exclusive(CONF_TITLE, CONF_TITLE_TEMPLATE): cv.string,
@@ -269,7 +263,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_LINKS, default=[]):
             vol.All(cv.ensure_list, [LINK_SCHEMA]),
         vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
-        vol.Optional(CONF_OVERRIDES, default={}): {cv.string: OVERRIDE_SCHEMA},
         vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA},
         vol.Optional(CONF_CAMERAS, default=[]): vol.All(cv.ensure_list, [CAMERA_SCHEMA])
     }

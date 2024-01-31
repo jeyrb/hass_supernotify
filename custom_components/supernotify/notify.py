@@ -22,7 +22,6 @@ from . import (
     CONF_LINKS,
     CONF_MEDIA_PATH,
     CONF_METHODS,
-    CONF_OVERRIDES,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
     CONF_TEMPLATE_PATH,
@@ -78,7 +77,6 @@ async def async_get_service(
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
-            CONF_OVERRIDES: config.get(CONF_OVERRIDES, {}),
             CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_CAMERAS: config.get(CONF_CAMERAS, {})
         },
@@ -96,7 +94,6 @@ async def async_get_service(
         mobile_actions=config[CONF_ACTIONS],
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
-        overrides=config[CONF_OVERRIDES],
         method_defaults=config[CONF_METHODS],
         cameras=config[CONF_CAMERAS]
     )
@@ -146,7 +143,6 @@ class SuperNotificationService(BaseNotificationService):
         mobile_actions=None,
         scenarios=None,
         links=(),
-        overrides=None,
         method_defaults={},
         cameras=None
     ):
@@ -161,7 +157,6 @@ class SuperNotificationService(BaseNotificationService):
             mobile_actions,
             template_path,
             media_path,
-            overrides,
             scenarios,
             method_defaults,
             cameras)
