@@ -214,10 +214,11 @@ class Notification:
         # now the list of recipients determined, resolve this to target addresses or entities
         default_targets = []
         custom_targets = []
+        default_data = delivery_config.get(CONF_DATA)
         for recipient in recipients:
             recipient_targets = []
             enabled = True
-            custom_data = {}
+            custom_data = default_data or {}
             # reuse standard recipient attributes like email or phone
             safe_extend(recipient_targets,
                         method.recipient_target(recipient))
@@ -240,7 +241,7 @@ class Notification:
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_targets = custom_targets + [(default_targets, None)]
+        bundled_targets = custom_targets + [(default_targets, default_data)]
         filtered_bundles = []
         for targets, custom_data in bundled_targets:
             pre_filter_count = len(targets)
@@ -256,7 +257,7 @@ class Notification:
                 filtered_bundles.append((targets, custom_data))
         if not filtered_bundles:
             # not all delivery methods require explicit targets, or can default them internally
-            filtered_bundles = [([], None)]
+            filtered_bundles = [([], default_data)]
         return filtered_bundles
 
     async def grab_image(self):
@@ -293,8 +294,8 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY snapping camera %s, ptz %s->%s, delay %s secs", active_camera_entity_id,
                               camera_ptz_preset, camera_ptz_preset_default, camera_delay)
                 if camera_ptz_preset:
-                    await move_camera_to_ptz_preset(self.context.hass, 
-                                                    active_camera_entity_id, 
+                    await move_camera_to_ptz_preset(self.context.hass,
+                                                    active_camera_entity_id,
                                                     camera_ptz_preset,
                                                     method=camera_ptz_method)
                 if camera_delay:
@@ -303,7 +304,7 @@ class Notification:
                                                active_camera_entity_id,
                                                self.context.media_path)
                 if camera_ptz_preset and camera_ptz_preset_default:
-                    await move_camera_to_ptz_preset(self.context.hass, 
+                    await move_camera_to_ptz_preset(self.context.hass,
                                                     active_camera_entity_id,
                                                     camera_ptz_preset_default,
                                                     method=camera_ptz_method)

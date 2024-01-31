@@ -2,11 +2,12 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA
+from homeassistant.components.group import expand_entity_ids
 from custom_components.supernotify import METHOD_CHIME
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
-RE_VALID_CHIME = r"(switch|script|media_player)\.[A-Za-z0-9_]+"
+RE_VALID_CHIME = r"(switch|script|group|media_player)\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,13 +33,15 @@ class ChimeDeliveryMethod(DeliveryMethod):
         data = data or {}
         targets = targets or []
 
-        chime_repeat = data.get("chime_repeat", 1)
-        chime_interval = data.get("chime_interval", 3)
-        chime_tune = data.get("chime_tune")
-        data = data or {}
+        chime_repeat = data.pop("chime_repeat", 1)
+        chime_interval = data.pop("chime_interval", 3)
+        chime_tune = data.pop("chime_tune",None)
+
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
         calls = 0
-        for chime_entity_id in targets:
+        expanded_targets = expand_entity_ids(self.hass, targets)
+        
+        for chime_entity_id in expanded_targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
             service_data = {}
             try:
@@ -51,9 +54,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 elif domain == "script":
                     service = name
                     if data:
+                        service_data.setdefault(ATTR_DATA, {})
                         service_data[ATTR_DATA] = data
                 elif domain == "media_player":
                     service = "play_media"
+                    service_data.setdefault(ATTR_DATA, {})
                     service_data[ATTR_DATA]["media_content_type"] = "sound"
                     service_data[ATTR_DATA]["media_content_id"] = chime_tune
                     if data:

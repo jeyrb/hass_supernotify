@@ -95,7 +95,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert "expensive_api_call" in uut.context.deliveries
     assert "expensive_api_call" not in uut.context.delivery_by_scenario[SCENARIO_DEFAULT]
 
-    assert len(uut.context.deliveries) == 11
+    assert len(uut.context.deliveries) == 12
 
 
 async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:

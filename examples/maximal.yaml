@@ -62,6 +62,16 @@ notify:
           - switch.chime_sax
           - media_player.echo_lobby
         occupancy: any_in
+      alexa_red_alert:
+        method: generic
+        service: notify.alexa
+        selection: scenario
+        message: <audio src="soundbank://soundlibrary/home/scifi/amzn_sfx_scifi_alarm_04"/>
+        data:
+          media_content_type: tts
+        priority: critical
+        target: group.alexa_devices
+ 
       doorbell_chime_alexa:
         method: chime
         target:
@@ -78,6 +88,7 @@ notify:
           payload: '{"warning": {"duration": 30, "mode": "emergency", "strobe": true }}'
       sleigh_bells:
         method: chime
+        alias: Xmas
         target:
           - media_player.echo_lobby
         data:
