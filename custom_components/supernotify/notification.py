@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import logging
 import voluptuous as vol
 from homeassistant.components.notify import (
@@ -160,16 +161,6 @@ class Notification:
                 scenarios.append(scenario.name)
         return scenarios
 
-    def core_service_data(self, delivery_name):
-        data = {}
-        message = self.message(delivery_name)
-        title = self.title(delivery_name)
-        if message:
-            data[CONF_MESSAGE] = message
-        if title:
-            data[CONF_TITLE] = title
-        return data
-
     def merge(self, attribute, delivery_name):
         delivery = self.delivery_overrides.get(delivery_name, {})
         base = delivery.get(attribute, {})
@@ -183,6 +174,7 @@ class Notification:
         return base
 
     def build_targets(self, delivery_config, method):
+        delivery_name = delivery_config.get(CONF_NAME)
 
         recipients = []
         if self.target:
@@ -225,7 +217,7 @@ class Notification:
 
         # now the list of recipients determined, resolve this to target addresses or entities
         default_targets = []
-        custom_targets = []
+        custom_envelopes = []
         default_data = delivery_config.get(CONF_DATA)
         for recipient in recipients:
             recipient_targets = []
@@ -249,16 +241,19 @@ class Notification:
                 safe_extend(default_targets, recipient.get(ATTR_TARGET))
             if enabled:
                 if custom_data:
-                    custom_targets.append((recipient_targets, custom_data))
+                    custom_envelopes.append(
+                        Envelope(delivery_name, self, recipient_targets, custom_data))
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_targets = custom_targets + [(default_targets, default_data)]
-        filtered_bundles = []
-        for targets, custom_data in bundled_targets:
-            pre_filter_count = len(targets)
-            _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s", targets)
-            targets = [t for t in targets if method.select_target(t)]
+        bundled_envelopes = custom_envelopes + \
+            [Envelope(delivery_name, self, default_targets, default_data)]
+        filtered_envelopes = []
+        for envelope in bundled_envelopes:
+            pre_filter_count = len(envelope.targets)
+            _LOGGER.debug("SUPERNOTIFY Prefiltered targets: %s",
+                          envelope.targets)
+            targets = [t for t in envelope.targets if method.select_target(t)]
             if len(targets) < pre_filter_count:
                 _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", method.method,
                               pre_filter_count-len(targets), targets)
@@ -266,11 +261,13 @@ class Notification:
                 _LOGGER.info(
                     "SUPERNOTIFY %s No targets resolved", method.method)
             else:
-                filtered_bundles.append((targets, custom_data))
-        if not filtered_bundles:
+                envelope.targets=targets
+                filtered_envelopes.append(envelope)
+        if not filtered_envelopes:
             # not all delivery methods require explicit targets, or can default them internally
-            filtered_bundles = [([], default_data)]
-        return filtered_bundles
+            filtered_envelopes = [
+                Envelope(delivery_name, self, data=default_data)]
+        return filtered_envelopes
 
     async def grab_image(self, delivery_name):
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
@@ -334,3 +331,39 @@ class Notification:
                             snapshot_url, camera_entity_id)
         else:
             return image_path
+
+
+class Envelope:
+    '''
+    Wrap a notification with a specific set of targets and service data possibly customized for those targets
+    '''
+
+    def __init__(self, delivery_name, notification, targets=None, data=None):
+        self.targets = targets or []
+        self.delivery_name = delivery_name
+        self.notification = notification
+        self.message = notification.message(delivery_name)
+        self.title = notification.title(delivery_name)
+        delivery_config_data = notification.delivery_data(delivery_name)
+        if data:
+            self.data = copy.deepcopy(
+                delivery_config_data) if delivery_config_data else {}
+            self.data |= data
+        else:
+            self.data = delivery_config_data
+        self.delivered = False
+        self.error = None
+
+    def core_service_data(self):
+        data = {}
+        if self.message:
+            data[CONF_MESSAGE] = self.message
+        if self.title:
+            data[CONF_TITLE] = self.title
+        return data
+
+    def __eq__(self, other):
+        if not isinstance(other, Envelope):
+            return False
+        return self.targets == other.targets and self.delivery_name == other.delivery_name \
+                and self.data == other.data and self.notification == other.notification

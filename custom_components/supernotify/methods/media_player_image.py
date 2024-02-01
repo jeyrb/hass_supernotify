@@ -8,6 +8,8 @@ import urllib.parse
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
+from custom_components.supernotify.notification import Envelope
+
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,17 +27,13 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is None or service == 'media_player.play_media'
 
-    async def _delivery_impl(self,
-                             notification,
-                             delivery,
-                             targets=None,
-                             data=None,
-                             **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_media: %s", data)
+    async def _delivery_impl(self, envelope: Envelope) -> None:
+
+        _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
         config = self.context.deliveries.get(
-            delivery) or self.default_delivery or {}
-        data = data or {}
-        media_players = targets or []
+            envelope.delivery_name) or self.default_delivery or {}
+        data = envelope.data or {}
+        media_players = envelope.targets or []
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping media show, no targets")
             return False
@@ -46,7 +44,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             return False
         else:
             # absolutize relative URL for external URl, probably preferred by Alexa Show etc
-            snapshot_url=urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
+            snapshot_url = urllib.parse.urljoin(
+                self.context.hass_external_url, snapshot_url)
 
         service_data = {
             "media_content_id": snapshot_url,
@@ -56,4 +55,5 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data["extra"] = data.get("data")
 
-        return await self.call_service(config.get(CONF_SERVICE, "media_player.play_media"), service_data)
+        if await self.call_service(config.get(CONF_SERVICE, "media_player.play_media"), service_data):
+            envelope.delivered = True

@@ -20,6 +20,7 @@ from custom_components.supernotify import (
     PRIORITY_MEDIUM
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.notification import Envelope
 
 RE_VALID_MOBILE_APP = r"mobile_app_[A-Za-z0-9_]+"
 
@@ -46,14 +47,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         else:
             return []
 
-    async def _delivery_impl(self,
-                             notification,
-                             delivery,
-                             targets=None,
-                             data=None,
-                             **kwargs) -> bool:
+    async def _delivery_impl(self, envelope: Envelope) -> None:
 
-        data = data or {}
+        data = envelope.data or {}
         app_url = self.abs_url(data.get(ATTR_ACTION_URL))
         app_url_title = data.get(ATTR_ACTION_URL_TITLE)
         
@@ -61,26 +57,26 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         action_groups = data.get(ATTR_ACTION_GROUPS)
 
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s",
-                     notification.title(delivery), targets)
+                     envelope.title, envelope.targets)
 
         data = data and data.get(ATTR_DATA) or {}
-        media = notification.media or {}
+        media = envelope.notification.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
         snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
         
-        if notification.priority == PRIORITY_CRITICAL:
+        if envelope.notification.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
-        elif notification.priority == PRIORITY_HIGH:
+        elif envelope.notification.priority == PRIORITY_HIGH:
             push_priority = "time-sensitive"
-        elif notification.priority == PRIORITY_MEDIUM:
+        elif envelope.notification.priority == PRIORITY_MEDIUM:
             push_priority = "active"
-        elif notification.priority == PRIORITY_LOW:
+        elif envelope.notification.priority == PRIORITY_LOW:
             push_priority = "passive"
         else:
             push_priority = "active"
             _LOGGER.warning("SUPERNOTIFY Unexpected priority %s",
-                            notification.priority)
+                            envelope.notification.priority)
 
         data.setdefault("actions", [])
         data.setdefault("push", {})
@@ -114,11 +110,11 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         for group, actions in self.context.mobile_actions.items():
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
-        service_data = notification.core_service_data(delivery)
+        service_data = envelope.core_service_data()
         service_data[ATTR_DATA] = data
 
         calls = 0
-        for mobile_target in targets:
+        for mobile_target in envelope.targets:
             try:
                 _LOGGER.debug("SUPERNOTIFY notify/%s %s",
                               mobile_target, service_data)
@@ -129,7 +125,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                 _LOGGER.error(
                     "SUPERNOTIFY Mobile push failure (d=%s): %s", service_data, e)
         _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s", service_data)
-        return calls > 0
+        if calls > 0:
+            envelope.delivered = True
 
 
 '''

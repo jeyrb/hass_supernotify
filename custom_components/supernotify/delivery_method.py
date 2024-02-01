@@ -1,4 +1,3 @@
-import copy
 import logging
 from abc import abstractmethod
 from homeassistant.const import (
@@ -17,7 +16,7 @@ from . import (
     CONF_PRIORITY,
     RESERVED_DELIVERY_NAMES,
 )
-from .notification import Notification
+from .notification import Envelope, Notification
 from .configuration import SupernotificationConfiguration
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +98,6 @@ class DeliveryMethod:
         """
         delivery_config = self.context.deliveries.get(
             delivery) or self.default_delivery or {}
-        data = notification.delivery_data(delivery_config.get(CONF_NAME))
 
         delivery_priorities = delivery_config.get(CONF_PRIORITY) or ()
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
@@ -111,27 +109,17 @@ class DeliveryMethod:
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             return False
 
-        target_bundles = notification.build_targets(delivery_config, self)
+        envelopes = notification.build_targets(delivery_config, self)
         deliveries = 0
-        for targets, custom_data in target_bundles:
-            if custom_data:
-                target_data = copy.deepcopy(data) if data else {}
-                target_data |= custom_data
-            else:
-                target_data = data
-            success = await self._delivery_impl(notification,
-                                                delivery,
-                                                targets=targets,
-                                                data=target_data)
-            if success:
+        for envelope in envelopes:
+            await self._delivery_impl(envelope)
+            if envelope.delivered:
                 deliveries += 1
         return deliveries > 0
 
     @abstractmethod
-    async def _delivery_impl(message=None, title=None,
-                             targets=None, priority=None,
-                             scenarios=None, data=None, config=None) -> bool:
-        return False
+    async def _delivery_impl(envelope: Envelope) -> None:
+        pass
 
     def select_target(self, target):
         ''' Confirm if target appropriate for this delivery method '''

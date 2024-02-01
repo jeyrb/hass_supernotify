@@ -50,6 +50,7 @@ async def test_deliver_to_group() -> None:
     hass.services.async_call.assert_any_call("switch", "turn_on", service_data={
         "entity_id": "switch.bell_1"})
     hass.services.async_call.assert_any_call("media_player", "play_media",
-                                             service_data={'media_content_type': 'sound',
+                                             service_data={'entity_id': 'media_player.alexa_1',
+                                                           'media_content_type': 'sound',
                                                            'media_content_id': "dive_dive_dive"}
                                              )

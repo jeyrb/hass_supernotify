@@ -6,7 +6,7 @@ from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notification import Envelope, Notification
 
 from .doubles_lib import DummyDeliveryMethod
 
@@ -41,9 +41,9 @@ async def test_default_recipients() -> None:
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     uut = DummyDeliveryMethod(hass, context, {})
-    await uut.deliver(Notification(context))
-    assert uut.test_calls == [
-        [None, None, None, ['dummy.new_home_owner', 'dummy.bidey_in'], {}]]
+    notification = Notification(context)
+    await uut.deliver(notification)
+    assert uut.test_calls == [Envelope(None, notification, targets=['dummy.new_home_owner', 'dummy.bidey_in'])]
 
 
 async def test_default_recipients_with_override() -> None:
@@ -52,10 +52,11 @@ async def test_default_recipients_with_override() -> None:
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     uut = DummyDeliveryMethod(hass, context, {})
-    await uut.deliver(Notification(context, None,
-                                   service_data={CONF_RECIPIENTS: ["person.new_home_owner"]}))
-    assert uut.test_calls == [
-        [None, None, None, ['dummy.new_home_owner'], {}]]
+    notification=Notification(context, None,
+                                   service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
+    await uut.deliver(notification)
+    assert uut.test_calls == [Envelope(None, notification, targets=['dummy.new_home_owner'])]
+
 
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:

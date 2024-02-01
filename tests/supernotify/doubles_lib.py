@@ -3,6 +3,7 @@ from homeassistant.core import callback
 
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
 from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.notification import Envelope
 
 
 class DummyDeliveryMethod(DeliveryMethod):
@@ -19,11 +20,8 @@ class DummyDeliveryMethod(DeliveryMethod):
     def recipient_target(self, recipient):
         return [recipient.get(CONF_PERSON).replace('person.', 'dummy.')] if recipient else []
 
-    async def _delivery_impl(self, notification, delivery, targets, data) -> bool:
-        self.test_calls.append(
-            [notification.message(delivery), notification.title(delivery),
-             delivery, targets, data])
-        return True
+    async def _delivery_impl(self, envelope: Envelope) -> None:
+        self.test_calls.append(envelope)
 
 
 class MockService(homeassistant.components.notify.BaseNotificationService):

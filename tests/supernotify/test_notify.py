@@ -9,6 +9,8 @@ from homeassistant.const import (
     CONF_STATE,
 )
 from pytest_unordered import unordered
+
+from custom_components.supernotify.notification import Envelope
 from .doubles_lib import DummyDeliveryMethod
 from homeassistant.core import HomeAssistant, callback
 from custom_components.supernotify import (
@@ -126,11 +128,11 @@ async def test_recipient_delivery_data_override() -> None:
                                          "pigeon": {},
                                          "dummy": {}
                                      }})
-    assert dummy.test_calls == unordered([
-        ['testing 123', 'test_title', 'dummy', ['dummy.bidey_in', 'abc789'], {}],
-        ['testing 123', 'test_title', 'dummy', [
-            'dummy.new_home_owner', 'xyz123'], {'emoji_id': 912393}]
-    ])
+    assert len(dummy.test_calls) == 2
+    assert dummy.test_calls == [
+        Envelope('dummy', uut.last_notification, targets=['dummy.new_home_owner', 'xyz123'], data={'emoji_id': 912393}),
+        Envelope('dummy', uut.last_notification, targets=['dummy.bidey_in', 'abc789'])
+    ]
 
 
 async def test_null_delivery() -> None:

@@ -7,8 +7,9 @@ from jinja2 import Environment, FileSystemLoader
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import CONF_EMAIL, CONF_SERVICE
 
-from custom_components.supernotify import ATTR_MESSAGE_HTML, CONF_TEMPLATE, METHOD_EMAIL
+from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.notification import Envelope
 
 RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
 
@@ -41,28 +42,23 @@ class EmailDeliveryMethod(DeliveryMethod):
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
-    async def _delivery_impl(self,
-                             notification,
-                             delivery,
-                             targets=None,
-                             data=None,
-                             **kwargs) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", delivery, targets)
+    async def _delivery_impl(self, envelope: Envelope):
+        _LOGGER.info("SUPERNOTIFY notify_email: %s %s",
+                     envelope.delivery_name, envelope.targets)
         config = self.context.deliveries.get(
-            delivery) or self.default_delivery or {}
+            envelope.delivery_name) or self.default_delivery or {}
         template = config.get(CONF_TEMPLATE)
-        data = data or {}
-        scenarios = notification.delivery_scenarios(delivery) or []
+        data = envelope.data or {}
         html = data.get("html")
         template = data.get("template", config.get("template"))
-        addresses = targets or []
+        addresses = envelope.targets or []
         snapshot_url = data.get("snapshot_url")
         # TODO centralize in config
         footer_template = data.get("footer")
         footer = footer_template.format(
-            n=notification) if footer_template else None
+            n=envelope.notification) if footer_template else None
 
-        service_data = notification.core_service_data(delivery)
+        service_data = envelope.core_service_data()
 
         if len(addresses) > 0:
             service_data[ATTR_TARGET] = addresses
@@ -76,24 +72,25 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data[ATTR_MESSAGE] = "%s\n\n%s" % (
                     service_data[ATTR_MESSAGE], footer)
 
-            image_path = await notification.grab_image(delivery)
+            image_path = await envelope.notification.grab_image(envelope.delivery_name)
             if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
-            if notification.message_html:
+            if envelope.notification.message_html:
                 service_data.setdefault("data", {})
-                service_data["data"]["html"] = notification.message_html
+                service_data["data"]["html"] = envelope.notification.message_html
         else:
             html = self.render_template(
                 template,
-                notification,
+                envelope.notification,
                 service_data,
                 snapshot_url,
-                notification.message_html)
+                envelope.notification.message_html)
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
-        return await self.call_service(config.get(CONF_SERVICE), service_data)
+        if await self.call_service(config.get(CONF_SERVICE), service_data):
+            envelope.delivered = True
 
     def render_template(self, template, notification, service_data, snapshot_url, preformatted_html):
         alert = {}

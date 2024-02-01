@@ -158,7 +158,8 @@ SCENARIO_NULL = "NULL"
 RESERVED_DELIVERY_NAMES = ["ALL"]
 RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
 RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE]
-JPEG_ARG_VALUES = ["quality", "optimize", "progressive","streamtype","subsampling","keeprgb"]
+JPEG_ARG_VALUES = ["quality", "optimize", "progressive",
+                   "streamtype", "subsampling", "keeprgb"]
 
 DATA_SCHEMA = vol.Schema({
     vol.NotIn(RESERVED_DATA_KEYS): vol.Any(str, int, bool, float, dict, list)
@@ -216,7 +217,7 @@ MEDIA_SCHEMA = vol.Schema({
     # URL fragments allowed
     vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(CONF_JPEG_ARGS, default={}): {vol.In(JPEG_ARG_VALUES): vol.Any(cv.string, cv.boolean, int)} 
+    vol.Optional(CONF_JPEG_ARGS, default={}): {vol.In(JPEG_ARG_VALUES): vol.Any(cv.string, cv.boolean, int)}
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,

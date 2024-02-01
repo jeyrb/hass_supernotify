@@ -1,8 +1,14 @@
 import logging
 
-from custom_components.supernotify import CONF_DATA, CONF_MESSAGE, CONF_NOTIFY, CONF_TITLE, METHOD_GENERIC, CONF_TARGET
-from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
+
+from custom_components.supernotify import (
+    CONF_DATA,
+    CONF_TARGET,
+    METHOD_GENERIC,
+)
+from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.notification import Envelope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,20 +22,15 @@ class GenericDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is not None and "." in service
 
-    async def _delivery_impl(self,
-                             notification,
-                             delivery,
-                             data=None,
-                             targets=None,
-                             **kwargs) -> bool:
+    async def _delivery_impl(self, envelope: Envelope) -> None:
         config = self.context.deliveries.get(
-            delivery) or self.default_delivery or {}
-        data = data or {}
-        targets = targets or []
+            envelope.delivery_name) or self.default_delivery or {}
+        data = envelope.data or {}
+        targets = envelope.targets or []
 
         qualified_service = config.get(CONF_SERVICE)
         if qualified_service.startswith("notify."):
-            service_data = notification.core_service_data(delivery)
+            service_data = envelope.core_service_data()
             if targets is not None:
                 service_data[CONF_TARGET] = targets
             if data is not None:
@@ -37,4 +38,5 @@ class GenericDeliveryMethod(DeliveryMethod):
         else:
             service_data = data
 
-        return await self.call_service(qualified_service, service_data)
+        if await self.call_service(qualified_service, service_data):
+            envelope.delivered = True

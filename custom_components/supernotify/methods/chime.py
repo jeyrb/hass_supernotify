@@ -28,14 +28,9 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
 
-    async def _delivery_impl(self,
-                             notification,
-                             delivery,
-                             targets=None,
-                             data=None,
-                             **kwargs) -> bool:
-        data = data or {}
-        targets = targets or []
+    async def _delivery_impl(self, envelope) -> None:
+        data = envelope.data or {}
+        targets = envelope.targets or []
 
         chime_repeat = data.pop("chime_repeat", 1)
         chime_interval = data.pop("chime_interval", 3)
@@ -59,9 +54,9 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     service = name
                     service_data.setdefault(ATTR_VARIABLES, {})
                     self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_MESSAGE, notification.message(delivery))
+                        service_data[ATTR_VARIABLES], ATTR_MESSAGE, envelope.notification.message(envelope.delivery_name))
                     self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_TITLE, notification.title(delivery))
+                        service_data[ATTR_VARIABLES], ATTR_TITLE, envelope.notification.title(envelope.delivery_name))
                     if data:
                         service_data.update(data)
                 elif domain == "media_player":
@@ -80,4 +75,5 @@ class ChimeDeliveryMethod(DeliveryMethod):
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]",
                               chime_entity_id, service_data, e)
-        return calls > 0
+        if calls > 0:
+            envelope.delivered = True

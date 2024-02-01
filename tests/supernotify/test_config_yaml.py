@@ -24,7 +24,7 @@ SIMPLE_CONFIG = {
     "name": DOMAIN,
     "platform": DOMAIN,
     "delivery": {
-        "testing": {"method": "generic","service":"notify.mock"},
+        "testing": {"method": "generic", "service": "notify.mock"},
     },
     "recipients": [
         {
@@ -34,6 +34,7 @@ SIMPLE_CONFIG = {
         }
     ]
 }
+
 
 @pytest.fixture
 def mock_notify(hass: HomeAssistant) -> MockService:
@@ -45,9 +46,8 @@ def mock_notify(hass: HomeAssistant) -> MockService:
         supports_response=False
     )
     return mockService
-  
 
-    
+
 async def test_schema():
     assert PLATFORM_SCHEMA(SIMPLE_CONFIG)
 
@@ -185,18 +185,18 @@ async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) 
     )
     await hass.async_block_till_done()
     await async_call_from_config(hass,
-                                     {
-                                         "service": "notify.supernotify",
-                                         "data_template": """{
+                                 {
+                                     "service": "notify.supernotify",
+                                     "data_template": """{
                                              "title": "my title",
                                              "message": "unit test {{ 100+5 }}",
                                              "data": {
                                                  "priority": "{% if 3>5 %}low{% else %}high{%endif%}",
                                                  "delivery": {"email": {"data": {"footer": ""}}}}
                                             }"""
-                                         },
-                                     blocking=True
-                                     )
+                                 },
+                                 blocking=True
+                                 )
     notification = await hass.services.async_call(
         "supernotify",
         "enquire_last_notification",
@@ -206,5 +206,3 @@ async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) 
     )
     assert notification["_message"] == "unit test 105"
     assert notification["priority"] == "high"
-
-

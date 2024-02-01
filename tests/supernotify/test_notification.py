@@ -8,7 +8,7 @@ from custom_components.supernotify import (
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
-from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notification import Envelope, Notification
 from custom_components.supernotify.scenario import Scenario
 from unittest.mock import Mock, patch
 from pytest_unordered import unordered
@@ -99,11 +99,12 @@ async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssis
     generic = GenericDeliveryMethod(hass, context, delivery)
     await generic.initialize()
     bundles = uut.build_targets(delivery["chatty"], generic)
-    assert bundles == [(["chan1", "chan2"], None)]
+    assert bundles == [Envelope("chatty", uut, targets=["chan1", "chan2"])]
     email = EmailDeliveryMethod(hass, context, delivery)
     await email.initialize()
     bundles = uut.build_targets(delivery["mail"], email)
-    assert bundles == [(["bob@test.com", "jane@test.com"], None)]
+    assert bundles == [
+        Envelope("mail", uut, targets=["bob@test.com", "jane@test.com"])]
 
 
 async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:
@@ -113,7 +114,7 @@ async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:
     await method.initialize()
     uut = Notification(context, "testing 123")
     bundles = uut.build_targets({}, method)
-    assert bundles == [([], None)]
+    assert bundles == [Envelope(None, uut)]
 
 
 async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(hass: HomeAssistant) -> None:
@@ -173,4 +174,3 @@ async def test_merge():
     assert uut.merge(ATTR_MEDIA, "plain_email") == {
         'jpeg_args': {'quality': 30}, 'camera_delay': 11, 'snapshot_url': "/foo/123"}
     assert uut.merge(ATTR_DATA, "plain_email") == {}
-
