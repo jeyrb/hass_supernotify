@@ -66,6 +66,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                         service_data.update(data)
                 elif domain == "media_player":
                     service = "play_media"
+                    service_data[ATTR_ENTITY_ID] = chime_entity_id
                     service_data["media_content_type"] = "sound"
                     service_data["media_content_id"] = chime_tune
                     if data:
