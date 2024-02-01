@@ -140,6 +140,11 @@ class DeliveryMethod:
     def recipient_target(self, recipient):
         ''' Pick out delivery appropriate target from a person (recipient) config'''
         return []
+    
+    def set_service_data(self, service_data, key, data):
+        if data is not None:
+            service_data[key] = data
+        return service_data
 
     async def evaluate_delivery_conditions(self, delivery_config):
         if CONF_CONDITION not in delivery_config:

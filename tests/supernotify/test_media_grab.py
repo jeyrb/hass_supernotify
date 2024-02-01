@@ -32,6 +32,28 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, httpserver_ipv4: 
     diff = ImageChops.difference(retrieved_image, original_image)
     assert diff.getbbox() is None
 
+@pytest.mark.enable_socket
+async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+    media_path = tempfile.mkdtemp()
+
+    original_image_path = os.path.join(
+        "tests", "supernotify", "fixtures", "media", "example_image.jpg")
+    original_binary = io.FileIO(original_image_path, "rb").readall()
+    snapshot_url = httpserver_ipv4.url_for("/snapshot_image")
+    httpserver_ipv4.expect_request(
+        "/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")
+    retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1",
+                                                   media_path, None,
+                                                   jpeg_args={"quality": 30,
+                                                              "progressive": True,
+                                                              "optimize": True,
+                                                              "comment":"changed by test"})
+
+    retrieved_image = Image.open(retrieved_image_path)
+    original_image = Image.open(original_image_path)
+    assert retrieved_image.size == original_image.size
+    assert retrieved_image.info.get("comment") == b"changed by test"
+    assert retrieved_image.info.get("progressive") == 1
 
 @pytest.mark.enable_socket
 async def test_snapshot_url_with_broken_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:

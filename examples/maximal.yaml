@@ -142,6 +142,13 @@ notify:
           - media_player.studio
       
     scenarios:
+      image_tune:
+        delivery_selection: implicit
+        media:
+          jpeg_args: 
+            progressive: true
+            optimize: true
+            quality: 50
       doorbell:
         delivery_selection: implicit
         media:

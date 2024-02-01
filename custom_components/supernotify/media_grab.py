@@ -24,7 +24,8 @@ _LOGGER = logging.getLogger(__name__)
 
 async def snapshot_from_url(hass, snapshot_url, notification_id,
                             media_path, hass_base_url,
-                            timeout=15):
+                            timeout=15,
+                            jpeg_args=None):
 
     image_path = None
     hass_base_url = hass_base_url or ""
@@ -59,7 +60,10 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
             # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
             clean_image = Image.new(image.mode, image.size)
             clean_image.putdata(image.getdata())
-            clean_image.save(image_path)
+            if media_ext == "jpg" and jpeg_args:
+                clean_image.save(image_path, **jpeg_args)
+            else:
+                clean_image.save(image_path)
             _LOGGER.debug(
                 'SUPERNOTIFY Fetched image from %s to %s', image_url, image_path)
             return image_path
@@ -67,10 +71,11 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
         _LOGGER.error('SUPERNOTIFY Image snap fail: %s', e)
 
 
-async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, method=PTZ_METHOD_ONVIF):
+async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, 
+                                    method=PTZ_METHOD_ONVIF):
     try:
-        _LOGGER.info("SUPERNOTIFY Executing PTZ to %s for %s",
-                     preset, camera_entity_id)
+        _LOGGER.info("SUPERNOTIFY Executing PTZ by %s to %s for %s",
+                     method, preset, camera_entity_id)
         if method == PTZ_METHOD_FRIGATE:
             await hass.services.async_call("frigate", "ptz",
                                            service_data={
@@ -98,7 +103,7 @@ async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, method=PTZ_M
             "SUPERNOTIFY Unable to move %s to ptz preset %s: %s", camera_entity_id, preset, e)
 
 
-async def snap_image(hass, entity_id, media_path, notification_id):
+async def snap_image(hass, entity_id, media_path, notification_id, jpeg_args=None):
     ''' Use for any image, including MQTT Image '''
     image_path = None
 
@@ -113,7 +118,7 @@ async def snap_image(hass, entity_id, media_path, notification_id):
     return image_path
 
 
-async def snap_camera(hass, camera_entity_id, media_path=None, timeout=20):
+async def snap_camera(hass, camera_entity_id, media_path=None, timeout=20, jpeg_args=None):
 
     image_path = None
     if not camera_entity_id:

@@ -20,7 +20,7 @@ async def test_deliver() -> None:
     await uut.initialize()
     await uut.deliver(Notification(context))
     hass.services.async_call.assert_any_call(
-        "script", "siren_2", service_data={})
+        "script", "siren_2", service_data={"variables": {}})
     hass.services.async_call.assert_any_call("switch", "turn_on", service_data={
         "entity_id": "switch.bell_1"})
 
@@ -46,8 +46,10 @@ async def test_deliver_to_group() -> None:
     await uut.initialize()
     await uut.deliver(Notification(context))
     hass.services.async_call.assert_any_call(
-        "script", "siren_2", service_data={})
+        "script", "siren_2", service_data={"variables": {}})
     hass.services.async_call.assert_any_call("switch", "turn_on", service_data={
         "entity_id": "switch.bell_1"})
-    hass.services.async_call.assert_any_call("media_player", "play_media", service_data={
-        'data': {'media_content_type': 'sound', 'media_content_id': "dive_dive_dive"}})
+    hass.services.async_call.assert_any_call("media_player", "play_media",
+                                             service_data={'media_content_type': 'sound',
+                                                           'media_content_id': "dive_dive_dive"}
+                                             )

@@ -22,6 +22,7 @@ from . import (
     CONF_CAMERA,
     CONF_DATA,
     CONF_DEVICE_TRACKER,
+    CONF_JPEG_ARGS,
     CONF_MANUFACTURER,
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
@@ -150,6 +151,7 @@ class SupernotificationConfiguration:
                 self.set_method_default(dc, CONF_TARGET)
                 self.set_method_default(dc, CONF_ENTITIES)
                 self.set_method_default(dc, CONF_DATA)
+                self.set_method_default(dc, CONF_JPEG_ARGS)
 
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])

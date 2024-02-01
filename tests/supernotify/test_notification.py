@@ -2,13 +2,14 @@ from homeassistant.core import HomeAssistant
 import pytest
 from pytest_httpserver import BlockingHTTPServer
 from custom_components.supernotify import (
-    ATTR_MEDIA_SNAPSHOT_URL, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA,
+    ATTR_DATA, ATTR_MEDIA, ATTR_MEDIA_CAMERA_DELAY, ATTR_MEDIA_SNAPSHOT_URL, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA,
     CONF_SCENARIOS, DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_IMPLICIT
 )
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.scenario import Scenario
 from unittest.mock import Mock, patch
 from pytest_unordered import unordered
 
@@ -145,11 +146,31 @@ async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPSe
     await uut.initialize()
     original_image_path = "/tmp/image_a.jpg"
     with patch("custom_components.supernotify.notification.snapshot_from_url", return_value=original_image_path) as mock_snapshot:
-        retrieved_image_path = await uut.grab_image()
+        retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
         assert mock_snapshot.called
         mock_snapshot.reset_mock()
-        retrieved_image_path = await uut.grab_image()
+        retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
         # notification caches image for multiple deliveries
         assert mock_snapshot.assert_not_called
+
+
+async def test_merge():
+    hass = Mock()
+    context = Mock()
+    context.scenarios = {"Alarm": Scenario(
+        "Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, hass)}
+    context.delivery_by_scenario = {"DEFAULT": [
+        "plain_email", "mobile"], "Alarm": ["chime"]}
+    context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
+    uut = Notification(context, "testing 123", service_data={
+        CONF_SCENARIOS: "Alarm",
+        ATTR_MEDIA: {ATTR_MEDIA_CAMERA_DELAY: 11,
+                     ATTR_MEDIA_SNAPSHOT_URL: "/foo/123"}
+    })
+    await uut.initialize()
+    assert uut.merge(ATTR_MEDIA, "plain_email") == {
+        'jpeg_args': {'quality': 30}, 'camera_delay': 11, 'snapshot_url': "/foo/123"}
+    assert uut.merge(ATTR_DATA, "plain_email") == {}
+

@@ -31,8 +31,8 @@ from . import (
     ATTR_SCENARIOS,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_JPEG_ARGS,
     CONF_MESSAGE,
-    CONF_MQTT_TOPIC,
     CONF_OCCUPANCY,
     CONF_PERSON,
     CONF_PTZ_DELAY,
@@ -89,7 +89,7 @@ class Notification:
             ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides = ensure_dict(service_data.get(ATTR_DELIVERY))
         self.recipients_override = service_data.get(ATTR_RECIPIENTS)
-        self.common_data = service_data.get(ATTR_DATA) or {}
+        self.data = service_data.get(ATTR_DATA) or {}
         self.media = service_data.get(ATTR_MEDIA) or {}
 
         self.selected_delivery_names = []
@@ -169,6 +169,18 @@ class Notification:
         if title:
             data[CONF_TITLE] = title
         return data
+
+    def merge(self, attribute, delivery_name):
+        delivery = self.delivery_overrides.get(delivery_name, {})
+        base = delivery.get(attribute, {})
+        for scenario_name in self.enabled_scenarios:
+            scenario = self.context.scenarios.get(scenario_name)
+            if scenario and hasattr(scenario, attribute):
+                base.update(
+                    getattr(scenario, attribute))
+        if hasattr(self, attribute):
+            base.update(getattr(self, attribute))
+        return base
 
     def build_targets(self, delivery_config, method):
 
@@ -251,7 +263,7 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", method.method,
                               pre_filter_count-len(targets), targets)
             if not targets:
-                _LOGGER.warning(
+                _LOGGER.info(
                     "SUPERNOTIFY %s No targets resolved", method.method)
             else:
                 filtered_bundles.append((targets, custom_data))
@@ -260,11 +272,14 @@ class Notification:
             filtered_bundles = [([], default_data)]
         return filtered_bundles
 
-    async def grab_image(self):
+    async def grab_image(self, delivery_name):
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
-        mqtt_topic = self.media.get(CONF_MQTT_TOPIC)
-        if not snapshot_url and not camera_entity_id and not mqtt_topic:
+        delivery_config = self.delivery_data(delivery_name)
+        jpeg_args = self.media.get(
+            CONF_JPEG_ARGS, delivery_config.get(CONF_JPEG_ARGS))
+
+        if not snapshot_url and not camera_entity_id:
             return
 
         image_path = None
@@ -273,10 +288,12 @@ class Notification:
         elif snapshot_url and self.context.media_path:
             image_path = await snapshot_from_url(self.context.hass, snapshot_url,
                                                  self.id, self.context.media_path,
-                                                 self.context.hass_internal_url)
+                                                 self.context.hass_internal_url,
+                                                 jpeg_args)
         elif camera_entity_id and camera_entity_id.startswith("image."):
             image_path = await snap_image(self.context.hass, camera_entity_id,
-                                          self.context.media_path, self.id)
+                                          self.context.media_path, self.id,
+                                          jpeg_args)
         elif camera_entity_id:
             active_camera_entity_id = await select_avail_camera(self.context.hass,
                                                                 self.context.cameras,
@@ -299,20 +316,21 @@ class Notification:
                                                     camera_ptz_preset,
                                                     method=camera_ptz_method)
                 if camera_delay:
+                    _LOGGER.debug(
+                        "SUPERNOTIFY Waiting %s secs before snapping", camera_delay)
                     await asyncio.sleep(camera_delay)
                 image_path = await snap_camera(self.context.hass,
                                                active_camera_entity_id,
-                                               self.context.media_path)
+                                               self.context.media_path,
+                                               jpeg_args)
                 if camera_ptz_preset and camera_ptz_preset_default:
                     await move_camera_to_ptz_preset(self.context.hass,
                                                     active_camera_entity_id,
                                                     camera_ptz_preset_default,
                                                     method=camera_ptz_method)
-        elif mqtt_topic:
-            pass
 
         if image_path is None:
-            _LOGGER.warning("SUPERNOTIFY No media available to attach (%s,%s,%s)",
-                            snapshot_url, camera_entity_id, mqtt_topic)
+            _LOGGER.warning("SUPERNOTIFY No media available to attach (%s,%s)",
+                            snapshot_url, camera_entity_id)
         else:
             return image_path

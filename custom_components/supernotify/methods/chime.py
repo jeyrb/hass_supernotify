@@ -1,7 +1,11 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import ATTR_DATA
+from homeassistant.components.notify.const import (
+    ATTR_MESSAGE,
+    ATTR_TITLE
+)
+from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
 from custom_components.supernotify import METHOD_CHIME
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -35,12 +39,12 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         chime_repeat = data.pop("chime_repeat", 1)
         chime_interval = data.pop("chime_interval", 3)
-        chime_tune = data.pop("chime_tune",None)
+        chime_tune = data.pop("chime_tune", None)
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
         calls = 0
         expanded_targets = expand_entity_ids(self.hass, targets)
-        
+
         for chime_entity_id in expanded_targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
             service_data = {}
@@ -53,16 +57,19 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     service_data[ATTR_ENTITY_ID] = chime_entity_id
                 elif domain == "script":
                     service = name
+                    service_data.setdefault(ATTR_VARIABLES, {})
+                    self.set_service_data(
+                        service_data[ATTR_VARIABLES], ATTR_MESSAGE, notification.message(delivery))
+                    self.set_service_data(
+                        service_data[ATTR_VARIABLES], ATTR_TITLE, notification.title(delivery))
                     if data:
-                        service_data.setdefault(ATTR_DATA, {})
-                        service_data[ATTR_DATA] = data
+                        service_data.update(data)
                 elif domain == "media_player":
                     service = "play_media"
-                    service_data.setdefault(ATTR_DATA, {})
-                    service_data[ATTR_DATA]["media_content_type"] = "sound"
-                    service_data[ATTR_DATA]["media_content_id"] = chime_tune
+                    service_data["media_content_type"] = "sound"
+                    service_data["media_content_id"] = chime_tune
                     if data:
-                        service_data[ATTR_DATA].update(data)
+                        service_data.update(data)
                 if chime_repeat == 1:
                     await self.hass.services.async_call(
                         domain, service, service_data=service_data)

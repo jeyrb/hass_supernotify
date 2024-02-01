@@ -76,7 +76,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data[ATTR_MESSAGE] = "%s\n\n%s" % (
                     service_data[ATTR_MESSAGE], footer)
 
-            image_path = await notification.grab_image()
+            image_path = await notification.grab_image(delivery)
             if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
