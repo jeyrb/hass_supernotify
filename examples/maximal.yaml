@@ -133,6 +133,10 @@ notify:
         service: notify.smtp
         data:
           footer: Delivered by SuperNotify (MsgId:{n.id})
+        jpeg_args: 
+            progressive: true
+            optimize: true
+            quality: 50
       alexa:
         target:
           - media_player.kitchen_2
@@ -144,11 +148,6 @@ notify:
     scenarios:
       image_tune:
         delivery_selection: implicit
-        media:
-          jpeg_args: 
-            progressive: true
-            optimize: true
-            quality: 50
       doorbell:
         delivery_selection: implicit
         media:
