@@ -258,10 +258,10 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY %s target list filtered by %s to %s", method.method,
                               pre_filter_count-len(targets), targets)
             if not targets:
-                _LOGGER.info(
-                    "SUPERNOTIFY %s No targets resolved", method.method)
+                _LOGGER.debug(
+                    "SUPERNOTIFY %s No targets resolved out of %s", method.method, pre_filter_count)
             else:
-                envelope.targets=targets
+                envelope.targets = targets
                 filtered_envelopes.append(envelope)
         if not filtered_envelopes:
             # not all delivery methods require explicit targets, or can default them internally
@@ -318,8 +318,9 @@ class Notification:
                     await asyncio.sleep(camera_delay)
                 image_path = await snap_camera(self.context.hass,
                                                active_camera_entity_id,
-                                               self.context.media_path,
-                                               jpeg_args)
+                                               media_path=self.context.media_path,
+                                               timeout=15,
+                                               jpeg_args=jpeg_args)
                 if camera_ptz_preset and camera_ptz_preset_default:
                     await move_camera_to_ptz_preset(self.context.hass,
                                                     active_camera_entity_id,
@@ -351,6 +352,7 @@ class Envelope:
             self.data |= data
         else:
             self.data = delivery_config_data
+
         self.delivered = False
         self.error = None
 
@@ -366,4 +368,4 @@ class Envelope:
         if not isinstance(other, Envelope):
             return False
         return self.targets == other.targets and self.delivery_name == other.delivery_name \
-                and self.data == other.data and self.notification == other.notification
+            and self.data == other.data and self.notification == other.notification

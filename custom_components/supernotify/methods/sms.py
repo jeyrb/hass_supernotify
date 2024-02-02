@@ -27,7 +27,7 @@ class SMSDeliveryMethod(DeliveryMethod):
         return [phone] if phone else []
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
-        _LOGGER.info("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
+        _LOGGER.debug("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
         config = self.context.deliveries.get(
             envelope.delivery_name) or self.default_delivery or {}
         data = envelope.data or {}
