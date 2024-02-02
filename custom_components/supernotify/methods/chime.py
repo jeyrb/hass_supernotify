@@ -75,5 +75,6 @@ class ChimeDeliveryMethod(DeliveryMethod):
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]",
                               chime_entity_id, service_data, e)
+                envelope.errored += 1
         if calls > 0:
-            envelope.delivered = True
+            envelope.delivered = 1

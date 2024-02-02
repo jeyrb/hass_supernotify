@@ -124,9 +124,10 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             except Exception as e:
                 _LOGGER.error(
                     "SUPERNOTIFY Mobile push failure (d=%s): %s", service_data, e)
+                envelope.errored += 1
         _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s", service_data)
         if calls > 0:
-            envelope.delivered = True
+            envelope.delivered = 1
 
 
 '''

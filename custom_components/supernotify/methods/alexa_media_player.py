@@ -45,4 +45,4 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         if envelope.data and envelope.data.get("data"):
             service_data[ATTR_DATA].update(envelope.data.get("data"))
         if await self.call_service(config.get(CONF_SERVICE), service_data):
-            envelope.delivered = True
+            envelope.delivered = 1

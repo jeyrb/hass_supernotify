@@ -103,19 +103,23 @@ class DeliveryMethod:
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
-            return False
+            notification.skipped += 1
+            return
         if not await self.evaluate_delivery_conditions(delivery_config):
             _LOGGER.debug(
                 "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
-            return False
+            notification.skipped += 1
+            return
 
         envelopes = notification.build_targets(delivery_config, self)
-        deliveries = 0
         for envelope in envelopes:
-            await self._delivery_impl(envelope)
-            if envelope.delivered:
-                deliveries += 1
-        return deliveries > 0
+            try:
+                await self._delivery_impl(envelope)
+                notification.deliveries += envelope.delivered
+                notification.errored += envelope.errored
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
+                notification.errored += 1
 
     @abstractmethod
     async def _delivery_impl(envelope: Envelope) -> None:

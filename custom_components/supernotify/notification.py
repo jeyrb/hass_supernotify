@@ -72,6 +72,9 @@ class Notification:
         self._title = title
         self.id = str(uuid.uuid1())
         self.snapshot_image_path = None
+        self.delivered = 0
+        self.errored = 0
+        self.skipped = 0
 
         try:
             vol.humanize.validate_with_humanized_errors(
@@ -353,8 +356,9 @@ class Envelope:
         else:
             self.data = delivery_config_data
 
-        self.delivered = False
-        self.error = None
+        self.delivered = 0
+        self.errored = 0
+    
 
     def core_service_data(self):
         data = {}

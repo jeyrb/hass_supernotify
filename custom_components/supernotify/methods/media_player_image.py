@@ -56,4 +56,4 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             service_data["extra"] = data.get("data")
 
         if await self.call_service(config.get(CONF_SERVICE, "media_player.play_media"), service_data):
-            envelope.delivered = True
+            envelope.delivered = 1

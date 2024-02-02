@@ -29,4 +29,4 @@ class PersistentDeliveryMethod(DeliveryMethod):
         service_data["notification_id"]=notification_id
         
         if await self.call_service(config.get(CONF_SERVICE, "notify.persistent_notification"), service_data):
-            envelope.delivered = True
+            envelope.delivered = 1

@@ -42,4 +42,4 @@ class SMSDeliveryMethod(DeliveryMethod):
             service_data[ATTR_DATA] = data.get("data")
             
         if await self.call_service(config.get(CONF_SERVICE),service_data):
-            envelope.delivered = True
+            envelope.delivered = 1

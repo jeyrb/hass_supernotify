@@ -39,4 +39,4 @@ class GenericDeliveryMethod(DeliveryMethod):
             service_data = data
 
         if await self.call_service(qualified_service, service_data):
-            envelope.delivered = True
+            envelope.delivered = 1

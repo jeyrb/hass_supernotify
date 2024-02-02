@@ -101,13 +101,13 @@ async def async_get_service(
 
     def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> [str]:
         return service.enquire_deliveries_by_scenario()
-    
+
     def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
         return service.last_notification.__dict__ if service.last_notification else None
-    
+
     async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
         return service.enquire_active_scenarios()
-    
+
     hass.services.async_register(
         DOMAIN,
         "enquire_deliveries_by_scenario",
@@ -180,35 +180,25 @@ class SuperNotificationService(BaseNotificationService):
             ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios
         )
 
-        stats_delivieries = stats_errors = 0
-
         for delivery in notification.selected_delivery_names:
-            delivered, errored = await self.call_method(notification, delivery)
-            stats_delivieries += delivered
-            stats_errors += errored
+            await self.call_method(notification, delivery)
 
-        if stats_delivieries == 0 and stats_errors == 0:
+        if notification.delivered == 0 and notification.errored == 0:
             for delivery in self.context.fallback_by_default:
                 if delivery not in notification.selected_delivery_names:
-                    delivered, errored = await self.call_method(
-                        notification, delivery
-                    )
-                    stats_delivieries += delivered
-                    stats_errors += errored
+                    await self.call_method(notification, delivery)
 
-        if stats_delivieries == 0 and stats_errors > 0:
+        if notification.delivered == 0 and notification.errored > 0:
             for delivery in self.context.fallback_on_error:
                 if delivery not in notification.selected_delivery_names:
-                    delivered, errored = await self.call_method(
-                        notification, delivery
-                    )
-                    stats_delivieries += delivered
-                    stats_errors += errored
-                
+                    await self.call_method(notification, delivery)
+
         self.last_notification = notification
 
         _LOGGER.debug(
-            "SUPERNOTIFY %s deliveries, %s errors", stats_delivieries, stats_errors
+            "SUPERNOTIFY %s deliveries, %s errors, %s skipped", notification.delivered,
+            notification.errored,
+            notification.skipped
         )
 
     async def call_method(self, notification, delivery):
@@ -229,7 +219,7 @@ class SuperNotificationService(BaseNotificationService):
 
     def enquire_deliveries_by_scenario(self):
         return self.context.delivery_by_scenario
-    
+
     async def enquire_active_scenarios(self):
         scenarios = []
         for scenario in self.context.scenarios.values():

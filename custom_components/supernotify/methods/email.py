@@ -101,7 +101,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
         if await self.call_service(config.get(CONF_SERVICE), service_data):
-            envelope.delivered = True
+            envelope.delivered = 1
 
     def render_template(self, template, notification, service_data, snapshot_url, preformatted_html):
         alert = {}
