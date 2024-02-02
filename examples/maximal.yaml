@@ -145,7 +145,8 @@ notify:
           - media_player.hall_flex
           - media_player.old_kitchen_flex
           - media_player.studio
-      
+        options:
+          title_only: True      
     scenarios:
       image_tune:
         delivery_selection: implicit

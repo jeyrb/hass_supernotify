@@ -4,6 +4,7 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import (
+    CONF_OPTIONS,
     METHOD_ALEXA
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -32,10 +33,13 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        if envelope.title:
-            message = "{} {}".format(envelope.title, envelope.message)
+        if config.get(CONF_OPTIONS, {}).get("title_only", True):
+            message = envelope.title
         else:
-            message = envelope.message
+            if envelope.title:
+                message = "{} {}".format(envelope.title, envelope.message)
+            else:
+                message = envelope.message
 
         service_data = {
             "message": message,
