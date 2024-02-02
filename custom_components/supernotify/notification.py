@@ -21,6 +21,7 @@ import uuid
 from . import (
     ATTR_DELIVERY,
     ATTR_DELIVERY_SELECTION,
+    ATTR_JPEG_FLAGS,
     ATTR_MEDIA,
     ATTR_MEDIA_CAMERA_DELAY,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
@@ -32,7 +33,7 @@ from . import (
     ATTR_SCENARIOS,
     CONF_DATA,
     CONF_DELIVERY,
-    CONF_JPEG_ARGS,
+    CONF_OPTIONS,
     CONF_MESSAGE,
     CONF_OCCUPANCY,
     CONF_PERSON,
@@ -276,8 +277,8 @@ class Notification:
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         delivery_config = self.delivery_data(delivery_name)
-        jpeg_args = self.media.get(
-            CONF_JPEG_ARGS, delivery_config.get(CONF_JPEG_ARGS))
+        jpeg_args = self.media.get(ATTR_JPEG_FLAGS,
+                                   delivery_config.get(CONF_OPTIONS, {}).get(ATTR_JPEG_FLAGS))
 
         if not snapshot_url and not camera_entity_id:
             return
@@ -358,7 +359,6 @@ class Envelope:
 
         self.delivered = 0
         self.errored = 0
-    
 
     def core_service_data(self):
         data = {}

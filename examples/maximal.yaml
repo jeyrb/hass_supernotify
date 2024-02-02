@@ -133,7 +133,8 @@ notify:
         service: notify.smtp
         data:
           footer: Delivered by SuperNotify (MsgId:{n.id})
-        jpeg_args: 
+        options:
+          jpeg_args: 
             progressive: true
             optimize: true
             quality: 50

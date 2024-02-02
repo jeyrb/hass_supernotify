@@ -75,8 +75,8 @@ CONF_PTZ_DELAY = "ptz_delay"
 CONF_PTZ_METHOD = "ptz_method"
 CONF_PTZ_PRESET_DEFAULT = "ptz_default_preset"
 CONF_ALT_CAMERA = "alt_camera"
-CONF_JPEG_ARGS = "jpeg_args"
 CONF_CAMERAS = "cameras"
+CONF_OPTIONS = "options"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -106,6 +106,7 @@ ATTR_ACTION_CATEGORY = "action_category"
 ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
 ATTR_MESSAGE_HTML = "message_html"
+ATTR_JPEG_FLAGS = "jpeg_flags"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -158,8 +159,7 @@ SCENARIO_NULL = "NULL"
 RESERVED_DELIVERY_NAMES = ["ALL"]
 RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
 RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE]
-JPEG_ARG_VALUES = ["quality", "optimize", "progressive",
-                   "streamtype", "subsampling", "keeprgb"]
+
 
 DATA_SCHEMA = vol.Schema({
     vol.NotIn(RESERVED_DATA_KEYS): vol.Any(str, int, bool, float, dict, list)
@@ -187,7 +187,7 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_SERVICE): cv.service,
-    vol.Optional(CONF_JPEG_ARGS, default={}): {vol.In(JPEG_ARG_VALUES): vol.Any(cv.string, cv.boolean, int)},
+    vol.Optional(CONF_OPTIONS, default={}): dict,
     vol.Optional(CONF_DATA): DATA_SCHEMA
 })
 RECIPIENT_SCHEMA = vol.Schema({
@@ -217,7 +217,7 @@ MEDIA_SCHEMA = vol.Schema({
     # URL fragments allowed
     vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(CONF_JPEG_ARGS, default={}): {vol.In(JPEG_ARG_VALUES): vol.Any(cv.string, cv.boolean, int)}
+    vol.Optional(ATTR_JPEG_FLAGS): dict
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -233,7 +233,7 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_TITLE): vol.Any(None, cv.string),
     vol.Optional(CONF_DATA): DATA_SCHEMA,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-    vol.Optional(CONF_JPEG_ARGS, default={}): {vol.In(JPEG_ARG_VALUES): vol.Any(cv.string, cv.boolean, int)},
+    vol.Optional(CONF_OPTIONS, default={}): dict,
     vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES):
         vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL):

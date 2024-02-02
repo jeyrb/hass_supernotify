@@ -32,6 +32,7 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, httpserver_ipv4: 
     diff = ImageChops.difference(retrieved_image, original_image)
     assert diff.getbbox() is None
 
+
 @pytest.mark.enable_socket
 async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
     media_path = tempfile.mkdtemp()
@@ -47,13 +48,14 @@ async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, httpserver_ipv4
                                                    jpeg_args={"quality": 30,
                                                               "progressive": True,
                                                               "optimize": True,
-                                                              "comment":"changed by test"})
+                                                              "comment": "changed by test"})
 
     retrieved_image = Image.open(retrieved_image_path)
     original_image = Image.open(original_image_path)
     assert retrieved_image.size == original_image.size
     assert retrieved_image.info.get("comment") == b"changed by test"
     assert retrieved_image.info.get("progressive") == 1
+
 
 @pytest.mark.enable_socket
 async def test_snapshot_url_with_broken_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
@@ -132,6 +134,7 @@ async def test_select_untracked_alt_camera() -> None:
                                             "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
                                             },
                                      "camera.tracked") == "camera.alt3"
+
 
 async def test_image_snapshot(hass: HomeAssistant) -> None:
     image_path = await snap_image(hass, "image.doorbell_person_snapshot", ".", "123")
