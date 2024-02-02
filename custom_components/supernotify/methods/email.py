@@ -78,7 +78,12 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data["data"]["images"] = [image_path]
             if envelope.notification.message_html:
                 service_data.setdefault("data", {})
-                service_data["data"]["html"] = envelope.notification.message_html
+                html = envelope.notification.message_html
+                if image_path:
+                    image_name = os.path(image_path).basename
+                    if html and "cid:%s" not in html and not html.endswith('</html'):
+                        html += "<div><p><img src=\"cid:%s\"></p></div>" % image_name
+                service_data["data"]["html"] = html
         else:
             html = self.render_template(
                 template,
