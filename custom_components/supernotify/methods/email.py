@@ -82,7 +82,13 @@ class EmailDeliveryMethod(DeliveryMethod):
                 if image_path:
                     image_name = os.path(image_path).basename
                     if html and "cid:%s" not in html and not html.endswith('</html'):
-                        html += "<div><p><img src=\"cid:%s\"></p></div>" % image_name
+                        if snapshot_url:
+                            html += "<div><p><a href=\"%s\">" % snapshot_url
+                            html += "<img src=\"cid:%s\"/></a>" % image_name
+                            html += "</p></div>"
+                        else:
+                            html += "<div><p><img src=\"cid:%s\"></p></div>" % image_name
+
                 service_data["data"]["html"] = html
         else:
             html = self.render_template(
