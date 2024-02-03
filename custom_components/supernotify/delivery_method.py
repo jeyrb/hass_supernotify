@@ -115,10 +115,11 @@ class DeliveryMethod:
         for envelope in envelopes:
             try:
                 await self._delivery_impl(envelope)
-                notification.deliveries += envelope.delivered
+                notification.delivered += envelope.delivered
                 notification.errored += envelope.errored
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
+                _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
 
     @abstractmethod

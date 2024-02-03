@@ -86,3 +86,37 @@ async def test_deliver_with_preformatted_html() -> None:
                                                     "title": "testing",
                                                     "message": "hello there",
                                                     'data': {'html': '<H3>testing</H3>'}})
+
+async def test_deliver_with_preformatted_html_and_image() -> None:
+    hass = Mock()
+    context = SupernotificationConfiguration(recipients=[
+        {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
+
+    uut = EmailDeliveryMethod(
+        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
+                                    CONF_SERVICE: "notify.smtp",
+                                    CONF_DEFAULT: True}})
+    await uut.initialize()
+    notification = Notification(context,
+                                   message="hello there",
+                                   title="testing",
+                                   target=['tester9@assert.com'],
+                                   service_data={"message_html": "<H3>testing</H3>",
+                                                 "media":{
+                                                    "snapshot_url":"http://mycamera.thing",
+                                                 },
+                                                 "delivery": {"default": {"data": {"footer": ""}}}}
+                                   )
+    await notification.initialize()
+    notification.snapshot_image_path='/local/picture.jpg'
+    await uut.deliver(notification)
+    hass.services.async_call.assert_called_with("notify", "smtp",
+                                                service_data={
+                                                    "target": ["tester9@assert.com"],
+                                                    "title": "testing",
+                                                    "message": "hello there",
+                                                    'data': {
+                                                        'images': ['/local/picture.jpg'],
+                                                        'html': 
+                                                        '<H3>testing</H3><div><p><img src="cid:picture.jpg"></p></div>'
+                                                        }})

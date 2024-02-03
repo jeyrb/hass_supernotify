@@ -362,8 +362,8 @@ class Envelope:
 
     def core_service_data(self):
         data = {}
-        if self.message:
-            data[CONF_MESSAGE] = self.message
+        # message is mandatory for notify platform
+        data[CONF_MESSAGE] = self.message or ""
         if self.title:
             data[CONF_TITLE] = self.title
         return data

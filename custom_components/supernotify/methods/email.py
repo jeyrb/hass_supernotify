@@ -80,7 +80,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data.setdefault("data", {})
                 html = envelope.notification.message_html
                 if image_path:
-                    image_name = os.path(image_path).basename
+                    image_name = os.path.basename(image_path)
                     if html and "cid:%s" not in html and not html.endswith('</html'):
                         if snapshot_url:
                             html += "<div><p><a href=\"%s\">" % snapshot_url

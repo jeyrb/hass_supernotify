@@ -33,7 +33,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        if config.get(CONF_OPTIONS, {}).get("title_only", True):
+        if config.get(CONF_OPTIONS, {}).get("title_only", True) and envelope.title:
             message = envelope.title
         else:
             if envelope.title:
@@ -42,7 +42,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
                 message = envelope.message
 
         service_data = {
-            "message": message,
+            "message": message or "",
             ATTR_DATA: {"type": "announce"},
             ATTR_TARGET: media_players
         }
