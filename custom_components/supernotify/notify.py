@@ -184,14 +184,14 @@ class SuperNotificationService(BaseNotificationService):
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
         if policy == ATTR_DUPE_POLICY_NONE:
             return False
-        notification_hash = hash((notification.message, notification.title))
+        notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_lesser_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(
-                notification.priority)-1]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(
+                notification.priority):]
         else:
-            same_or_lesser_priority = [notification.priority]
+            same_or_higher_priority = [notification.priority]
         dupe = False
-        if any((notification_hash, p) in self.notification_cache for p in same_or_lesser_priority):
+        if any((notification_hash, p) in self.notification_cache for p in same_or_higher_priority):
             _LOGGER.debug("SUPERNOTIFY Detected dupe notification")
             dupe = True
         self.notification_cache[(notification_hash, notification.priority)] = notification.id
@@ -208,6 +208,7 @@ class SuperNotificationService(BaseNotificationService):
         await notification.initialize()
         if self.dupe_check(notification):
             _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
+            notification.skipped += 1
             return
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)

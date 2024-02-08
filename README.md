@@ -16,6 +16,7 @@ for sending only to people in or out of the property
 * Defaulting of targets and data in static config, and overridable at notification time
 * Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
 * Reloadable configuration
+* Tunable duplicate notification detection
 * Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
 
 ## Installation

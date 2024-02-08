@@ -10,12 +10,15 @@ from homeassistant.const import (
 )
 from pytest_unordered import unordered
 
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.notification import Envelope, Notification
 from .doubles_lib import DummyDeliveryMethod
 from homeassistant.core import HomeAssistant, callback
 from custom_components.supernotify import (
+    ATTR_DUPE_POLICY_NONE,
+    ATTR_PRIORITY,
     CONF_DATA,
     CONF_DELIVERY,
+    CONF_DUPE_POLICY,
     CONF_PRIORITY,
     CONF_SELECTION,
     CONF_TARGET,
@@ -79,7 +82,9 @@ async def test_send_message_with_scenario_mismatch() -> None:
     hass.states = Mock()
     hass.services.async_call = AsyncMock()
     uut = SuperNotificationService(
-        hass, deliveries=DELIVERY, scenarios=SCENARIOS, recipients=RECIPIENTS)
+        hass, deliveries=DELIVERY, scenarios=SCENARIOS,
+        recipients=RECIPIENTS,
+        dupe_check={CONF_DUPE_POLICY: ATTR_DUPE_POLICY_NONE})
     await uut.initialize()
     await uut.async_send_message(title="test_title", message="testing 123",
                                  data={
@@ -130,8 +135,10 @@ async def test_recipient_delivery_data_override() -> None:
                                      }})
     assert len(dummy.test_calls) == 2
     assert dummy.test_calls == [
-        Envelope('dummy', uut.last_notification, targets=['dummy.new_home_owner', 'xyz123'], data={'emoji_id': 912393}),
-        Envelope('dummy', uut.last_notification, targets=['dummy.bidey_in', 'abc789'])
+        Envelope('dummy', uut.last_notification, targets=[
+                 'dummy.new_home_owner', 'xyz123'], data={'emoji_id': 912393}),
+        Envelope('dummy', uut.last_notification,
+                 targets=['dummy.bidey_in', 'abc789'])
     ]
 
 
@@ -155,7 +162,7 @@ async def test_fallback_delivery() -> None:
     await uut.initialize()
     await uut.async_send_message("just a test", data={"priority": "low"})
     hass.services.async_call.assert_called_once_with(
-        "notify", "dummy", service_data={"message": "just a test",'target': [], 'data': {}})
+        "notify", "dummy", service_data={"message": "just a test", 'target': [], 'data': {}})
 
 
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:
@@ -219,3 +226,27 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     assert calls_service_data == [
         {"test": "unit"}]
+
+
+async def test_dupe_check_suppresses_same_priority_and_message() -> None:
+    hass = Mock()
+    context = Mock()
+    uut = SuperNotificationService(hass)
+    await uut.initialize()
+    n1 = Notification(context, "message here", "title here")
+    assert uut.dupe_check(n1) is False
+    n2 = Notification(context, "message here", "title here")
+    assert uut.dupe_check(n2) is True
+
+
+async def test_dupe_check_allows_higher_priority_and_same_message() -> None:
+    hass = Mock()
+    context = Mock()
+    uut = SuperNotificationService(hass)
+    await uut.initialize()
+    n1 = Notification(context, "message here", "title here")
+    assert uut.dupe_check(n1) is False
+    n2 = Notification(context, "message here", "title here",
+                      service_data={ATTR_PRIORITY: "high"})
+    assert uut.dupe_check(n2) is False
+

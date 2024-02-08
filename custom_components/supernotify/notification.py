@@ -151,6 +151,9 @@ class Notification:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         return self.context.deliveries.get(CONF_TITLE, self._title)
 
+    def hash(self):
+        return hash((self._message, self._title))
+
     def delivery_data(self, delivery_name):
         delivery_override = self.delivery_overrides.get(delivery_name)
         return delivery_override.get(CONF_DATA) if delivery_override else {}
