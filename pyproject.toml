@@ -12,7 +12,6 @@ norecursedirs = [
 ]
 
 addopts = [
-  
     "--timeout=30",
     "--cov-report=xml:cov.xml",
     "--cov-report=html",

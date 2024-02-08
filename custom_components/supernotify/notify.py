@@ -1,5 +1,6 @@
 import logging
 
+from cachetools import TTLCache
 from homeassistant.components.notify import (
     BaseNotificationService,
 )
@@ -11,26 +12,31 @@ from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-
 from . import (
     ATTR_DATA,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
+    ATTR_DUPE_POLICY_MTSLP,
+    ATTR_DUPE_POLICY_NONE,
     CONF_ACTIONS,
     CONF_CAMERAS,
     CONF_DELIVERY,
+    CONF_DUPE_CHECK,
+    CONF_DUPE_POLICY,
     CONF_LINKS,
     CONF_MEDIA_PATH,
     CONF_METHODS,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
+    CONF_SIZE,
     CONF_TEMPLATE_PATH,
+    CONF_TTL,
     DOMAIN,
     PLATFORM_SCHEMA,
     PLATFORMS,
+    PRIORITY_VALUES,
 )
 from .configuration import SupernotificationConfiguration
-from .notification import Notification
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
@@ -39,6 +45,7 @@ from .methods.media_player_image import MediaPlayerImageDeliveryMethod
 from .methods.mobile_push import MobilePushDeliveryMethod
 from .methods.persistent import PersistentDeliveryMethod
 from .methods.sms import SMSDeliveryMethod
+from .notification import Notification
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +85,9 @@ async def async_get_service(
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_METHODS: config.get(CONF_METHODS, {}),
-            CONF_CAMERAS: config.get(CONF_CAMERAS, {})
+            CONF_CAMERAS: config.get(CONF_CAMERAS, {}),
+            CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
+
         },
     )
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
@@ -95,7 +104,8 @@ async def async_get_service(
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
         method_defaults=config[CONF_METHODS],
-        cameras=config[CONF_CAMERAS]
+        cameras=config[CONF_CAMERAS],
+        dupe_check=config[CONF_DUPE_CHECK]
     )
     await service.initialize()
 
@@ -144,7 +154,8 @@ class SuperNotificationService(BaseNotificationService):
         scenarios=None,
         links=(),
         method_defaults={},
-        cameras=None
+        cameras=None,
+        dupe_check={}
     ):
         """Initialize the service."""
         self.hass = hass
@@ -160,10 +171,31 @@ class SuperNotificationService(BaseNotificationService):
             scenarios,
             method_defaults,
             cameras)
+        self.dupe_check_config = dupe_check
+        self.notification_cache = TTLCache(
+            maxsize=dupe_check.get(CONF_SIZE, 100),
+            ttl=dupe_check.get(CONF_TTL, 120))
 
     async def initialize(self):
         await self.context.initialize()
         await self.context.register_delivery_methods(METHODS)
+
+    def dupe_check(self, notification):
+        policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
+        if policy == ATTR_DUPE_POLICY_NONE:
+            return False
+        notification_hash = hash((notification.message, notification.title))
+        if notification.priority in PRIORITY_VALUES:
+            same_or_lesser_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(
+                notification.priority)-1]
+        else:
+            same_or_lesser_priority = [notification.priority]
+        dupe = False
+        if any((notification_hash, p) in self.notification_cache for p in same_or_lesser_priority):
+            _LOGGER.debug("SUPERNOTIFY Detected dupe notification")
+            dupe = True
+        self.notification_cache[(notification_hash, notification.priority)] = notification.id
+        return dupe
 
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
@@ -174,6 +206,9 @@ class SuperNotificationService(BaseNotificationService):
         notification = Notification(
             self.context, message, title, target, data)
         await notification.initialize()
+        if self.dupe_check(notification):
+            _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
+            return
         self.setup_condition_inputs(
             ATTR_DELIVERY_PRIORITY, notification.priority)
         self.setup_condition_inputs(

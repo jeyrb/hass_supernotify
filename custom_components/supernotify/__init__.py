@@ -68,7 +68,6 @@ CONF_TITLE_TEMPLATE = "title_template"
 CONF_DELIVERY_SELECTION = "delivery_selection"
 CONF_MEDIA = "media"
 CONF_CAMERA = "camera"
-CONF_MQTT_TOPIC = "mqtt_topic"
 CONF_CLIP_URL = "clip_url"
 CONF_SNAPSHOT_URL = "snapshot_url"
 CONF_PTZ_DELAY = "ptz_delay"
@@ -106,6 +105,7 @@ ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
 ATTR_MESSAGE_HTML = "message_html"
 ATTR_JPEG_FLAGS = "jpeg_flags"
+
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
 DELIVERY_SELECTION_FIXED = "fixed"
@@ -137,8 +137,8 @@ PRIORITY_HIGH = "high"
 PRIORITY_MEDIUM = "medium"
 PRIORITY_LOW = "low"
 
-PRIORITY_VALUES = [PRIORITY_CRITICAL, PRIORITY_HIGH,
-                   PRIORITY_LOW, PRIORITY_MEDIUM]
+PRIORITY_VALUES = [PRIORITY_LOW, PRIORITY_MEDIUM,
+                   PRIORITY_HIGH, PRIORITY_CRITICAL]
 METHOD_SMS = "sms"
 METHOD_EMAIL = "email"
 METHOD_ALEXA = "alexa"
@@ -158,6 +158,12 @@ RESERVED_DELIVERY_NAMES = ["ALL"]
 RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
 RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE]
 
+CONF_DUPE_CHECK = "dupe_check"
+CONF_DUPE_POLICY = "dupe_policy"
+CONF_TTL = "ttl"
+CONF_SIZE = "size"
+ATTR_DUPE_POLICY_MTSLP = "dupe_policy_message_title_same_or_lower_priority"
+ATTR_DUPE_POLICY_NONE = "dupe_policy_none"
 
 DATA_SCHEMA = vol.Schema({
     vol.NotIn(RESERVED_DATA_KEYS): vol.Any(str, int, bool, float, dict, list)
@@ -168,9 +174,13 @@ MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
     vol.Required(CONF_DEVICE_TRACKER): cv.entity_id
 })
+NOTIFICATION_DUPE_SCHEMA = vol.Schema({
+    vol.Optional(CONF_TTL): cv.positive_int,
+    vol.Optional(CONF_SIZE, default=100): cv.positive_int,
+    vol.Optional(CONF_DUPE_POLICY, default=ATTR_DUPE_POLICY_MTSLP): vol.In([ATTR_DUPE_POLICY_MTSLP, ATTR_DUPE_POLICY_NONE])
+})
 DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-NOTIFICATION_DUP_SCHEMA=vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_DATA): DATA_SCHEMA
@@ -187,6 +197,7 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_SERVICE): cv.service,
     vol.Optional(CONF_OPTIONS, default={}): dict,
+    vol.Optional(CONF_DATA): DATA_SCHEMA
 })
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
@@ -214,9 +225,10 @@ MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): vol.Any(cv.positive_int, cv.string),
     # URL fragments allowed
     vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(CONF_MQTT_TOPIC): cv.string,
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string)
+    vol.Optional(ATTR_JPEG_FLAGS): dict
+})
+DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
     vol.Optional(CONF_SERVICE): cv.service,
@@ -258,6 +270,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_TEMPLATE_PATH, default=TEMPLATE_DIR):
             cv.path,
         vol.Optional(CONF_MEDIA_PATH, default=MEDIA_DIR): cv.path,
+        vol.Optional(CONF_DUPE_CHECK, default={}): NOTIFICATION_DUPE_SCHEMA,
         vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
         vol.Optional(CONF_ACTIONS, default={}): {cv.string: [PUSH_ACTION_SCHEMA]},
         vol.Optional(CONF_RECIPIENTS, default=[]):

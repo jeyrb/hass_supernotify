@@ -4,7 +4,9 @@
 ## Actions for email
 
 ## Rate limiting
-
+Moving window quota per priority
+Control over 'same' notification repeat
+Per delivery / scenario limits
 
 ## Chime mapping  
 
