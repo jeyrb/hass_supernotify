@@ -76,7 +76,6 @@ CONF_PTZ_METHOD = "ptz_method"
 CONF_PTZ_PRESET_DEFAULT = "ptz_default_preset"
 CONF_ALT_CAMERA = "alt_camera"
 CONF_CAMERAS = "cameras"
-CONF_OPTIONS = "options"
 
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
@@ -107,7 +106,6 @@ ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
 ATTR_MESSAGE_HTML = "message_html"
 ATTR_JPEG_FLAGS = "jpeg_flags"
-
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
 DELIVERY_SELECTION_FIXED = "fixed"
@@ -172,6 +170,7 @@ MOBILE_DEVICE_SCHEMA = vol.Schema({
 })
 DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
+NOTIFICATION_DUP_SCHEMA=vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_DATA): DATA_SCHEMA
@@ -188,7 +187,6 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_SERVICE): cv.service,
     vol.Optional(CONF_OPTIONS, default={}): dict,
-    vol.Optional(CONF_DATA): DATA_SCHEMA
 })
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
@@ -216,10 +214,9 @@ MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_CAMERA_PTZ_PRESET): vol.Any(cv.positive_int, cv.string),
     # URL fragments allowed
     vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
+    vol.Optional(CONF_MQTT_TOPIC): cv.string,
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(ATTR_JPEG_FLAGS): dict
-})
-DELIVERY_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string)
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
     vol.Optional(CONF_SERVICE): cv.service,
