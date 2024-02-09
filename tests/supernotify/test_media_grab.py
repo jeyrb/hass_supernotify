@@ -1,16 +1,22 @@
-from unittest.mock import AsyncMock, Mock
-from homeassistant.core import HomeAssistant
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME
-import pytest
-from pytest_httpserver import BlockingHTTPServer
+import io
 import os.path
 import tempfile
-import io
-from PIL import Image
-from PIL import ImageChops
+from unittest.mock import AsyncMock, Mock
 
+import pytest
+from homeassistant.const import STATE_HOME, STATE_NOT_HOME
+from homeassistant.core import HomeAssistant
+from PIL import Image, ImageChops
+from pytest_httpserver import BlockingHTTPServer
+from custom_components.supernotify import PTZ_METHOD_FRIGATE
 
-from custom_components.supernotify.media_grab import select_avail_camera, snap_camera, snap_image, snapshot_from_url
+from custom_components.supernotify.media_grab import (
+    move_camera_to_ptz_preset,
+    select_avail_camera,
+    snap_camera,
+    snap_image,
+    snapshot_from_url,
+)
 
 
 @pytest.mark.enable_socket
@@ -74,6 +80,24 @@ async def test_snap_camera() -> None:
     hass.services.async_call.assert_awaited_once_with("camera", "snapshot",
                                                       service_data={'entity_id': 'camera.xunit',
                                                                     'filename': image_path})
+
+
+async def test_move_camera_onvif() -> None:
+    hass = Mock()
+    hass.services.async_call = AsyncMock()
+    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs")
+    hass.services.async_call.assert_awaited_once_with("onvif", "ptz",
+                                                      service_data={'move_mode': 'GotoPreset',
+                                                                    'preset': 'Upstairs'},
+                                                      target={"entity_id": "camera.xunit"})
+async def test_move_camera_frigate() -> None:
+    hass = Mock()
+    hass.services.async_call = AsyncMock()
+    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs",method=PTZ_METHOD_FRIGATE)
+    hass.services.async_call.assert_awaited_once_with("frigate", "ptz",
+                                                      service_data={'action': 'preset',
+                                                                    'argument': 'Upstairs'},
+                                                      target={"entity_id": "camera.xunit"})
 
 
 def set_states(hass, at_home=(), not_at_home=()):

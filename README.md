@@ -6,6 +6,7 @@ complex scenarios, including multi-channel notifications, conditional notificati
 ## Features
 
 * Send out notifications on multiple channels from one call, removing repetitive config and code from automations
+* Standard `notify` implementation so easy to switch out for other notify implementations, or `notify.group`
 * Conditional notification using standard Home Assistant `condition` config
 * Reuse chunks of conditional logic as scenarios across multiple notifications
 * Streamlined conditionals for selecting channels per priority and scenario, or
