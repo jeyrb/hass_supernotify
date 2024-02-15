@@ -146,7 +146,38 @@ notify:
           - media_player.old_kitchen_flex
           - media_player.studio
         options:
-          title_only: True      
+          title_only: True 
+      chime:
+        target:
+          - media_player.kitchen_2
+          - media_player.bedroom
+          - media_player.hall_flex
+          - media_player.old_kitchen_flex
+          - media_player.studio
+        options:
+          chime_aliases:
+            doorbell:
+              alexa: home/amzn_sfx_doorbell_chime_02
+              switch: chime_ding_dong
+            red_alert:
+              alexa: scifi/amzn_sfx_scifi_alarm_04
+            known_vehicle:
+              alexa: musical/amzn_sfx_trumpet_bugle_04
+              switch: chime_sax
+            unknown_vehicle:
+              alexa: bell/church/church_bells_01
+              switch: chime_big_ben
+            generic:
+              alexa: alarms/beeps_and_bloops/bell_04
+              switch: chime_scale
+            person:
+              alexa: alarms/beeps_and_bloops/bell_02
+              switch: chime_ding
+            xmas_person:
+              alexa: holidays/christmas/christmas_01
+            xmas_vehicle:
+              alexa: musical/amzn_sfx_trumpet_bugle_04
+                
     scenarios:
       image_tune:
         delivery_selection: implicit

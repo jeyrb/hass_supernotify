@@ -7,7 +7,7 @@ from homeassistant.components.notify.const import (
 )
 from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
-from custom_components.supernotify import METHOD_CHIME
+from custom_components.supernotify import CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
@@ -21,6 +21,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.chime_aliases = self.context.method_defaults.get(
+            self.method, {}).get(CONF_OPTIONS, {}).get('chime_aliases', {})
+        self.chime_entities = self.context.method_defaults.get(
+            self.method, {}).get(CONF_TARGET, [])
 
     def validate_service(self, service):
         return service is None
@@ -39,33 +43,27 @@ class ChimeDeliveryMethod(DeliveryMethod):
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
         calls = 0
         expanded_targets = expand_entity_ids(self.hass, targets)
+        tune_targets, chime_tune = self.resolve_tune(chime_tune)
+        expanded_targets.extend(tune_targets)
 
         for chime_entity_id in expanded_targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
-            service_data = {}
+            service_data = None
             try:
-                sequence = []  # TODO replace appdaemon sequencing
-                domain, name = chime_entity_id.split(".", 1)
+                domain, service, service_data = self.analyze_target(
+                    chime_entity_id, chime_tune, data)
 
-                if domain == "switch":
-                    service = "turn_on"
-                    service_data[ATTR_ENTITY_ID] = chime_entity_id
-                elif domain == "script":
-                    service = name
-                    service_data.setdefault(ATTR_VARIABLES, {})
+                if service == "script":
                     self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_MESSAGE, envelope.notification.message(envelope.delivery_name))
+                        service_data[ATTR_VARIABLES], ATTR_MESSAGE,
+                        envelope.notification.message(envelope.delivery_name))
                     self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_TITLE, envelope.notification.title(envelope.delivery_name))
-                    if data:
-                        service_data.update(data)
-                elif domain == "media_player":
-                    service = "play_media"
-                    service_data[ATTR_ENTITY_ID] = chime_entity_id
-                    service_data["media_content_type"] = "sound"
-                    service_data["media_content_id"] = chime_tune
-                    if data:
-                        service_data.update(data)
+                        service_data[ATTR_VARIABLES], ATTR_TITLE,
+                        envelope.notification.title(envelope.delivery_name))
+                    self.set_service_data(
+                        service_data[ATTR_VARIABLES], "chime_tune",
+                        chime_tune)
+
                 if chime_repeat == 1:
                     await self.hass.services.async_call(
                         domain, service, service_data=service_data)
@@ -78,3 +76,38 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 envelope.errored += 1
         if calls > 0:
             envelope.delivered = 1
+
+    def analyze_target(self, target: str, chime_tune: str, data: dict):
+        domain, name = target.split(".", 1)
+        service_data = {}
+        service = None
+
+        if domain == "switch":
+            service = "turn_on"
+            service_data[ATTR_ENTITY_ID] = target
+        elif domain == "script":
+            service = name
+            service_data.setdefault(ATTR_VARIABLES, {})
+            if data:
+                service_data.update(data)
+        elif domain == "media_player":
+            service = "play_media"
+            service_data[ATTR_ENTITY_ID] = target
+            service_data["media_content_type"] = "sound"
+            service_data["media_content_id"] = chime_tune
+            if data:
+                service_data.update(data)
+
+        return domain, service, service_data
+
+    def resolve_tune(self, tune: str):
+        entities = []
+        actual_tune = tune
+        for domain, tune_or_service in self.chime_aliases.get(tune, {}).items():
+            if domain in ('switch', 'script'):
+                entities.append(f"{domain}.{tune_or_service}")
+            elif domain == 'media_player':
+                entities.extend(
+                    [ent for ent in self.chime_entities if ent.startswith("media_player.")])
+                actual_tune = tune_or_service
+        return entities, actual_tune

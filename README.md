@@ -90,6 +90,41 @@ services automatically for each.
 See https://github.com/alandtse/alexa_media_player/wiki#known-available-sounds for
 a list of known tunes that work with Alexa devices.
 
+Optionally chime aliases can be set up so that simple names can be given for 
+Amazon tune paths, or multiple types of chime all mapped to same name. This can
+be used in combination with method default targets for concise notifications.
+
+#### Example
+
+```yaml
+methods:
+  chime:
+    target:
+      - media_player.kitchen_echo
+      - media_player.bedroom
+    options:
+        chime_aliases:
+              doorbell:
+                alexa: home/amzn_sfx_doorbell_chime_02
+                switch: chime_ding_dong
+              red_alert:
+                alexa: scifi/amzn_sfx_scifi_alarm_04
+```
+
+With this chime config, a doorbell notification can be sent to multiple devices just
+by selecting a tune.
+
+```yaml
+    - service: notify.supernotify
+      data:
+        message: ""
+        delivery:
+            chimes:
+                data:
+                    chime_tune: doorbell
+```
+
+
 ### SMS
 
 Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS
