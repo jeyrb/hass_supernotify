@@ -6,6 +6,7 @@ from homeassistant import config_entries
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+
 def register_mobile_app(hass,
                         device_registry,
                         entity_registry,
@@ -22,7 +23,8 @@ def register_mobile_app(hass,
         hass.config_entries._domain_index.setdefault(
             config_entry.domain, []).append(config_entry)
     except Exception as e:
-        _LOGGER.warn("Unable to mess with HASS config entries for mobile app faking: %s", e)
+        _LOGGER.warn(
+            "Unable to mess with HASS config entries for mobile app faking: %s", e)
 
     device_entry = device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
@@ -36,5 +38,3 @@ def register_mobile_app(hass,
         device_name,
         device_id=device_entry.id
     )
-    
-

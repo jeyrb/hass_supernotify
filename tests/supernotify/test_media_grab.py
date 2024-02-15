@@ -90,10 +90,12 @@ async def test_move_camera_onvif() -> None:
                                                       service_data={'move_mode': 'GotoPreset',
                                                                     'preset': 'Upstairs'},
                                                       target={"entity_id": "camera.xunit"})
+
+
 async def test_move_camera_frigate() -> None:
     hass = Mock()
     hass.services.async_call = AsyncMock()
-    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs",method=PTZ_METHOD_FRIGATE)
+    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs", method=PTZ_METHOD_FRIGATE)
     hass.services.async_call.assert_awaited_once_with("frigate", "ptz",
                                                       service_data={'action': 'preset',
                                                                     'argument': 'Upstairs'},

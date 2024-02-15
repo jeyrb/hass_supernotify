@@ -14,8 +14,8 @@ async def test_deliver() -> None:
     uut = GenericDeliveryMethod(
         hass, context, {"teleport": {CONF_METHOD: METHOD_GENERIC,
                                      CONF_NAME: "teleport",
-                                    CONF_SERVICE: "notify.teleportation",
-                                    CONF_DEFAULT: True}})
+                                     CONF_SERVICE: "notify.teleportation",
+                                     CONF_DEFAULT: True}})
     await uut.initialize()
     await uut.deliver(Notification(context, message="hello there",
                                    title="testing",

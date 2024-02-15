@@ -35,15 +35,17 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate()
-    
+
     hass.states.async_set("supernotifier.delivery_priority", "critical")
-    hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
- 
+    hass.states.async_set(
+        "alarm_control_panel.home_alarm_control", "armed_home")
+
     assert await uut.evaluate()
+
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
     context = SupernotificationConfiguration(hass, scenarios={"select_only": {},
-                                                    "cold_day": {
+                                                              "cold_day": {
         "alias": "Its a cold day",
         "condition": {
             "condition": "template",

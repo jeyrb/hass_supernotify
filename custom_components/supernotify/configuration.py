@@ -67,24 +67,27 @@ class SupernotificationConfiguration:
             try:
                 self.hass_internal_url = get_url(hass, prefer_external=False)
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY could not get internal hass url: %s", e)
+                _LOGGER.warning(
+                    "SUPERNOTIFY could not get internal hass url: %s", e)
                 self.hass_internal_url = "http://%s" % socket.gethostname()
             try:
                 self.hass_external_url = get_url(hass, prefer_external=True)
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY could not get external hass url: %s", e)
-                self.hass_external_url = self.hass_internal_url            
+                _LOGGER.warning(
+                    "SUPERNOTIFY could not get external hass url: %s", e)
+                self.hass_external_url = self.hass_internal_url
         else:
             self.hass = None
             self.hass_internal_url = ""
             self.hass_external_url = ""
             self.hass_name = "!UNDEFINED!"
-            
-        _LOGGER.debug("SUPERNOTIFY Configured for HomeAssistant instance %s at %s , %s", 
+
+        _LOGGER.debug("SUPERNOTIFY Configured for HomeAssistant instance %s at %s , %s",
                       self.hass_name, self.hass_internal_url, self.hass_external_url)
-            
+
         if not self.hass_internal_url or not self.hass_internal_url.startswith("http"):
-            _LOGGER.warning("SUPERNOTIFY invalid internal hass url %s", self.hass_internal_url)
+            _LOGGER.warning(
+                "SUPERNOTIFY invalid internal hass url %s", self.hass_internal_url)
 
         self.links = ensure_list(links)
         # raw configured deliveries

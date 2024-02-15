@@ -52,7 +52,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data = envelope.data or {}
         app_url = self.abs_url(data.get(ATTR_ACTION_URL))
         app_url_title = data.get(ATTR_ACTION_URL_TITLE)
-        
+
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
 
@@ -64,7 +64,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
         snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
-        
+
         if envelope.notification.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
         elif envelope.notification.priority == PRIORITY_HIGH:

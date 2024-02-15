@@ -43,7 +43,8 @@ async def test_default_recipients() -> None:
     uut = DummyDeliveryMethod(hass, context, {})
     notification = Notification(context)
     await uut.deliver(notification)
-    assert uut.test_calls == [Envelope(None, notification, targets=['dummy.new_home_owner', 'dummy.bidey_in'])]
+    assert uut.test_calls == [Envelope(None, notification, targets=[
+                                       'dummy.new_home_owner', 'dummy.bidey_in'])]
 
 
 async def test_default_recipients_with_override() -> None:
@@ -52,11 +53,11 @@ async def test_default_recipients_with_override() -> None:
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     uut = DummyDeliveryMethod(hass, context, {})
-    notification=Notification(context, None,
-                                   service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
+    notification = Notification(context, None,
+                                service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.deliver(notification)
-    assert uut.test_calls == [Envelope(None, notification, targets=['dummy.new_home_owner'])]
-
+    assert uut.test_calls == [
+        Envelope(None, notification, targets=['dummy.new_home_owner'])]
 
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:

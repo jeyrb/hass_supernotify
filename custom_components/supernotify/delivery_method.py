@@ -118,7 +118,8 @@ class DeliveryMethod:
                 notification.delivered += envelope.delivered
                 notification.errored += envelope.errored
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
+                _LOGGER.warning(
+                    "SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
                 _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
 
@@ -133,7 +134,7 @@ class DeliveryMethod:
     def recipient_target(self, recipient):
         ''' Pick out delivery appropriate target from a person (recipient) config'''
         return []
-    
+
     def set_service_data(self, service_data, key, data):
         if data is not None:
             service_data[key] = data
@@ -162,7 +163,7 @@ class DeliveryMethod:
         except Exception as e:
             _LOGGER.error(
                 "SUPERNOTIFY Failed to notify via %s: %s", self.method, e)
-            
+
     def abs_url(self, fragment, prefer_external=True):
         base_url = self.context.hass_external_url if prefer_external else self.context.hass_internal_url
         if fragment:

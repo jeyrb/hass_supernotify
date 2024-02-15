@@ -43,7 +43,7 @@ async def test_notify_alexa_with_method_default() -> None:
     uut = AlexaMediaPlayerDeliveryMethod(hass, context,
                                          {"announce": {CONF_METHOD: METHOD_ALEXA}})
     await uut.initialize()
-    await uut.deliver(Notification(context, message="hello there",title="hey there"))
+    await uut.deliver(Notification(context, message="hello there", title="hey there"))
     hass.services.async_call.assert_called_with("notify", "alexa",
                                                 service_data={"message": "hey there",
                                                               "data": {"type": "announce"},

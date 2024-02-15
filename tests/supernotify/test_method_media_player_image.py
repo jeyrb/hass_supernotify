@@ -11,7 +11,7 @@ async def test_notify_media_image() -> None:
     """Test on_notify_alexa."""
     hass = Mock()
     context = SupernotificationConfiguration()
-    context.hass_external_url="https://myserver"
+    context.hass_external_url = "https://myserver"
 
     uut = MediaPlayerImageDeliveryMethod(hass, context,
                                          {"alexa_show": {

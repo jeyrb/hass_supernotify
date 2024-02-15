@@ -72,12 +72,12 @@ async def test_deliver_with_preformatted_html() -> None:
                                     CONF_DEFAULT: True}})
     await uut.initialize()
     notification = Notification(context,
-                                   message="hello there",
-                                   title="testing",
-                                   target=['tester9@assert.com'],
-                                   service_data={"message_html": "<H3>testing</H3>",
-                                                 "delivery": {"default": {"data": {"footer": ""}}}}
-                                   )
+                                message="hello there",
+                                title="testing",
+                                target=['tester9@assert.com'],
+                                service_data={"message_html": "<H3>testing</H3>",
+                                              "delivery": {"default": {"data": {"footer": ""}}}}
+                                )
     await notification.initialize()
     await uut.deliver(notification)
     hass.services.async_call.assert_called_with("notify", "smtp",
@@ -86,6 +86,7 @@ async def test_deliver_with_preformatted_html() -> None:
                                                     "title": "testing",
                                                     "message": "hello there",
                                                     'data': {'html': '<H3>testing</H3>'}})
+
 
 async def test_deliver_with_preformatted_html_and_image() -> None:
     hass = Mock()
@@ -98,17 +99,17 @@ async def test_deliver_with_preformatted_html_and_image() -> None:
                                     CONF_DEFAULT: True}})
     await uut.initialize()
     notification = Notification(context,
-                                   message="hello there",
-                                   title="testing",
-                                   target=['tester9@assert.com'],
-                                   service_data={"message_html": "<H3>testing</H3>",
-                                                 "media":{
-                                                    "snapshot_url":"http://mycamera.thing",
-                                                 },
-                                                 "delivery": {"default": {"data": {"footer": ""}}}}
-                                   )
+                                message="hello there",
+                                title="testing",
+                                target=['tester9@assert.com'],
+                                service_data={"message_html": "<H3>testing</H3>",
+                                              "media": {
+                                                  "snapshot_url": "http://mycamera.thing",
+                                              },
+                                              "delivery": {"default": {"data": {"footer": ""}}}}
+                                )
     await notification.initialize()
-    notification.snapshot_image_path='/local/picture.jpg'
+    notification.snapshot_image_path = '/local/picture.jpg'
     await uut.deliver(notification)
     hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
@@ -117,6 +118,6 @@ async def test_deliver_with_preformatted_html_and_image() -> None:
                                                     "message": "hello there",
                                                     'data': {
                                                         'images': ['/local/picture.jpg'],
-                                                        'html': 
+                                                        'html':
                                                         '<H3>testing</H3><div><p><img src="cid:picture.jpg"></p></div>'
-                                                        }})
+                                                    }})

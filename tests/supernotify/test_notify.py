@@ -1,4 +1,3 @@
-from operator import call
 from unittest.mock import AsyncMock, Mock
 
 from homeassistant.const import (
@@ -8,7 +7,6 @@ from homeassistant.const import (
     CONF_SERVICE,
     CONF_STATE,
 )
-from pytest_unordered import unordered
 
 from custom_components.supernotify.notification import Envelope, Notification
 from .doubles_lib import DummyDeliveryMethod

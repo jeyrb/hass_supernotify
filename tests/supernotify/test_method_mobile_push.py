@@ -30,10 +30,10 @@ async def test_on_notify_mobile_push_with_person_derived_targets() -> None:
     """Test on_notify_mobile_push."""
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{"person": "person.test_user",
-                                                    "mobile_devices": [
-                                                        {"notify_service": "mobile_app_test_user_iphone"}
-                                                    ]
-                                                    }])
+                                                          "mobile_devices": [
+                                                              {"notify_service": "mobile_app_test_user_iphone"}
+                                                          ]
+                                                          }])
     await context.initialize()
     uut = MobilePushDeliveryMethod(hass, context, {})
     await uut.deliver(Notification(context, message="hello there", title="testing"))
@@ -49,10 +49,10 @@ async def test_on_notify_mobile_push_with_critical_priority() -> None:
     """Test on_notify_mobile_push."""
     hass = Mock()
     context = SupernotificationConfiguration(recipients=[{"person": "person.test_user",
-                                                    "mobile_devices": [
-                                                        {"notify_service": "mobile_app_test_user_iphone"}
-                                                    ]
-                                                    }])
+                                                          "mobile_devices": [
+                                                              {"notify_service": "mobile_app_test_user_iphone"}
+                                                          ]
+                                                          }])
     await context.initialize()
     uut = MobilePushDeliveryMethod(hass, context, {})
     await uut.initialize()

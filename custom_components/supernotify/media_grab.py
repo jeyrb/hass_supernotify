@@ -71,7 +71,7 @@ async def snapshot_from_url(hass, snapshot_url, notification_id,
         _LOGGER.error('SUPERNOTIFY Image snap fail: %s', e)
 
 
-async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, 
+async def move_camera_to_ptz_preset(hass, camera_entity_id, preset,
                                     method=PTZ_METHOD_ONVIF):
     try:
         _LOGGER.info("SUPERNOTIFY Executing PTZ by %s to %s for %s",

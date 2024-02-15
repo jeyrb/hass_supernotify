@@ -109,7 +109,7 @@ async def async_get_service(
     )
     await service.initialize()
 
-    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> [str]:
+    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall):
         return service.enquire_deliveries_by_scenario()
 
     def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
