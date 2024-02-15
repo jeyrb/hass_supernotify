@@ -39,10 +39,7 @@ jobs:
       run: |
         pytest 
     - name: HACS Action
-      runs-on: "ubuntu-latest"
-      steps:
-        - name: HACS Action
-          uses: "hacs/action@main"
-          with:
-            category: "integration"
+      uses: "hacs/action@main"
+      with:
+        category: "integration"
 
