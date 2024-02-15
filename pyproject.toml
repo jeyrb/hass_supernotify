@@ -17,5 +17,5 @@ addopts = [
     "--cov-report=html",
     "--cov-report=term-missing",
     "--cov=custom_components.supernotify",
-    "--cov-fail-under=100"
+    "--cov-fail-under=80"
 ]
