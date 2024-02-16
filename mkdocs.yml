@@ -10,6 +10,8 @@ theme:
   highlightjs: true
 plugins:
   - search
+  - codeinclude:
+      title_mode: none
   - mkdocstrings:
       handlers:
         # See: https://mkdocstrings.github.io/python/usage/
@@ -17,6 +19,12 @@ plugins:
           options:
             docstring_style: sphinx
 markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
   - smarty
   - toc:
       permalink: true
