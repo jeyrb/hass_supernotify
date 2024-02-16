@@ -15,3 +15,5 @@ markdown_extensions:
   - toc:
       permalink: true
   - sane_lists
+  - pymdownx.snippets:
+      check_paths: true
