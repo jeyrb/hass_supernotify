@@ -65,12 +65,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
                         service_data[ATTR_VARIABLES], "chime_tune",
                         tune)
 
-                if chime_repeat == 1:
+                if domain is not None and service is not None:
                     await self.hass.services.async_call(
                         domain, service, service_data=service_data)
                     calls += 1
-                else:
-                    raise NotImplementedError("Repeat not implemented")
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]",
                               chime_entity_id, service_data, e)
@@ -102,13 +100,15 @@ class ChimeDeliveryMethod(DeliveryMethod):
             service_data.setdefault(ATTR_VARIABLES, {})
             if data:
                 service_data.update(data)
-        elif domain == "media_player":
+        elif domain == "media_player" and chime_tune:
             service = "play_media"
             service_data[ATTR_ENTITY_ID] = target
             service_data["media_content_type"] = "sound"
             service_data["media_content_id"] = chime_tune
             if data:
                 service_data.update(data)
+        else:
+            _LOGGER.debug("SUPERNOTIFY No matching chime domain: %s, target: %s, tune: %s", domain, target, chime_tune)
 
         return domain, service, service_data
 
