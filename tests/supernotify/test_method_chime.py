@@ -34,7 +34,9 @@ async def test_deliver_alias() -> None:
                                                               {"chime_aliases": {
                                                                   "doorbell": {
                                                                       "media_player": "home/amzn_sfx_doorbell_chime_02",
-                                                                      "switch": "chime_ding_dong"
+                                                                      "switch": {
+                                                                          "entity_id": "switch.chime_ding_dong"
+                                                                      }
                                                                   }
                                                               }}}})
     uut = ChimeDeliveryMethod(

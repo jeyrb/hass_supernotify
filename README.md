@@ -83,7 +83,7 @@ Some functionality may also work with Android push, though has not been tested.
 
 ### Chime
 
-Provide a list of `switch`, `media_player` or `script` entities to use for chimes
+Provide a list of `switch`, `siren`, `media_player` or `script` entities to use for chimes
 and it will call the `switch.turn_on`, `script.turn_on` or `media_player.play_media`
 services automatically for each.
 
@@ -93,6 +93,11 @@ a list of known tunes that work with Alexa devices.
 Optionally chime aliases can be set up so that simple names can be given for 
 Amazon tune paths, or multiple types of chime all mapped to same name. This can
 be used in combination with method default targets for concise notifications.
+
+Switches are a little special, in that they are binary on/off. However, since many
+433Mhz ones can take an additional melody code, its common to have different melodies
+represented by separate `switch` entities for the same underlying devices.
+
 
 #### Example
 
@@ -104,11 +109,28 @@ methods:
       - media_player.bedroom
     options:
         chime_aliases:
-              doorbell:
-                alexa: home/amzn_sfx_doorbell_chime_02
-                switch: chime_ding_dong
+              doorbell:    
+                media_player: 
+                    # resolves to media_player/play_media with sound configured for this path        
+                    tune: home/amzn_sfx_doorbell_chime_02
+                    # device defaults to `target` of method default or service call
+                media_player_alt:
+                    # Not all the media players are Amazon Alexa based, so override for other flavours
+                    domain: media_player
+                    tune: raindrops_and_roses.mp4
+                    entity_id:
+                        - media_player.hall_custom
+                switch: 
+                    # resolves to switch/turn_on with entity id switch.ding_dong            
+                    entity_id: switch.chime_ding_dong
+                siren: 
+                    # resolves to siren/turn_on with tune bleep, only front door siren called
+                    tune: bleep
+                    entity_id: siren.front_door
               red_alert:
+                # non-dict defaults to a dict keyed on `tune`
                 alexa: scifi/amzn_sfx_scifi_alarm_04
+                siren: emergency
 ```
 
 With this chime config, a doorbell notification can be sent to multiple devices just
@@ -127,7 +149,10 @@ by selecting a tune.
 
 ### SMS
 
-Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS
+Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS.
+
+The `title_only` option can be sent to restrict content to just title, when both title and
+message on a notification. Otherwise, the combined title/message is sent out.
 
 ### Generic
 
@@ -161,11 +186,13 @@ or HTML embed
 
 ### Media Image
 
-Show an image on a media player, e.g. an Alexa Show where that actually works
+Show an image on a media player, e.g. an Alexa Show ( where that actually works, depending on model )
 
 ### Alexa Announce
 
 Announce a message on an Alexa Echo device using the `alexa_media_player` integration
+
+The `title_only` option can be set to `False` to override the restriction of content to just title, when both title and message on a notification. Otherwise, only the title is announced.
 
 ### Persistent
 

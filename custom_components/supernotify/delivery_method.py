@@ -13,6 +13,7 @@ from homeassistant.helpers import config_validation as cv
 
 
 from . import (
+    CONF_OPTIONS,
     CONF_PRIORITY,
     RESERVED_DELIVERY_NAMES,
 )
@@ -135,6 +136,15 @@ class DeliveryMethod:
         ''' Pick out delivery appropriate target from a person (recipient) config'''
         return []
 
+    def combined_message(self, config, envelope, default_title_only=True):
+        if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
+            return envelope.title
+        else:
+            if envelope.title:
+                return "{} {}".format(envelope.title, envelope.message)
+            else:
+                return envelope.message
+                
     def set_service_data(self, service_data, key, data):
         if data is not None:
             service_data[key] = data

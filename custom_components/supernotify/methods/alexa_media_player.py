@@ -33,13 +33,8 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        if config.get(CONF_OPTIONS, {}).get("title_only", True) and envelope.title:
-            message = envelope.title
-        else:
-            if envelope.title:
-                message = "{} {}".format(envelope.title, envelope.message)
-            else:
-                message = envelope.message
+        
+        message = self.combined_message(config, envelope, default_title_only=True)
 
         service_data = {
             "message": message or "",

@@ -7,7 +7,8 @@ from homeassistant.components.notify.const import (
 )
 from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
-from custom_components.supernotify import CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
+from custom_components.supernotify import ATTR_DATA, CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
+from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
@@ -41,16 +42,17 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
         calls = 0
-        expanded_targets = expand_entity_ids(self.hass, targets)
-        tune_targets, chime_tune = self.resolve_tune(chime_tune)
-        expanded_targets.extend(tune_targets)
+        expanded_targets = [(ent, chime_tune)
+                            for ent in expand_entity_ids(self.hass, targets)]
+        entities_and_tunes = self.resolve_tune(chime_tune)
+        expanded_targets.extend(entities_and_tunes)
 
-        for chime_entity_id in expanded_targets:
+        for chime_entity_id, tune in expanded_targets:
             _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
             service_data = None
             try:
                 domain, service, service_data = self.analyze_target(
-                    chime_entity_id, chime_tune, data)
+                    chime_entity_id, tune, data)
 
                 if service == "script":
                     self.set_service_data(
@@ -61,7 +63,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                         envelope.notification.title(envelope.delivery_name))
                     self.set_service_data(
                         service_data[ATTR_VARIABLES], "chime_tune",
-                        chime_tune)
+                        tune)
 
                 if chime_repeat == 1:
                     await self.hass.services.async_call(
@@ -80,10 +82,21 @@ class ChimeDeliveryMethod(DeliveryMethod):
         domain, name = target.split(".", 1)
         service_data = {}
         service = None
+        chime_volume = data.pop("chime_volume", 1)
+        chime_duration = data.pop("chime_duration", 10)
 
         if domain == "switch":
             service = "turn_on"
             service_data[ATTR_ENTITY_ID] = target
+        elif domain == "siren":
+            service == "turn_on"
+            service_data[ATTR_ENTITY_ID] = target
+            service_data[ATTR_DATA] = {}
+            if chime_tune:
+                service_data["tone"] = chime_tune
+            service_data["duration"] = chime_duration
+            service_data["volume_level"] = chime_volume
+
         elif domain == "script":
             service = name
             service_data.setdefault(ATTR_VARIABLES, {})
@@ -100,13 +113,17 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return domain, service, service_data
 
     def resolve_tune(self, tune: str):
-        entities = []
-        actual_tune = tune
-        for domain, tune_or_service in self.chime_aliases.get(tune, {}).items():
-            if domain in ('switch', 'script'):
-                entities.append(f"{domain}.{tune_or_service}")
-            elif domain == 'media_player':
-                entities.extend(
-                    [ent for ent in self.chime_entities if ent.startswith("media_player.")])
-                actual_tune = tune_or_service
-        return entities, actual_tune
+        entities_and_tunes = []
+        for domain, alias_config in self.chime_aliases.get(tune, {}).items():
+            if isinstance(alias_config, str):
+                alias_config = {"tune": alias_config}
+            domain = alias_config.get("domain", domain)
+            actual_tune = alias_config.get("tune", tune)
+            if ATTR_ENTITY_ID in alias_config:
+                entities_and_tunes.extend(
+                    (ent, actual_tune) for ent in ensure_list(alias_config[ATTR_ENTITY_ID]))
+            else:
+                entities_and_tunes.extend(
+                    [(ent, actual_tune) for ent in self.chime_entities if ent.startswith("%s." % domain)])
+
+        return entities_and_tunes

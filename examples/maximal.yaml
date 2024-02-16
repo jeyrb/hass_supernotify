@@ -158,21 +158,28 @@ notify:
           chime_aliases:
             doorbell:
               alexa: home/amzn_sfx_doorbell_chime_02
-              switch: chime_ding_dong
+              switch: 
+                entity_id: chime_ding_dong
             red_alert:
               alexa: scifi/amzn_sfx_scifi_alarm_04
+              siren: 
+                tune: emergency
             known_vehicle:
               alexa: musical/amzn_sfx_trumpet_bugle_04
-              switch: chime_sax
+              switch: 
+                entity_id: switch.chime_sax
             unknown_vehicle:
               alexa: bell/church/church_bells_01
-              switch: chime_big_ben
+              switch: 
+                entity_id: chime_big_ben
             generic:
               alexa: alarms/beeps_and_bloops/bell_04
-              switch: chime_scale
+              switch: 
+                entity_id: chime_scale
             person:
               alexa: alarms/beeps_and_bloops/bell_02
-              switch: chime_ding
+              switch: 
+                entity_id: chime_ding
             xmas_person:
               alexa: holidays/christmas/christmas_01
             xmas_vehicle:

@@ -33,9 +33,10 @@ class SMSDeliveryMethod(DeliveryMethod):
         data = envelope.data or {}
         mobile_numbers = envelope.targets or []
 
-        combined = f"{envelope.title} {envelope.message}"
+        message = self.combined_message(config, envelope, default_title_only=False)
+
         service_data = {
-            "message": combined[:158],
+            "message": message[:158],
             ATTR_TARGET: mobile_numbers
         }
         if data and data.get("data"):
