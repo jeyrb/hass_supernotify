@@ -140,7 +140,7 @@ notify:
             quality: 50
       alexa:
         target:
-          - media_player.kitchen_2
+          - media_player.kitchen
           - media_player.bedroom
           - media_player.hall_flex
           - media_player.old_kitchen_flex
@@ -149,7 +149,7 @@ notify:
           title_only: True 
       chime:
         target:
-          - media_player.kitchen_2
+          - media_player.kitchen
           - media_player.bedroom
           - media_player.hall_flex
           - media_player.old_kitchen_flex
@@ -157,33 +157,33 @@ notify:
         options:
           chime_aliases:
             doorbell:
-              alexa: home/amzn_sfx_doorbell_chime_02
+              media_player: home/amzn_sfx_doorbell_chime_02
               switch: 
-                entity_id: chime_ding_dong
+                entity_id: switch.chime_ding_dong
             red_alert:
-              alexa: scifi/amzn_sfx_scifi_alarm_04
+              media_player: scifi/amzn_sfx_scifi_alarm_04
               siren: 
                 tune: emergency
             known_vehicle:
-              alexa: musical/amzn_sfx_trumpet_bugle_04
+              media_player: musical/amzn_sfx_trumpet_bugle_04
               switch: 
                 entity_id: switch.chime_sax
             unknown_vehicle:
-              alexa: bell/church/church_bells_01
+              media_player: bell/church/church_bells_01
               switch: 
-                entity_id: chime_big_ben
+                entity_id: switch.chime_big_ben
             generic:
-              alexa: alarms/beeps_and_bloops/bell_04
+              media_player: alarms/beeps_and_bloops/bell_04
               switch: 
-                entity_id: chime_scale
+                entity_id: switch.chime_scale
             person:
-              alexa: alarms/beeps_and_bloops/bell_02
+              media_player: alarms/beeps_and_bloops/bell_02
               switch: 
-                entity_id: chime_ding
+                entity_id: switch.chime_ding
             xmas_person:
-              alexa: holidays/christmas/christmas_01
+              media_player: holidays/christmas/christmas_01
             xmas_vehicle:
-              alexa: musical/amzn_sfx_trumpet_bugle_04
+              media_player: musical/amzn_sfx_trumpet_bugle_04
                 
     scenarios:
       image_tune:

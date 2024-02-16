@@ -3,6 +3,6 @@
 Very basic HomeAssistant notify configuration, as used in SuperNotify testing,
 
 
-<!--codeinclude-->
-[Config Example](../examples/minimal.yaml)
-<!--/codeinclude-->
+``` yaml
+--8<-- "examples/minimal.yaml"
+```

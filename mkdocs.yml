@@ -8,10 +8,12 @@ repo_url: https://github.com/jeyrb/hass_supernotify
 theme:
   name: material
   highlightjs: true
+  features:
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate 
 plugins:
   - search
-  - codeinclude:
-      title_mode: none
   - mkdocstrings:
       handlers:
         # See: https://mkdocstrings.github.io/python/usage/

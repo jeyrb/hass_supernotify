@@ -2,7 +2,6 @@
 
 More extensive example configuration, as used for testing SuperNotifier
 
-
-<!--codeinclude-->
-[Config Example](../examples/maximal.yaml)
-<!--/codeinclude-->
+``` yaml
+--8<-- "examples/maximal.yaml"
+```
