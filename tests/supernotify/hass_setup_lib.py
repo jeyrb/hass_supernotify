@@ -23,7 +23,7 @@ def register_mobile_app(hass,
         hass.config_entries._domain_index.setdefault(
             config_entry.domain, []).append(config_entry)
     except Exception as e:
-        _LOGGER.warn(
+        _LOGGER.warning(
             "Unable to mess with HASS config entries for mobile app faking: %s", e)
 
     device_entry = device_registry.async_get_or_create(
