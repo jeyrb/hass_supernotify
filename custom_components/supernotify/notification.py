@@ -190,7 +190,7 @@ class Notification:
         if not path:
             return
         try:
-            filename = os.path.join(path, "%s_%s.json" % (self.created.isoformat()[:16],self.id))
+            filename = os.path.join(path, "%s_%s.json" % (self.created.isoformat()[:16], self.id))
             save_json(filename, self.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
         except Exception as e:

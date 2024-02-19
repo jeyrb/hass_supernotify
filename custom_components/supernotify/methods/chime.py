@@ -37,7 +37,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         data = envelope.data or {}
         targets = envelope.targets or []
 
-        chime_repeat = data.pop("chime_repeat", 1)
+        # chime_repeat = data.pop("chime_repeat", 1)
         chime_tune = data.pop("chime_tune", None)
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)

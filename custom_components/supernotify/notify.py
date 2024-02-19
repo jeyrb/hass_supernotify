@@ -194,7 +194,7 @@ class SuperNotificationService(BaseNotificationService):
             return False
         notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority) :]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority):]
         else:
             same_or_higher_priority = [notification.priority]
         dupe = False
