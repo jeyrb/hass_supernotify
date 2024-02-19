@@ -73,7 +73,7 @@ async def async_get_service(
 ):
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     for delivery in config.get(CONF_DELIVERY, {}).values():
-        if CONF_CONDITION in delivery:
+        if delivery and CONF_CONDITION in delivery:
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
 
     hass.states.async_set(
