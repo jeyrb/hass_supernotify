@@ -147,7 +147,8 @@ async def test_archive() -> None:
         )
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
-        obj_name = os.path.join(archive, "%s.json" % uut.last_notification.id)
+        obj_name = os.path.join(archive, "%s_%s.json" % (uut.last_notification.created.isoformat()[:16], 
+                                                         uut.last_notification.id))
         assert os.path.exists(obj_name)
         with open(obj_name, "r") as stream:
             reobj = json.load(stream)
