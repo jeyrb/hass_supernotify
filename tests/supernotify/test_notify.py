@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import os.path
 import tempfile
 import json
-import datetime as dt
 from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE, CONF_ENABLED
 
 from custom_components.supernotify.notification import Envelope, Notification

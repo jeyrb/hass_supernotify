@@ -113,7 +113,7 @@ async def async_get_service(
     )
     await service.initialize()
 
-    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) --> dict:
+    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> dict:
         return service.enquire_deliveries_by_scenario()
 
     def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
@@ -148,7 +148,7 @@ class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
 
     ARCHIVE_PURGE_MIN_INTERVAL = 3 * 60
-    
+
     def __init__(
         self,
         hass,
@@ -235,7 +235,9 @@ class SuperNotificationService(BaseNotificationService):
         )
 
     def cleanup_archive(self):
-        if self.last_purge is not None and self.last_purge > dt.datetime.utcnow() - dt.timedelta(minutes=self.ARCHIVE_PURGE_MIN_INTERVAL):
+        if self.last_purge is not None and self.last_purge > dt.datetime.utcnow() - dt.timedelta(
+            minutes=self.ARCHIVE_PURGE_MIN_INTERVAL
+        ):
             return
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
         cutoff = dt.datetime.utcnow() - dt.timedelta(days=self.context.archive.get(CONF_ARCHIVE_DAYS, 1))

@@ -165,17 +165,15 @@ class Notification:
         if self.delivered == 0 and self.errored > 0:
             for delivery in self.context.fallback_on_error:
                 if delivery not in self.selected_delivery_names:
-                    await self.call_delivery_method( delivery)
-                    
+                    await self.call_delivery_method(delivery)
+
     async def call_delivery_method(self, delivery):
         try:
-            self.delivered_envelopes.extend(
-                await self.context.delivery_method(delivery).deliver(self, delivery=delivery)
-            )
+            self.delivered_envelopes.extend(await self.context.delivery_method(delivery).deliver(self, delivery=delivery))
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
-        
+
     def hash(self):
         return hash((self._message, self._title))
 
@@ -384,7 +382,7 @@ class Envelope:
 
     def grab_image(self):
         return self._notification.grab_image(self.delivery_name)
-    
+
     def core_service_data(self):
         data = {}
         # message is mandatory for notify platform
