@@ -1,3 +1,5 @@
+:::image type="icon" source="icon.png" border="false":::
+
 # SuperNotifier
 
 An extension of HomeAssistant's built in `notify.notify` that can greatly simplify multiple notification channels and
