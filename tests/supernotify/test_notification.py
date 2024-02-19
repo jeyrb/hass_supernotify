@@ -131,8 +131,7 @@ async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(hass: HomeAs
         "plain_email", "mobile")
 
 
-@pytest.mark.enable_socket
-async def test_snapshot_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+async def test_snapshot_url(hass: HomeAssistant) -> None:
     context = Mock()
     context.hass = hass
     context.scenarios = {}

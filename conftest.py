@@ -1,7 +1,19 @@
 from unittest.mock import patch
 
 import pytest
+from pytest_httpserver import HTTPServer
 
+@pytest.fixture
+@pytest.mark.enable_socket
+def local_server(httpserver_ssl_context: None, socket_enabled):
+    ''' pytest-socket will fail at fixture creation time, before test that uses it'''
+    server = HTTPServer(host="127.0.0.1", port=0, ssl_context=httpserver_ssl_context)
+    server.start()
+    yield server
+    server.clear()
+    if server.is_running():
+        server.stop()
+    
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):

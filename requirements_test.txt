@@ -1,9 +1,9 @@
 pytest>=7.4.3
 pytest-cov
-pytest-homeassistant-custom-component>=0.13.88
+pytest-socket>=0.6.0
+pytest-homeassistant-custom-component>=0.13.101
 pytest-asyncio
 pytest-unordered
-pytest-httpserver
-pytest-socket>=0.7.0
+pytest-httpserver>=1.0.9
 pylint
 homeassistant-stubs

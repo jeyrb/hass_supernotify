@@ -20,15 +20,13 @@ from custom_components.supernotify.media_grab import (
 
 
 @pytest.mark.enable_socket
-async def test_snapshot_url_with_abs_path(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path = tempfile.mkdtemp()
 
-    original_image_path = os.path.join(
-        "tests", "supernotify", "fixtures", "media", "example_image.png")
+    original_image_path = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.png")
     original_binary = io.FileIO(original_image_path, "rb").readall()
-    snapshot_url = httpserver_ipv4.url_for("/snapshot_image")
-    httpserver_ipv4.expect_request(
-        "/snapshot_image").respond_with_data(original_binary, content_type="image/png")
+    snapshot_url = local_server.url_for("/snapshot_image")
+    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/png")
     retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1", media_path, None)
 
     assert retrieved_image_path is not None
@@ -40,21 +38,21 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, httpserver_ipv4: 
 
 
 @pytest.mark.enable_socket
-async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path = tempfile.mkdtemp()
 
-    original_image_path = os.path.join(
-        "tests", "supernotify", "fixtures", "media", "example_image.jpg")
+    original_image_path = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.jpg")
     original_binary = io.FileIO(original_image_path, "rb").readall()
-    snapshot_url = httpserver_ipv4.url_for("/snapshot_image")
-    httpserver_ipv4.expect_request(
-        "/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")
-    retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1",
-                                                   media_path, None,
-                                                   jpeg_args={"quality": 30,
-                                                              "progressive": True,
-                                                              "optimize": True,
-                                                              "comment": "changed by test"})
+    snapshot_url = local_server.url_for("/snapshot_image")
+    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")
+    retrieved_image_path = await snapshot_from_url(
+        hass,
+        snapshot_url,
+        "notify-uuid-1",
+        media_path,
+        None,
+        jpeg_args={"quality": 30, "progressive": True, "optimize": True, "comment": "changed by test"},
+    )
 
     retrieved_image = Image.open(retrieved_image_path)
     original_image = Image.open(original_image_path)
@@ -63,8 +61,7 @@ async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, httpserver_ipv4
     assert retrieved_image.info.get("progressive") == 1
 
 
-@pytest.mark.enable_socket
-async def test_snapshot_url_with_broken_url(hass: HomeAssistant, httpserver_ipv4: BlockingHTTPServer) -> None:
+async def test_snapshot_url_with_broken_url(hass: HomeAssistant) -> None:
     media_path = tempfile.mkdtemp()
     snapshot_url = "http://no-such-domain.local:9494/snapshot_image_hass"
     retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1", media_path, None)
@@ -77,29 +74,27 @@ async def test_snap_camera() -> None:
     with tempfile.TemporaryDirectory() as tmp_path:
         image_path = await snap_camera(hass, "camera.xunit", media_path=tmp_path, timeout=1)
     assert image_path is not None
-    hass.services.async_call.assert_awaited_once_with("camera", "snapshot",
-                                                      service_data={'entity_id': 'camera.xunit',
-                                                                    'filename': image_path})
+    hass.services.async_call.assert_awaited_once_with(
+        "camera", "snapshot", service_data={"entity_id": "camera.xunit", "filename": image_path}
+    )
 
 
 async def test_move_camera_onvif() -> None:
     hass = Mock()
     hass.services.async_call = AsyncMock()
     await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs")
-    hass.services.async_call.assert_awaited_once_with("onvif", "ptz",
-                                                      service_data={'move_mode': 'GotoPreset',
-                                                                    'preset': 'Upstairs'},
-                                                      target={"entity_id": "camera.xunit"})
+    hass.services.async_call.assert_awaited_once_with(
+        "onvif", "ptz", service_data={"move_mode": "GotoPreset", "preset": "Upstairs"}, target={"entity_id": "camera.xunit"}
+    )
 
 
 async def test_move_camera_frigate() -> None:
     hass = Mock()
     hass.services.async_call = AsyncMock()
     await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs", method=PTZ_METHOD_FRIGATE)
-    hass.services.async_call.assert_awaited_once_with("frigate", "ptz",
-                                                      service_data={'action': 'preset',
-                                                                    'argument': 'Upstairs'},
-                                                      target={"entity_id": "camera.xunit"})
+    hass.services.async_call.assert_awaited_once_with(
+        "frigate", "ptz", service_data={"action": "preset", "argument": "Upstairs"}, target={"entity_id": "camera.xunit"}
+    )
 
 
 def set_states(hass, at_home=(), not_at_home=()):
@@ -118,48 +113,70 @@ async def test_select_camera_not_in_config() -> None:
 
 async def test_select_untracked_primary_camera() -> None:
     hass = Mock()
-    assert "camera.untracked" == await select_avail_camera(hass, {"camera.untracked": {"alias": "Test Untracked"}}, "camera.untracked")
+    assert "camera.untracked" == await select_avail_camera(
+        hass, {"camera.untracked": {"alias": "Test Untracked"}}, "camera.untracked"
+    )
 
 
 async def test_select_tracked_primary_camera() -> None:
     hass = Mock()
     set_states(hass, ["device_tracker.cam1"])
-    assert "camera.tracked" == await select_avail_camera(hass, {"camera.tracked":
-                                                                {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
+    assert "camera.tracked" == await select_avail_camera(
+        hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked"
+    )
 
 
 async def test_no_select_unavail_primary_camera() -> None:
     hass = Mock()
     set_states(hass, [], ["device_tracker.cam1"])
-    assert await select_avail_camera(hass, {"camera.tracked": {"camera": "camera.tracked",
-                                                               "device_tracker": "device_tracker.cam1"}},
-                                     "camera.tracked") is None
+    assert (
+        await select_avail_camera(
+            hass, {"camera.tracked": {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1"}}, "camera.tracked"
+        )
+        is None
+    )
 
 
 async def test_select_avail_alt_camera() -> None:
     hass = Mock()
-    set_states(hass, ["device_tracker.altcam2"],
-               ["device_tracker.cam1", "device_tracker.altcam1"])
-    assert await select_avail_camera(hass, {"camera.tracked":
-                                            {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
-                                             "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},
-                                            "camera.alt1": {"camera": "camera.alt1", "device_tracker": "device_tracker.altcam1"},
-                                            "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
-                                            },
-                                     "camera.tracked") == "camera.alt2"
+    set_states(hass, ["device_tracker.altcam2"], ["device_tracker.cam1", "device_tracker.altcam1"])
+    assert (
+        await select_avail_camera(
+            hass,
+            {
+                "camera.tracked": {
+                    "camera": "camera.tracked",
+                    "device_tracker": "device_tracker.cam1",
+                    "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"],
+                },
+                "camera.alt1": {"camera": "camera.alt1", "device_tracker": "device_tracker.altcam1"},
+                "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
+            },
+            "camera.tracked",
+        )
+        == "camera.alt2"
+    )
 
 
 async def test_select_untracked_alt_camera() -> None:
     hass = Mock()
-    set_states(hass, [],
-               ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
-    assert await select_avail_camera(hass, {"camera.tracked":
-                                            {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1",
-                                             "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"]},
-                                            "camera.alt1": {"camera": "camera.alt1", "device_tracker": "device_tracker.altcam1"},
-                                            "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
-                                            },
-                                     "camera.tracked") == "camera.alt3"
+    set_states(hass, [], ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
+    assert (
+        await select_avail_camera(
+            hass,
+            {
+                "camera.tracked": {
+                    "camera": "camera.tracked",
+                    "device_tracker": "device_tracker.cam1",
+                    "alt_camera": ["camera.alt1", "camera.alt2", "camera.alt3"],
+                },
+                "camera.alt1": {"camera": "camera.alt1", "device_tracker": "device_tracker.altcam1"},
+                "camera.alt2": {"camera": "camera.alt2", "device_tracker": "device_tracker.altcam2"},
+            },
+            "camera.tracked",
+        )
+        == "camera.alt3"
+    )
 
 
 async def test_image_snapshot(hass: HomeAssistant) -> None:
