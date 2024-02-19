@@ -133,11 +133,18 @@ async def test_null_delivery() -> None:
     await uut.async_send_message("just a test")
     hass.services.async_call.assert_not_called()
 
+
 async def test_archive() -> None:
     hass = Mock()
     hass.states = Mock()
     with tempfile.TemporaryDirectory() as archive:
-        uut = SuperNotificationService(hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive})
+        uut = SuperNotificationService(
+            hass,
+            deliveries=DELIVERY,
+            scenarios=SCENARIOS,
+            recipients=RECIPIENTS,
+            archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive},
+        )
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
         obj_name = os.path.join(archive, "%s.json" % uut.last_notification.id)
@@ -146,6 +153,7 @@ async def test_archive() -> None:
             reobj = json.load(stream)
         assert reobj["_message"] == "just a test"
         assert reobj["target"] == ["person.bob"]
+        assert len(reobj["delivered_envelopes"]) == 5
 
 
 async def test_cleanup_archive() -> None:
