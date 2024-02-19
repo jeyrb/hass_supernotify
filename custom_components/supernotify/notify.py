@@ -120,7 +120,7 @@ async def async_get_service(
         return service.last_notification.contents() if service.last_notification else {}
 
     async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
-        return {"scenarios": await service.enquire_active_scenarios() }
+        return {"scenarios": await service.enquire_active_scenarios()}
 
     hass.services.async_register(
         DOMAIN,
@@ -235,12 +235,12 @@ class SuperNotificationService(BaseNotificationService):
         )
 
     def cleanup_archive(self):
-        if self.last_purge is not None and self.last_purge > dt.datetime.utcnow() - dt.timedelta(
+        if self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(
             minutes=self.ARCHIVE_PURGE_MIN_INTERVAL
         ):
             return
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
-        cutoff = dt.datetime.utcnow() - dt.timedelta(days=self.context.archive.get(CONF_ARCHIVE_DAYS, 1))
+        cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=self.context.archive.get(CONF_ARCHIVE_DAYS, 1))
         cutoff = cutoff.astimezone(dt.UTC)
         purged = 0
         if path and os.path.exists(path):
@@ -254,7 +254,7 @@ class SuperNotificationService(BaseNotificationService):
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=1)
             _LOGGER.info("SUPERNOTIFY Purged %s archived notifications", purged)
-            self.last_purge = dt.datetime.utcnow()
+            self.last_purge = dt.datetime.now(dt.UTC)
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
