@@ -108,7 +108,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
             if data:
                 service_data.update(data)
         else:
-            _LOGGER.debug("SUPERNOTIFY No matching chime domain: %s, target: %s, tune: %s", domain, target, chime_tune)
+            _LOGGER.debug("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, 
+                          target, chime_tune)
 
         return domain, service, service_data
 

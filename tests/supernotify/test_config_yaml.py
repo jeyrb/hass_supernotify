@@ -88,7 +88,7 @@ async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> No
     await hass.services.async_call(
         notify.DOMAIN,
         DOMAIN,
-        {"title": "my title", "message": "unit test 9484"},
+        {"title": "my title", "message": "unit test 9484", "data": {"delivery": {"testing": None}}},
         blocking=True,
     )
     notification = await hass.services.async_call(

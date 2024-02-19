@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import logging
+import datetime as dt
 import os.path
 from homeassistant.helpers.json import save_json
 import voluptuous as vol
@@ -71,6 +72,7 @@ class Notification:
         service_data: dict = None,
     ) -> None:
 
+        self.created = dt.datetime.now()
         self._message = message
         self.context = context
         service_data = service_data or {}

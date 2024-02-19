@@ -301,11 +301,11 @@ PUSH_ACTION_SCHEMA = vol.Schema(
 
 ARCHIVE_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_ARCHIVE_PATH): cv.path, 
+        vol.Optional(CONF_ARCHIVE_PATH): cv.path,
         vol.Optional(CONF_ENABLED, default=False): cv.boolean,
-        vol.Optional(CONF_ARCHIVE_DAYS, default=3): cv.positive_int
-        }
-    )
+        vol.Optional(CONF_ARCHIVE_DAYS, default=3): cv.positive_int,
+    }
+)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -325,7 +325,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 SERVICE_DATA_SCHEMA = vol.Schema(
     {
-        vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: DELIVERY_CUSTOMIZE_SCHEMA}),
+        vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
         vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
         vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
