@@ -56,7 +56,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         # TODO centralize in config
         footer_template = data.get("footer")
         footer = footer_template.format(
-            n=envelope.notification) if footer_template else None
+            e=envelope) if footer_template else None
 
         service_data = envelope.core_service_data()
 
@@ -72,13 +72,13 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data[ATTR_MESSAGE] = "%s\n\n%s" % (
                     service_data[ATTR_MESSAGE], footer)
 
-            image_path = await envelope.notification.grab_image(envelope.delivery_name)
+            image_path = await envelope.grab_image()
             if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
-            if envelope.notification.message_html:
+            if envelope.message_html:
                 service_data.setdefault("data", {})
-                html = envelope.notification.message_html
+                html = envelope.message_html
                 if image_path:
                     image_name = os.path.basename(image_path)
                     if html and "cid:%s" not in html and not html.endswith('</html'):
@@ -93,22 +93,22 @@ class EmailDeliveryMethod(DeliveryMethod):
         else:
             html = self.render_template(
                 template,
-                envelope.notification,
+                envelope,
                 service_data,
                 snapshot_url,
-                envelope.notification.message_html)
+                envelope.message_html)
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
         if await self.call_service(config.get(CONF_SERVICE), service_data):
             envelope.delivered = 1
 
-    def render_template(self, template, notification, service_data, snapshot_url, preformatted_html):
+    def render_template(self, template, envelope, service_data, snapshot_url, preformatted_html):
         alert = {}
         try:
             alert = {"message": service_data.get(ATTR_MESSAGE),
                      "title": service_data.get(ATTR_TITLE),
-                     "notification": notification,
+                     "envelope": envelope,
                      "subheading": "Home Assistant Notification",
                      "configuration": self.context,
                      "preformatted_html": preformatted_html,

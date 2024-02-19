@@ -1,12 +1,14 @@
 import logging
+import datetime as dt
+import os.path
+import os
 
 from cachetools import TTLCache
 from homeassistant.components.notify import (
     BaseNotificationService,
 )
-from homeassistant.const import (
-    CONF_CONDITION,
-)
+import homeassistant.util.dt as dt_util
+from homeassistant.const import CONF_CONDITION, CONF_ENABLED
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
@@ -19,6 +21,9 @@ from . import (
     ATTR_DUPE_POLICY_MTSLP,
     ATTR_DUPE_POLICY_NONE,
     CONF_ACTIONS,
+    CONF_ARCHIVE,
+    CONF_ARCHIVE_DAYS,
+    CONF_ARCHIVE_PATH,
     CONF_CAMERAS,
     CONF_DELIVERY,
     CONF_DUPE_CHECK,
@@ -57,7 +62,7 @@ METHODS = {
     MediaPlayerImageDeliveryMethod,
     ChimeDeliveryMethod,
     PersistentDeliveryMethod,
-    GenericDeliveryMethod
+    GenericDeliveryMethod,
 }
 
 
@@ -69,9 +74,7 @@ async def async_get_service(
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if CONF_CONDITION in delivery:
-            await condition.async_validate_condition_config(
-                hass, delivery[CONF_CONDITION]
-            )
+            await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
 
     hass.states.async_set(
         "%s.configured" % DOMAIN,
@@ -81,13 +84,13 @@ async def async_get_service(
             CONF_LINKS: config.get(CONF_LINKS, ()),
             CONF_TEMPLATE_PATH: config.get(CONF_TEMPLATE_PATH),
             CONF_MEDIA_PATH: config.get(CONF_MEDIA_PATH),
+            CONF_ARCHIVE: config.get(CONF_ARCHIVE, {}),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
             CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
             CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_CAMERAS: config.get(CONF_CAMERAS, {}),
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
-
         },
     )
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
@@ -99,13 +102,14 @@ async def async_get_service(
         deliveries=config[CONF_DELIVERY],
         template_path=config[CONF_TEMPLATE_PATH],
         media_path=config[CONF_MEDIA_PATH],
+        archive=config[CONF_ARCHIVE],
         recipients=config[CONF_RECIPIENTS],
         mobile_actions=config[CONF_ACTIONS],
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
         method_defaults=config[CONF_METHODS],
         cameras=config[CONF_CAMERAS],
-        dupe_check=config[CONF_DUPE_CHECK]
+        dupe_check=config[CONF_DUPE_CHECK],
     )
     await service.initialize()
 
@@ -143,19 +147,22 @@ async def async_get_service(
 class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
 
+    ARCHIVE_PURGE_MIN_INTERVAL = 3 * 60
+    
     def __init__(
         self,
         hass,
         deliveries=None,
         template_path=None,
         media_path=None,
+        archive=None,
         recipients=(),
         mobile_actions=None,
         scenarios=None,
         links=(),
         method_defaults={},
         cameras=None,
-        dupe_check={}
+        dupe_check={},
     ):
         """Initialize the service."""
         self.hass = hass
@@ -168,13 +175,14 @@ class SuperNotificationService(BaseNotificationService):
             mobile_actions,
             template_path,
             media_path,
+            archive,
             scenarios,
             method_defaults,
-            cameras)
+            cameras,
+        )
         self.dupe_check_config = dupe_check
-        self.notification_cache = TTLCache(
-            maxsize=dupe_check.get(CONF_SIZE, 100),
-            ttl=dupe_check.get(CONF_TTL, 120))
+        self.last_purge = None
+        self.notification_cache = TTLCache(maxsize=dupe_check.get(CONF_SIZE, 100), ttl=dupe_check.get(CONF_TTL, 120))
 
     async def initialize(self):
         await self.context.initialize()
@@ -186,8 +194,7 @@ class SuperNotificationService(BaseNotificationService):
             return False
         notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(
-                notification.priority):]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority) :]
         else:
             same_or_higher_priority = [notification.priority]
         dupe = False
@@ -200,55 +207,52 @@ class SuperNotificationService(BaseNotificationService):
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
-        _LOGGER.debug("Message: %s, target: %s, data: %s",
-                      message, target, data)
+        _LOGGER.debug("Message: %s, target: %s, data: %s", message, target, data)
 
-        notification = Notification(
-            self.context, message, title, target, data)
+        notification = Notification(self.context, message, title, target, data)
         await notification.initialize()
         if self.dupe_check(notification):
             _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
             notification.skipped += 1
-            return
-        self.setup_condition_inputs(
-            ATTR_DELIVERY_PRIORITY, notification.priority)
-        self.setup_condition_inputs(
-            ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios
-        )
-
-        for delivery in notification.selected_delivery_names:
-            await self.call_method(notification, delivery)
-
-        if notification.delivered == 0 and notification.errored == 0:
-            for delivery in self.context.fallback_by_default:
-                if delivery not in notification.selected_delivery_names:
-                    await self.call_method(notification, delivery)
-
-        if notification.delivered == 0 and notification.errored > 0:
-            for delivery in self.context.fallback_on_error:
-                if delivery not in notification.selected_delivery_names:
-                    await self.call_method(notification, delivery)
+        else:
+            self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
+            self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios)
+            _LOGGER.debug(
+                "Message: %s, notification: %s, delveries: %s", message, notification.id, notification.selected_delivery_names
+            )
+            await notification.deliver()
 
         self.last_notification = notification
+        if self.context.archive.get(CONF_ENABLED):
+            notification.archive(self.context.archive.get(CONF_ARCHIVE_PATH))
+            self.cleanup_archive()
 
         _LOGGER.debug(
-            "SUPERNOTIFY %s deliveries, %s errors, %s skipped", notification.delivered,
+            "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
+            notification.delivered,
             notification.errored,
-            notification.skipped
+            notification.skipped,
         )
 
-    async def call_method(self, notification, delivery):
-        try:
-            delivered = await self.context.delivery_method(delivery).deliver(notification, delivery=delivery)
-            return (1 if delivered else 0, 0)
-        except Exception as e:
-            _LOGGER.warning(
-                "SUPERNOTIFY Failed to notify using %s: %s", delivery, e
-            )
-            _LOGGER.debug(
-                "SUPERNOTIFY %s delivery failure", delivery, exc_info=True
-            )
-            return (0, 1)
+    def cleanup_archive(self):
+        if self.last_purge is not None and self.last_purge > dt.datetime.utcnow() - dt.timedelta(minutes=self.ARCHIVE_PURGE_MIN_INTERVAL):
+            return
+        path = self.context.archive.get(CONF_ARCHIVE_PATH)
+        cutoff = dt.datetime.utcnow() - dt.timedelta(days=self.context.archive.get(CONF_ARCHIVE_DAYS, 1))
+        cutoff = cutoff.astimezone(dt.UTC)
+        purged = 0
+        if path and os.path.exists(path):
+            try:
+                with os.scandir(path) as archive:
+                    for entry in archive:
+                        if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
+                            _LOGGER.debug("SUPERNOTIFY Purging %s", path)
+                            os.remove(entry.path)
+                            purged += 1
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=1)
+            _LOGGER.info("SUPERNOTIFY Purged %s archived notifications", purged)
+            self.last_purge = dt.datetime.utcnow()
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)

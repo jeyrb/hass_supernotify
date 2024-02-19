@@ -60,23 +60,23 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                      envelope.title, envelope.targets)
 
         data = data and data.get(ATTR_DATA) or {}
-        media = envelope.notification.media or {}
+        media = envelope.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
         snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
 
-        if envelope.notification.priority == PRIORITY_CRITICAL:
+        if envelope.priority == PRIORITY_CRITICAL:
             push_priority = "critical"
-        elif envelope.notification.priority == PRIORITY_HIGH:
+        elif envelope.priority == PRIORITY_HIGH:
             push_priority = "time-sensitive"
-        elif envelope.notification.priority == PRIORITY_MEDIUM:
+        elif envelope.priority == PRIORITY_MEDIUM:
             push_priority = "active"
-        elif envelope.notification.priority == PRIORITY_LOW:
+        elif envelope.priority == PRIORITY_LOW:
             push_priority = "passive"
         else:
             push_priority = "active"
             _LOGGER.warning("SUPERNOTIFY Unexpected priority %s",
-                            envelope.notification.priority)
+                            envelope.priority)
 
         data.setdefault("actions", [])
         data.setdefault("push", {})

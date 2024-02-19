@@ -3,6 +3,10 @@ notify:
     platform: supernotify
     template_path: config/templates/supernotify   
     media_path: config/media/supernotify     
+    archive:
+      enabled: true
+      archive_days: 4
+      archive_path: config/archive/supernotify
     delivery:
       html_email:
         method: email
@@ -132,7 +136,7 @@ notify:
       email:
         service: notify.smtp
         data:
-          footer: Delivered by SuperNotify (MsgId:{n.id})
+          footer: Delivered by SuperNotify (MsgId:{e.notification_id})
         options:
           jpeg_args: 
             progressive: true

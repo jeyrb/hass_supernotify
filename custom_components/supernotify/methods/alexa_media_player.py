@@ -4,7 +4,6 @@ import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import (
-    CONF_OPTIONS,
     METHOD_ALEXA
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -16,6 +15,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
+    '''
+        options:
+            TITLE_ONLY: true
+
+    '''
     method = METHOD_ALEXA
 
     def __init__(self, *args, **kwargs):

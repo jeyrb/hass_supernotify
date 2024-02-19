@@ -123,6 +123,7 @@ class DeliveryMethod:
                     "SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
                 _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
+        return envelopes
 
     @abstractmethod
     async def _delivery_impl(envelope: Envelope) -> None:

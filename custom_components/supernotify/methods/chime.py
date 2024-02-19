@@ -48,7 +48,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         expanded_targets.extend(entities_and_tunes)
 
         for chime_entity_id, tune in expanded_targets:
-            _LOGGER.debug("SUPERNOTIFY chime %s", chime_entity_id)
+            _LOGGER.debug("SUPERNOTIFY chime %s: %s", chime_entity_id, tune)
             service_data = None
             try:
                 domain, service, service_data = self.analyze_target(
@@ -57,10 +57,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 if service == "script":
                     self.set_service_data(
                         service_data[ATTR_VARIABLES], ATTR_MESSAGE,
-                        envelope.notification.message(envelope.delivery_name))
+                        envelope.message)
                     self.set_service_data(
                         service_data[ATTR_VARIABLES], ATTR_TITLE,
-                        envelope.notification.title(envelope.delivery_name))
+                        envelope.title)
                     self.set_service_data(
                         service_data[ATTR_VARIABLES], "chime_tune",
                         tune)

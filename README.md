@@ -240,6 +240,17 @@ Use this for additional camera info:
 * Define alternative cameras to use if first fails
 * For ONVIF cameras, a PTZ home preset can be defined, and a delay between PTZ command and snapshot
 
+## Delivery Method Options
+
+All of these set by passing an `options` block in either config or service call `data`
+
+
+|Option         |Methods            |Description                        |
+|---------------|-------------------|-----------------------------------|
+|chime_aliases  |chime              |Map tunes to device name or config |
+|jpeg_flags     |mail               |Tune image grabs                   |
+|title_only     |sms, alexa         |Suppress message body              |
+
 ## Tips
 
 ### Message formatting
