@@ -177,12 +177,17 @@ class Notification:
     def hash(self):
         return hash((self._message, self._title))
 
+    def contents(self):
+        sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
+        sanitized["delivered_envelopes"] = [e.contents() for e in self.delivered_envelopes]
+        return sanitized
+
     def archive(self, path):
         if not path:
             return
         try:
             filename = os.path.join(path, "%s.json" % self.id)
-            save_json(filename, {k: v for k, v in self.__dict__.items() if k not in ("context")})
+            save_json(filename, self.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to archived notification: %s", e)
@@ -391,6 +396,10 @@ class Envelope:
             data[CONF_TITLE] = self.title
         return data
 
+    def contents(self):
+        sanitized = {k: v for k, v in self.__dict__.items() if k not in ("_notification")}
+        return sanitized
+    
     def __eq__(self, other):
         if not isinstance(other, Envelope):
             return False

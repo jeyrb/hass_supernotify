@@ -117,10 +117,10 @@ async def async_get_service(
         return service.enquire_deliveries_by_scenario()
 
     def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
-        return service.last_notification.__dict__ if service.last_notification else {}
+        return service.last_notification.contents() if service.last_notification else {}
 
-    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> list:
-        return service.enquire_active_scenarios()
+    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
+        return {"scenarios": await service.enquire_active_scenarios() }
 
     hass.services.async_register(
         DOMAIN,

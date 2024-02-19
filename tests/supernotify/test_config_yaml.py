@@ -15,9 +15,7 @@ from custom_components.supernotify import (
     SCENARIO_DEFAULT,
 )
 
-FIXTURE = pathlib.Path(__file__).parent.joinpath(
-    "..", "..", "examples", "maximal.yaml"
-)
+FIXTURE = pathlib.Path(__file__).parent.joinpath("..", "..", "examples", "maximal.yaml")
 
 
 SIMPLE_CONFIG = {
@@ -26,25 +24,14 @@ SIMPLE_CONFIG = {
     "delivery": {
         "testing": {"method": "generic", "service": "notify.mock"},
     },
-    "recipients": [
-        {
-            "person": "person.house_owner",
-            "email": "test@testing.com",
-            "phone_number": "+4497177848484"
-        }
-    ]
+    "recipients": [{"person": "person.house_owner", "email": "test@testing.com", "phone_number": "+4497177848484"}],
 }
 
 
 @pytest.fixture
 def mock_notify(hass: HomeAssistant) -> MockService:
     mockService = MockService()
-    hass.services.async_register(
-        notify.DOMAIN,
-        "mock",
-        mockService,
-        supports_response=False
-    )
+    hass.services.async_register(notify.DOMAIN, "mock", mockService, supports_response=False)
     return mockService
 
 
@@ -56,13 +43,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", {})
     hass.states.async_set("supernotify.delivery_priority", "high")
 
-    assert await async_setup_component(
-        hass,
-        notify.DOMAIN,
-        {
-            notify.DOMAIN: [SIMPLE_CONFIG]
-        }
-    )
+    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
@@ -100,13 +81,7 @@ async def test_reload(hass: HomeAssistant) -> None:
 
 async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:
 
-    assert await async_setup_component(
-        hass,
-        notify.DOMAIN,
-        {
-            notify.DOMAIN: [SIMPLE_CONFIG]
-        }
-    )
+    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
@@ -117,11 +92,7 @@ async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> No
         blocking=True,
     )
     notification = await hass.services.async_call(
-        "supernotify",
-        "enquire_last_notification",
-        None,
-        blocking=True,
-        return_response=True
+        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
     )
     assert notification["_message"] == "unit test 9484"
     assert notification["priority"] == "medium"
@@ -134,10 +105,7 @@ async def test_empty_config(hass: HomeAssistant) -> None:
         notify.DOMAIN,
         {
             notify.DOMAIN: [
-                {
-                    "name": DOMAIN,
-                    "platform": DOMAIN
-                },
+                {"name": DOMAIN, "platform": DOMAIN},
             ]
         },
     )
@@ -145,64 +113,53 @@ async def test_empty_config(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     assert hass.services.has_service(notify.DOMAIN, DOMAIN)
-    await hass.services.async_call(
-        notify.DOMAIN,
-        DOMAIN,
-        {"title": "my title", "message": "unit test"},
-        blocking=True
-    )
+    await hass.services.async_call(notify.DOMAIN, DOMAIN, {"title": "my title", "message": "unit test"}, blocking=True)
 
 
 async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: MockService) -> None:
 
-    assert await async_setup_component(
-        hass,
-        notify.DOMAIN,
-        {
-            notify.DOMAIN: [SIMPLE_CONFIG]
-        }
-    )
+    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
     response = await hass.services.async_call(
-        "supernotify",
-        "enquire_deliveries_by_scenario",
-        None,
-        blocking=True,
-        return_response=True
+        "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
     )
+    await hass.async_block_till_done()
     assert response == {"DEFAULT": ["testing"]}
+
+    response = await hass.services.async_call(
+        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert response == {}
+
+    response = await hass.services.async_call(
+        "supernotify", "enquire_active_scenarios", None, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert response == {"scenarios": []}
 
 
 async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
-    assert await async_setup_component(
-        hass,
-        notify.DOMAIN,
-        {
-            notify.DOMAIN: [SIMPLE_CONFIG]
-        }
-    )
+    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
     await hass.async_block_till_done()
-    await async_call_from_config(hass,
-                                 {
-                                     "service": "notify.supernotify",
-                                     "data_template": """{
+    await async_call_from_config(
+        hass,
+        {
+            "service": "notify.supernotify",
+            "data_template": """{
                                              "title": "my title",
                                              "message": "unit test {{ 100+5 }}",
                                              "data": {
                                                  "priority": "{% if 3>5 %}low{% else %}high{%endif%}",
                                                  "delivery": {"email": {"data": {"footer": ""}}}}
-                                            }"""
-                                 },
-                                 blocking=True
-                                 )
-    notification = await hass.services.async_call(
-        "supernotify",
-        "enquire_last_notification",
-        None,
+                                            }""",
+        },
         blocking=True,
-        return_response=True
+    )
+    notification = await hass.services.async_call(
+        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
     )
     assert notification["_message"] == "unit test 105"
     assert notification["priority"] == "high"

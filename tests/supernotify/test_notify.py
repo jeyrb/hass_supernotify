@@ -133,7 +133,6 @@ async def test_null_delivery() -> None:
     await uut.async_send_message("just a test")
     hass.services.async_call.assert_not_called()
 
-
 async def test_archive() -> None:
     hass = Mock()
     hass.states = Mock()
