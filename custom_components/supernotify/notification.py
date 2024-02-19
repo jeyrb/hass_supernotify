@@ -169,7 +169,9 @@ class Notification:
 
     async def call_delivery_method(self, delivery):
         try:
-            self.delivered_envelopes.extend(await self.context.delivery_method(delivery).deliver(self, delivery=delivery))
+            envelopes = await self.context.delivery_method(delivery).deliver(self, delivery=delivery)
+            if envelopes is not None:
+                self.delivered_envelopes.extend(envelopes)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
@@ -399,7 +401,7 @@ class Envelope:
     def contents(self):
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("_notification")}
         return sanitized
-    
+
     def __eq__(self, other):
         if not isinstance(other, Envelope):
             return False
