@@ -278,7 +278,7 @@ All of these set by passing an `options` block in either config or service call 
 |chime_aliases  |chime              |Map tunes to device name or config                      |
 |jpeg_flags     |mail               |Tune image grabs                                        |
 |title_only     |sms, alexa         |Suppress message body                                   |
-|timestamp      |all                |Add a timestamp to message. Recommended for mobile push |
+|timestamp      |all                |Add a timestamp to message.  |
 
 ## Tips
 
