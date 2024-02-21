@@ -20,6 +20,8 @@ for sending only to people in or out of the property
 * Reloadable configuration
 * Tunable duplicate notification detection
 * Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
+* Debugging support, including optional archival of message structures, and additional
+services to pull back live configuration or last known notification details.
 
 ## Installation
 
