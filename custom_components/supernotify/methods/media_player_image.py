@@ -25,13 +25,12 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
 
     def validate_service(self, service):
-        return service is None or service == 'media_player.play_media'
+        return service is None or service == "media_player.play_media"
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
 
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
-        config = self.context.deliveries.get(
-            envelope.delivery_name) or self.default_delivery or {}
+        config = self.context.deliveries.get(envelope.delivery_name) or self.default_delivery or {}
         data = envelope.data or {}
         media_players = envelope.targets or []
         if not media_players:
@@ -44,16 +43,10 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
             return False
         else:
             # absolutize relative URL for external URl, probably preferred by Alexa Show etc
-            snapshot_url = urllib.parse.urljoin(
-                self.context.hass_external_url, snapshot_url)
+            snapshot_url = urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
 
-        service_data = {
-            "media_content_id": snapshot_url,
-            "media_content_type": "image",
-            "entity_id": media_players
-        }
+        service_data = {"media_content_id": snapshot_url, "media_content_type": "image", "entity_id": media_players}
         if data and data.get("data"):
             service_data["extra"] = data.get("data")
 
-        if await self.call_service(config.get(CONF_SERVICE, "media_player.play_media"), service_data):
-            envelope.delivered = 1
+        await self.call_service(envelope, config.get(CONF_SERVICE, "media_player.play_media"), service_data)

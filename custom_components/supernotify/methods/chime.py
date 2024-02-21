@@ -1,10 +1,7 @@
 import logging
 import re
 
-from homeassistant.components.notify.const import (
-    ATTR_MESSAGE,
-    ATTR_TITLE
-)
+from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
 from custom_components.supernotify import ATTR_DATA, CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
@@ -22,10 +19,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.chime_aliases = self.context.method_defaults.get(
-            self.method, {}).get(CONF_OPTIONS, {}).get('chime_aliases', {})
-        self.chime_entities = self.context.method_defaults.get(
-            self.method, {}).get(CONF_TARGET, [])
+        self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
+        self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
 
     def validate_service(self, service):
         return service is None
@@ -41,40 +36,29 @@ class ChimeDeliveryMethod(DeliveryMethod):
         chime_tune = data.pop("chime_tune", None)
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
-        calls = 0
-        expanded_targets = [(ent, chime_tune)
-                            for ent in expand_entity_ids(self.hass, targets)]
+
+        expanded_targets = [(ent, chime_tune) for ent in expand_entity_ids(self.hass, targets)]
         entities_and_tunes = self.resolve_tune(chime_tune)
         expanded_targets.extend(entities_and_tunes)
+        envelope.resolved["expanded_targets"] = expanded_targets
 
         for chime_entity_id, tune in expanded_targets:
             _LOGGER.debug("SUPERNOTIFY chime %s: %s", chime_entity_id, tune)
             service_data = None
             try:
-                domain, service, service_data = self.analyze_target(
-                    chime_entity_id, tune, data)
+                domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
 
                 if service == "script":
-                    self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_MESSAGE,
-                        envelope.message)
-                    self.set_service_data(
-                        service_data[ATTR_VARIABLES], ATTR_TITLE,
-                        envelope.title)
-                    self.set_service_data(
-                        service_data[ATTR_VARIABLES], "chime_tune",
-                        tune)
+                    self.set_service_data(service_data[ATTR_VARIABLES], ATTR_MESSAGE, envelope.message)
+                    self.set_service_data(service_data[ATTR_VARIABLES], ATTR_TITLE, envelope.title)
+                    self.set_service_data(service_data[ATTR_VARIABLES], "chime_tune", tune)
 
                 if domain is not None and service is not None:
-                    await self.hass.services.async_call(
-                        domain, service, service_data=service_data)
-                    calls += 1
+                    await self.call_service(envelope, "%s.%s" % (domain, service), service_data)
+                else:
+                    _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:
-                _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]",
-                              chime_entity_id, service_data, e)
-                envelope.errored += 1
-        if calls > 0:
-            envelope.delivered = 1
+                _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
 
     def analyze_target(self, target: str, chime_tune: str, data: dict):
         domain, name = target.split(".", 1)
@@ -108,8 +92,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
             if data:
                 service_data.update(data)
         else:
-            _LOGGER.debug("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, 
-                          target, chime_tune)
+            _LOGGER.debug("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, target, chime_tune)
 
         return domain, service, service_data
 
@@ -121,10 +104,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
             domain = alias_config.get("domain", domain)
             actual_tune = alias_config.get("tune", tune)
             if ATTR_ENTITY_ID in alias_config:
-                entities_and_tunes.extend(
-                    (ent, actual_tune) for ent in ensure_list(alias_config[ATTR_ENTITY_ID]))
+                entities_and_tunes.extend((ent, actual_tune) for ent in ensure_list(alias_config[ATTR_ENTITY_ID]))
             else:
-                entities_and_tunes.extend(
-                    [(ent, actual_tune) for ent in self.chime_entities if ent.startswith("%s." % domain)])
+                entities_and_tunes.extend([(ent, actual_tune) for ent in self.chime_entities if ent.startswith("%s." % domain)])
 
         return entities_and_tunes

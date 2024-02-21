@@ -11,16 +11,15 @@ from custom_components.supernotify.notification import Envelope, Notification
 from .doubles_lib import DummyDeliveryMethod
 
 
-async def test_filter_recipients() -> None:
-    hass = Mock()
-    uut = SupernotificationConfiguration(hass,
+async def test_filter_recipients(mock_hass) -> None:
+    uut = SupernotificationConfiguration(mock_hass,
                                          recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                      {CONF_PERSON: "person.bidey_in"}])
     await uut.initialize()
 
     hass_states = {"person.new_home_owner": Mock(state="not_home"),
                    "person.bidey_in": Mock(state="home")}
-    hass.states.get = hass_states.get
+    mock_hass.states.get = hass_states.get
 
     assert len(uut.filter_people_by_occupancy("all_in")) == 0
     assert len(uut.filter_people_by_occupancy("all_out")) == 0
@@ -35,24 +34,22 @@ async def test_filter_recipients() -> None:
             for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
 
 
-async def test_default_recipients() -> None:
-    hass = Mock()
+async def test_default_recipients(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
-    uut = DummyDeliveryMethod(hass, context, {})
+    uut = DummyDeliveryMethod(mock_hass, context, {})
     notification = Notification(context)
     await uut.deliver(notification)
     assert uut.test_calls == [Envelope(None, notification, targets=[
                                        'dummy.new_home_owner', 'dummy.bidey_in'])]
 
 
-async def test_default_recipients_with_override() -> None:
-    hass = Mock()
+async def test_default_recipients_with_override(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
-    uut = DummyDeliveryMethod(hass, context, {})
+    uut = DummyDeliveryMethod(mock_hass, context, {})
     notification = Notification(context, None,
                                 service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.deliver(notification)

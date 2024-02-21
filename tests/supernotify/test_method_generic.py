@@ -8,11 +8,10 @@ from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE, CONF_NA
 from custom_components.supernotify.notification import Notification
 
 
-async def test_deliver() -> None:
-    hass = Mock()
+async def test_deliver(mock_hass) -> None:
     context = SupernotificationConfiguration()
     uut = GenericDeliveryMethod(
-        hass, context, {"teleport": {CONF_METHOD: METHOD_GENERIC,
+        mock_hass, context, {"teleport": {CONF_METHOD: METHOD_GENERIC,
                                      CONF_NAME: "teleport",
                                      CONF_SERVICE: "notify.teleportation",
                                      CONF_DEFAULT: True}})
@@ -28,7 +27,7 @@ async def test_deliver() -> None:
                                            }
                                        }
                                    }))
-    hass.services.async_call.assert_called_with("notify", "teleportation",
+    mock_hass.services.async_call.assert_called_with("notify", "teleportation",
                                                 service_data={
                                                     ATTR_TITLE:   "testing",
                                                     ATTR_MESSAGE: "hello there",
@@ -38,11 +37,10 @@ async def test_deliver() -> None:
                                                 })
 
 
-async def test_not_notify_deliver() -> None:
-    hass = Mock()
+async def test_not_notify_deliver(mock_hass) -> None:
     context = SupernotificationConfiguration()
     uut = GenericDeliveryMethod(
-        hass, context, {"broker": {CONF_METHOD: METHOD_GENERIC,
+        mock_hass, context, {"broker": {CONF_METHOD: METHOD_GENERIC,
                                    CONF_NAME: "broker",
                                    CONF_SERVICE: "mqtt.publish",
                                    CONF_DEFAULT: True}})
@@ -59,7 +57,7 @@ async def test_not_notify_deliver() -> None:
                                            }
                                        }
                                    }))
-    hass.services.async_call.assert_called_with("mqtt", "publish",
+    mock_hass.services.async_call.assert_called_with("mqtt", "publish",
                                                 service_data={
                                                     "topic": "testing/123",
                                                     "payload": "boo"}

@@ -7,13 +7,12 @@ from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_N
 from custom_components.supernotify.notification import Notification
 
 
-async def test_notify_media_image() -> None:
+async def test_notify_media_image(mock_hass) -> None:
     """Test on_notify_alexa."""
-    hass = Mock()
     context = SupernotificationConfiguration()
     context.hass_external_url = "https://myserver"
 
-    uut = MediaPlayerImageDeliveryMethod(hass, context,
+    uut = MediaPlayerImageDeliveryMethod(mock_hass, context,
                                          {"alexa_show": {
                                              CONF_METHOD: METHOD_MEDIA,
                                              CONF_NAME: "alexa_show",
@@ -25,7 +24,7 @@ async def test_notify_media_image() -> None:
     await uut.deliver(Notification(context, "hello there", service_data={
         ATTR_DELIVERY: {"alexa_show": {CONF_DATA: {"snapshot_url": "/ftp/pic.jpeg"}}}}))
 
-    hass.services.async_call.assert_called_with("media_player", "play_media",
+    mock_hass.services.async_call.assert_called_with("media_player", "play_media",
                                                 service_data={"entity_id": ["media_player.echo_show_8",
                                                                             "media_player.echo_show_10"],
                                                               "media_content_id": "https://myserver/ftp/pic.jpeg",

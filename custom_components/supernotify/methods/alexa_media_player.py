@@ -3,9 +3,7 @@ import re
 
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from custom_components.supernotify import (
-    METHOD_ALEXA
-)
+from custom_components.supernotify import METHOD_ALEXA
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
@@ -15,11 +13,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
-    '''
-        options:
-            TITLE_ONLY: true
+    """
+    options:
+        TITLE_ONLY: true
 
-    '''
+    """
+
     method = METHOD_ALEXA
 
     def __init__(self, *args, **kwargs):
@@ -30,22 +29,16 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
 
     async def _delivery_impl(self, envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", envelope.message)
-        config = self.context.deliveries.get(
-            envelope.delivery_name) or self.default_delivery or {}
+        config = self.context.deliveries.get(envelope.delivery_name) or self.default_delivery or {}
         media_players = envelope.targets or []
 
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
-        
+
         message = self.combined_message(config, envelope, default_title_only=True)
 
-        service_data = {
-            "message": message or "",
-            ATTR_DATA: {"type": "announce"},
-            ATTR_TARGET: media_players
-        }
+        service_data = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
         if envelope.data and envelope.data.get("data"):
             service_data[ATTR_DATA].update(envelope.data.get("data"))
-        if await self.call_service(config.get(CONF_SERVICE), service_data):
-            envelope.delivered = 1
+        await self.call_service(envelope, config.get(CONF_SERVICE), service_data)

@@ -10,7 +10,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
-
+import time
 
 from . import (
     CONF_OPTIONS,
@@ -25,22 +25,20 @@ _LOGGER = logging.getLogger(__name__)
 
 class DeliveryMethod:
     @abstractmethod
-    def __init__(self,
-                 hass: HomeAssistant,
-                 context: SupernotificationConfiguration,
-                 deliveries: dict):
+    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict):
         self.hass = hass
         self.context = context
         self.default_delivery = None
-        self.method_deliveries = {d: dc for d, dc in deliveries.items(
-        ) if dc.get(CONF_METHOD) == self.method} if deliveries else {}
+        self.method_deliveries = (
+            {d: dc for d, dc in deliveries.items() if dc.get(CONF_METHOD) == self.method} if deliveries else {}
+        )
 
     async def initialize(self):
         assert self.method is not None
         self.valid_deliveries = await self.validate_deliveries()
 
     def validate_service(self, service):
-        ''' Override in subclass if delivery method has fixed service or doesn't require one'''
+        """Override in subclass if delivery method has fixed service or doesn't require one"""
         return service is not None and service.startswith("notify.")
 
     async def validate_deliveries(self):
@@ -54,18 +52,15 @@ class DeliveryMethod:
         for d, dc in self.method_deliveries.items():
             # don't care about ENABLED here since disabled deliveries can be overridden
             if d in RESERVED_DELIVERY_NAMES:
-                _LOGGER.warning(
-                    "SUPERNOTIFY Delivery uses reserved word %s", d)
+                _LOGGER.warning("SUPERNOTIFY Delivery uses reserved word %s", d)
                 continue
             if not self.validate_service(dc.get(CONF_SERVICE)):
-                _LOGGER.warning(
-                    "SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
+                _LOGGER.warning("SUPERNOTIFY Invalid service definition for delivery %s (%s)", d, dc.get(CONF_SERVICE))
                 continue
             delivery_condition = dc.get(CONF_CONDITION)
             if delivery_condition:
                 if not await condition.async_validate_condition_config(self.hass, delivery_condition):
-                    _LOGGER.warning(
-                        "SUPERNOTIFY Invalid delivery condition for %s: %s", d, delivery_condition)
+                    _LOGGER.warning("SUPERNOTIFY Invalid delivery condition for %s: %s", d, delivery_condition)
                     continue
 
             valid_deliveries[d] = dc
@@ -73,68 +68,64 @@ class DeliveryMethod:
 
             if dc.get(CONF_DEFAULT):
                 if self.default_delivery:
-                    _LOGGER.warning(
-                        "SUPERNOTIFY Multiple default deliveries, skipping %s", d)
+                    _LOGGER.warning("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
                 else:
                     self.default_delivery = dc
 
         if not self.default_delivery:
             method_definition = self.context.method_defaults.get(self.method)
             if method_definition:
-                _LOGGER.info(
-                    "SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
+                _LOGGER.info("SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
 
         return valid_deliveries
 
-    async def deliver(self,
-                      notification: Notification,
-                      delivery: str = None) -> bool:
+    async def deliver(self, notification: Notification, delivery: str = None) -> bool:
         """
         Deliver a notification
 
         Args:
-            message (_type_, optional): Message to send. Defaults to None, e.g for methods like chime 
+            message (_type_, optional): Message to send. Defaults to None, e.g for methods like chime
             delivery_config (_type_, optional): Delivery Configuration. Defaults to None.
         """
-        delivery_config = self.context.deliveries.get(
-            delivery) or self.default_delivery or {}
+        delivery_config = self.context.deliveries.get(delivery) or self.default_delivery or {}
 
         delivery_priorities = delivery_config.get(CONF_PRIORITY) or ()
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
-            _LOGGER.debug(
-                "SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
+            _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
             notification.skipped += 1
             return
         if not await self.evaluate_delivery_conditions(delivery_config):
-            _LOGGER.debug(
-                "SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
+            _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             notification.skipped += 1
             return
 
         envelopes = notification.build_targets(delivery_config, self)
+        delivered_envelopes = []
+        undelivered_envelopes = []
         for envelope in envelopes:
             try:
                 await self._delivery_impl(envelope)
                 notification.delivered += envelope.delivered
                 notification.errored += envelope.errored
+                delivered_envelopes.append(envelope)
             except Exception as e:
-                _LOGGER.warning(
-                    "SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
+                _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
                 _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
-        return envelopes
+                undelivered_envelopes.append(envelope)
+        return delivered_envelopes, undelivered_envelopes
 
     @abstractmethod
     async def _delivery_impl(envelope: Envelope) -> None:
         pass
 
     def select_target(self, target):
-        ''' Confirm if target appropriate for this delivery method '''
+        """Confirm if target appropriate for this delivery method"""
         return True
 
     def recipient_target(self, recipient):
-        ''' Pick out delivery appropriate target from a person (recipient) config'''
+        """Pick out delivery appropriate target from a person (recipient) config"""
         return []
 
     def combined_message(self, config, envelope, default_title_only=True):
@@ -145,7 +136,7 @@ class DeliveryMethod:
                 return "{} {}".format(envelope.title, envelope.message)
             else:
                 return envelope.message
-                
+
     def set_service_data(self, service_data, key, data):
         if data is not None:
             service_data[key] = data
@@ -156,24 +147,26 @@ class DeliveryMethod:
             return True
         else:
             try:
-                conditions = cv.CONDITION_SCHEMA(
-                    delivery_config.get(CONF_CONDITION))
+                conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
                 test = await condition.async_from_config(self.hass, conditions)
                 return test(self.hass)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
                 raise
 
-    async def call_service(self, qualified_service, service_data={}):
+    async def call_service(self, envelope, qualified_service, service_data=None):
         try:
             domain, service = qualified_service.split(".", 1)
-            await self.hass.services.async_call(
-                domain, service,
-                service_data=service_data)
+            start_time = time.time()
+            await self.hass.services.async_call(domain, service, service_data=service_data or {})
+            envelope.calls.append((domain, service, service_data, time.time() - start_time))
+            envelope.delivered = 1
             return True
         except Exception as e:
-            _LOGGER.error(
-                "SUPERNOTIFY Failed to notify via %s: %s", self.method, e)
+            envelope.failed_calls.append((domain, service, service_data, str(e), time.time() - start_time))
+            _LOGGER.error("SUPERNOTIFY Failed to notify via %s, data=%s : %s", self.method, service_data, e)
+            envelope.errored += 1
+            return False
 
     def abs_url(self, fragment, prefer_external=True):
         base_url = self.context.hass_external_url if prefer_external else self.context.hass_internal_url

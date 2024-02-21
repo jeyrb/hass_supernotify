@@ -12,6 +12,7 @@ from custom_components.supernotify import (
     ATTR_MEDIA_SNAPSHOT_URL,
     CONF_MOBILE_DEVICES,
     CONF_NOTIFY_SERVICE,
+    CONF_OPTIONS,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
     PRIORITY_CRITICAL,
@@ -64,6 +65,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
         snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
+        options = data.get(CONF_OPTIONS, {})
 
         if envelope.priority == PRIORITY_CRITICAL:
             push_priority = "critical"

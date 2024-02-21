@@ -8,12 +8,13 @@ complex scenarios, including multi-channel notifications, conditional notificati
 * Send out notifications on multiple channels from one call, removing repetitive config and code from automations
 * Standard `notify` implementation so easy to switch out for other notify implementations, or `notify.group`
 * Conditional notification using standard Home Assistant `condition` config
-* Reuse chunks of conditional logic as scenarios across multiple notifications
+* Reuse chunks of conditional logic as *scenarios* across multiple notifications
 * Streamlined conditionals for selecting channels per priority and scenario, or
 for sending only to people in or out of the property
 * Use `person` for all notification configuration, regardless of channel, using a unified Person model currently missing from Home Assistant
 * HTML email templates, using Jinja2, with a general default template supplied
 * Single set up of consistent mobile actions across multiple notifications
+* Flexible image snapshots, supporting cameras, MQTT Images and image URLs. Cameras can be repositioned using PTZ before and after a snapshot is taken.
 * Defaulting of targets and data in static config, and overridable at notification time
 * Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
 * Reloadable configuration
@@ -181,8 +182,11 @@ as the Service Data.
 
 ### Email
 
-Can be used for plain or HTML template emails, and handle images as attachments
-or HTML embed
+Can be used for plain or HTML template emails, and handle images as attachments or embedded HTML.
+
+Also supports `message_html` override to supply html that will be ignored for other notification
+types, and does not require templates. In this case, HTML will automatically be tagged onto the
+end to include any attached images.
 
 ### Media Image
 
@@ -197,6 +201,23 @@ The `title_only` option can be set to `False` to override the restriction of con
 ### Persistent
 
 Place a notification on Home Assistant application screen.
+
+## Media support
+
+Images can be included by:
+
+- camera entity, as created by any [Camera Integration](https://www.home-assistant.io/integrations/camera/)
+- image entity, for example an [MQTT Image](https://www.home-assistant.io/integrations/image.mqtt/), ideal for Frigate or cameras that stream to MQTT
+- `snapshot_url`
+  
+Additionally a video clip can be referenced by `clip_url` where supported by a delivery method (currently mobile push only).
+
+An optional PTZ preset can also be referenced in `data`, a PTZ delay before snapshot taken,
+and a choice of `onvif` or `frigate` for the PTZ control. After the snap, an additional PTZ will be commanded to return to the `ptz_default_preset` defined for the camera.This image will taken once and then reused across all supporting delivery methods.
+
+Some cameras, like Hikvision, add JPEG comment blocks which confuse the very simplistic media
+detection in the SMTP integration, and leads to spurious log entries. Supernotify will automatically rewrite JPEGs into simpler standard forms to avoid this, and optionally `JPEG_ARGS`
+can be set, for example to reduce image quality for smaller email attachments.
 
 ## Flexible Configuration
 
@@ -236,20 +257,26 @@ See `examples` directory for working minimal and maximal configuration examples.
 
 Use this for additional camera info:
 
-* Link a `device_tracker` to the camera, so notifications will first check its online, then use an alternative
-* Define alternative cameras to use if first fails
-* For ONVIF cameras, a PTZ home preset can be defined, and a delay between PTZ command and snapshot
+* Link a `device_tracker` to the camera
+  * Notifications will first check its online, then use an alternative if primary is down
+* Define alternative cameras to use if first fails using `alt_camera`
+* For ONVIF or Frigate cameras set up for PTZ
+  * Home preset can be defined using `ptz_default_preset` so camera can be reset after taking a snapshot
+  * Delay between PTZ command and snapshot can be defined using `ptz_delay`
+  * Choose between ONVIF or Frigate PTZ control using `ptz_method`
+    * Note that ONVIF may have numeric reference for presets while Frigate uses labels
 
 ## Delivery Method Options
 
 All of these set by passing an `options` block in either config or service call `data`
 
 
-|Option         |Methods            |Description                        |
-|---------------|-------------------|-----------------------------------|
-|chime_aliases  |chime              |Map tunes to device name or config |
-|jpeg_flags     |mail               |Tune image grabs                   |
-|title_only     |sms, alexa         |Suppress message body              |
+|Option         |Methods            |Description                                             |
+|---------------|-------------------|--------------------------------------------------------|
+|chime_aliases  |chime              |Map tunes to device name or config                      |
+|jpeg_flags     |mail               |Tune image grabs                                        |
+|title_only     |sms, alexa         |Suppress message body                                   |
+|timestamp      |all                |Add a timestamp to message. Recommended for mobile push |
 
 ## Tips
 

@@ -68,31 +68,25 @@ async def test_snapshot_url_with_broken_url(hass: HomeAssistant) -> None:
     assert retrieved_image_path is None
 
 
-async def test_snap_camera() -> None:
-    hass = Mock()
-    hass.services.async_call = AsyncMock()
+async def test_snap_camera(mock_hass) -> None:
     with tempfile.TemporaryDirectory() as tmp_path:
-        image_path = await snap_camera(hass, "camera.xunit", media_path=tmp_path, timeout=1)
+        image_path = await snap_camera(mock_hass, "camera.xunit", media_path=tmp_path, timeout=1)
     assert image_path is not None
-    hass.services.async_call.assert_awaited_once_with(
+    mock_hass.services.async_call.assert_awaited_once_with(
         "camera", "snapshot", service_data={"entity_id": "camera.xunit", "filename": image_path}
     )
 
 
-async def test_move_camera_onvif() -> None:
-    hass = Mock()
-    hass.services.async_call = AsyncMock()
-    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs")
-    hass.services.async_call.assert_awaited_once_with(
+async def test_move_camera_onvif(mock_hass) -> None:
+    await move_camera_to_ptz_preset(mock_hass, "camera.xunit", preset="Upstairs")
+    mock_hass.services.async_call.assert_awaited_once_with(
         "onvif", "ptz", service_data={"move_mode": "GotoPreset", "preset": "Upstairs"}, target={"entity_id": "camera.xunit"}
     )
 
 
-async def test_move_camera_frigate() -> None:
-    hass = Mock()
-    hass.services.async_call = AsyncMock()
-    await move_camera_to_ptz_preset(hass, "camera.xunit", preset="Upstairs", method=PTZ_METHOD_FRIGATE)
-    hass.services.async_call.assert_awaited_once_with(
+async def test_move_camera_frigate(mock_hass) -> None:
+    await move_camera_to_ptz_preset(mock_hass, "camera.xunit", preset="Upstairs", method=PTZ_METHOD_FRIGATE)
+    mock_hass.services.async_call.assert_awaited_once_with(
         "frigate", "ptz", service_data={"action": "preset", "argument": "Upstairs"}, target={"entity_id": "camera.xunit"}
     )
 
@@ -106,43 +100,38 @@ def set_states(hass, at_home=(), not_at_home=()):
     hass.states.get.side_effect = lambda v: home_state if v in at_home else not_home_state if v in not_at_home else None
 
 
-async def test_select_camera_not_in_config() -> None:
-    hass = Mock()
-    assert "camera.unconfigured" == await select_avail_camera(hass, {}, "camera.unconfigured")
+async def test_select_camera_not_in_config(mock_hass) -> None:
+    assert "camera.unconfigured" == await select_avail_camera(mock_hass, {}, "camera.unconfigured")
 
 
-async def test_select_untracked_primary_camera() -> None:
-    hass = Mock()
+async def test_select_untracked_primary_camera(mock_hass) -> None:
     assert "camera.untracked" == await select_avail_camera(
-        hass, {"camera.untracked": {"alias": "Test Untracked"}}, "camera.untracked"
+        mock_hass, {"camera.untracked": {"alias": "Test Untracked"}}, "camera.untracked"
     )
 
 
-async def test_select_tracked_primary_camera() -> None:
-    hass = Mock()
-    set_states(hass, ["device_tracker.cam1"])
+async def test_select_tracked_primary_camera(mock_hass) -> None:
+    set_states(mock_hass, ["device_tracker.cam1"])
     assert "camera.tracked" == await select_avail_camera(
-        hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked"
+        mock_hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked"
     )
 
 
-async def test_no_select_unavail_primary_camera() -> None:
-    hass = Mock()
-    set_states(hass, [], ["device_tracker.cam1"])
+async def test_no_select_unavail_primary_camera(mock_hass) -> None:
+    set_states(mock_hass, [], ["device_tracker.cam1"])
     assert (
         await select_avail_camera(
-            hass, {"camera.tracked": {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1"}}, "camera.tracked"
+            mock_hass, {"camera.tracked": {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1"}}, "camera.tracked"
         )
         is None
     )
 
 
-async def test_select_avail_alt_camera() -> None:
-    hass = Mock()
-    set_states(hass, ["device_tracker.altcam2"], ["device_tracker.cam1", "device_tracker.altcam1"])
+async def test_select_avail_alt_camera(mock_hass) -> None:
+    set_states(mock_hass, ["device_tracker.altcam2"], ["device_tracker.cam1", "device_tracker.altcam1"])
     assert (
         await select_avail_camera(
-            hass,
+            mock_hass,
             {
                 "camera.tracked": {
                     "camera": "camera.tracked",
@@ -158,12 +147,11 @@ async def test_select_avail_alt_camera() -> None:
     )
 
 
-async def test_select_untracked_alt_camera() -> None:
-    hass = Mock()
-    set_states(hass, [], ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
+async def test_select_untracked_alt_camera(mock_hass) -> None:
+    set_states(mock_hass, [], ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
     assert (
         await select_avail_camera(
-            hass,
+            mock_hass,
             {
                 "camera.tracked": {
                     "camera": "camera.tracked",

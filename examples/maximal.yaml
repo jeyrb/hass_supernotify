@@ -151,6 +151,11 @@ notify:
           - media_player.studio
         options:
           title_only: True 
+      sms:
+        service: notify.mikrotik_sms
+      mobile_push:
+        options:
+          timestamp: '%H:%M'
       chime:
         target:
           - media_player.kitchen

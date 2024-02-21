@@ -109,6 +109,7 @@ ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
 ATTR_MESSAGE_HTML = "message_html"
 ATTR_JPEG_FLAGS = "jpeg_flags"
+ATTR_TIMESTAMP = "timestamp"
 ATTR_DEBUG = "debug"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"

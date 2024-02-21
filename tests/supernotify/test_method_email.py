@@ -7,44 +7,43 @@ from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERV
 from custom_components.supernotify.notification import Notification
 
 
-async def test_deliver() -> None:
+async def test_deliver(mock_hass) -> None:
     """Test on_notify_email."""
-    hass = Mock()
+
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
     await context.initialize()
     uut = EmailDeliveryMethod(
-        hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
+        mock_hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}})
     await uut.initialize()
     await uut.deliver(Notification(context, message="hello there", title="testing",
                                    service_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}
                                                  }),
                       "plain_email")
-    hass.services.async_call.assert_called_with("notify", "smtp",
+    mock_hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester1@assert.com"],
                                                     "title": "testing",
                                                     "message": "hello there\n\npytest"})
-    hass.reset_mock()
+    mock_hass.reset_mock()
     await uut.deliver(Notification(context, message="hello there", title="testing",
                                    target=['tester9@assert.com'],
                                    service_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}
                                                  }),
                       "plain_email")
-    hass.services.async_call.assert_called_with("notify", "smtp",
+    mock_hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
                                                     "title": "testing", "message": "hello there\n\npytest"})
 
 
-async def test_deliver_with_template() -> None:
-    hass = Mock()
+async def test_deliver_with_template(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}],
         template_path="tests/supernotify/fixtures/templates")
 
     uut = EmailDeliveryMethod(
-        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
+        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
                                     CONF_SERVICE: "notify.smtp",
                                     CONF_TEMPLATE: "minimal_test.html.j2",
                                     CONF_DEFAULT: True}})
@@ -53,7 +52,7 @@ async def test_deliver_with_template() -> None:
                                    message="hello there",
                                    title="testing",
                                    target=['tester9@assert.com']))
-    hass.services.async_call.assert_called_with("notify", "smtp",
+    mock_hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
                                                     "title": "testing",
@@ -61,13 +60,12 @@ async def test_deliver_with_template() -> None:
                                                     'data': {'html': '<H1>testing</H1>'}})
 
 
-async def test_deliver_with_preformatted_html() -> None:
-    hass = Mock()
+async def test_deliver_with_preformatted_html(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
-        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
+        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
                                     CONF_SERVICE: "notify.smtp",
                                     CONF_DEFAULT: True}})
     await uut.initialize()
@@ -80,7 +78,7 @@ async def test_deliver_with_preformatted_html() -> None:
                                 )
     await notification.initialize()
     await uut.deliver(notification)
-    hass.services.async_call.assert_called_with("notify", "smtp",
+    mock_hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
                                                     "title": "testing",
@@ -88,13 +86,12 @@ async def test_deliver_with_preformatted_html() -> None:
                                                     'data': {'html': '<H3>testing</H3>'}})
 
 
-async def test_deliver_with_preformatted_html_and_image() -> None:
-    hass = Mock()
+async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[
         {CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
-        hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
+        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL,
                                     CONF_SERVICE: "notify.smtp",
                                     CONF_DEFAULT: True}})
     await uut.initialize()
@@ -111,7 +108,7 @@ async def test_deliver_with_preformatted_html_and_image() -> None:
     await notification.initialize()
     notification.snapshot_image_path = '/local/picture.jpg'
     await uut.deliver(notification)
-    hass.services.async_call.assert_called_with("notify", "smtp",
+    mock_hass.services.async_call.assert_called_with("notify", "smtp",
                                                 service_data={
                                                     "target": ["tester9@assert.com"],
                                                     "title": "testing",

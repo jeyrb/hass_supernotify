@@ -1,8 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import patch, Mock, AsyncMock
 
 import pytest
 from pytest_httpserver import HTTPServer
 
+
+@pytest.fixture
+def mock_hass():
+    hass = Mock()
+    hass.states = Mock()
+    hass.services.async_call = AsyncMock()
+    return hass
 
 @pytest.fixture
 @pytest.mark.enable_socket

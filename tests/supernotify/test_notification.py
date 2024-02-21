@@ -144,12 +144,11 @@ async def test_snapshot_url(hass: HomeAssistant) -> None:
         assert mock_snapshot.assert_not_called
 
 
-async def test_merge():
-    hass = Mock()
+async def test_merge(mock_hass):
     context = Mock()
     context.scenarios = {
         "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, 
-                                              "snapshot_url": "/bar/789"}}, hass)
+                                              "snapshot_url": "/bar/789"}}, mock_hass)
     }
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}

@@ -5,6 +5,7 @@ import datetime as dt
 import os.path
 from homeassistant.helpers.json import save_json
 import voluptuous as vol
+import time
 from homeassistant.components.notify import (
     ATTR_DATA,
 )
@@ -35,6 +36,7 @@ from . import (
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS,
+    ATTR_TIMESTAMP,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_OPTIONS,
@@ -84,6 +86,7 @@ class Notification:
         self.errored = 0
         self.skipped = 0
         self.delivered_envelopes = []
+        self.undelivered_envelopes = []
 
         try:
             vol.humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
@@ -171,9 +174,12 @@ class Notification:
 
     async def call_delivery_method(self, delivery):
         try:
-            envelopes = await self.context.delivery_method(delivery).deliver(self, delivery=delivery)
-            if envelopes is not None:
-                self.delivered_envelopes.extend(envelopes)
+            delivery_method = self.context.delivery_method(delivery)
+            delivered_envelopes, undelivered_envelopes = await delivery_method.deliver(self, delivery=delivery)
+            if delivered_envelopes is not None:
+                self.delivered_envelopes.extend(delivered_envelopes)
+            if undelivered_envelopes is not None:
+                self.delivered_envelopes.extend(undelivered_envelopes)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
@@ -379,6 +385,7 @@ class Envelope:
         self.message = notification.message(delivery_name)
         self.message_html = notification.message_html
         self.title = notification.title(delivery_name)
+        self.resolved = {}
         delivery_config_data = notification.delivery_data(delivery_name)
         if data:
             self.data = copy.deepcopy(delivery_config_data) if delivery_config_data else {}
@@ -388,6 +395,8 @@ class Envelope:
 
         self.delivered = 0
         self.errored = 0
+        self.calls = []
+        self.failed_calls = []
 
     def grab_image(self):
         return self._notification.grab_image(self.delivery_name)
@@ -396,6 +405,11 @@ class Envelope:
         data = {}
         # message is mandatory for notify platform
         data[CONF_MESSAGE] = self.message or ""
+        if self.data.get(ATTR_TIMESTAMP):
+            data[CONF_MESSAGE] = "%s [%s]" % (
+                data[CONF_MESSAGE],
+                time.strftime(self.data.get(ATTR_TIMESTAMP), time.localtime()),
+            )
         if self.title:
             data[CONF_TITLE] = self.title
         return data
