@@ -37,12 +37,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
 
-        expanded_targets = [(ent, chime_tune) for ent in expand_entity_ids(self.hass, targets)]
+        expanded_targets = {ent: chime_tune for ent in expand_entity_ids(self.hass, targets)}
         entities_and_tunes = self.resolve_tune(chime_tune)
-        expanded_targets.extend(entities_and_tunes)
-        envelope.resolved["expanded_targets"] = expanded_targets
+        expanded_targets.update(entities_and_tunes)  # overwrite and extend
 
-        for chime_entity_id, tune in expanded_targets:
+        for chime_entity_id, tune in expanded_targets.items():
             _LOGGER.debug("SUPERNOTIFY chime %s: %s", chime_entity_id, tune)
             service_data = None
             try:
@@ -97,15 +96,15 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return domain, service, service_data
 
     def resolve_tune(self, tune: str):
-        entities_and_tunes = []
+        entities_and_tunes = {}
         for domain, alias_config in self.chime_aliases.get(tune, {}).items():
             if isinstance(alias_config, str):
                 alias_config = {"tune": alias_config}
             domain = alias_config.get("domain", domain)
             actual_tune = alias_config.get("tune", tune)
             if ATTR_ENTITY_ID in alias_config:
-                entities_and_tunes.extend((ent, actual_tune) for ent in ensure_list(alias_config[ATTR_ENTITY_ID]))
+                entities_and_tunes.update({ent: actual_tune for ent in ensure_list(alias_config[ATTR_ENTITY_ID])})
             else:
-                entities_and_tunes.extend([(ent, actual_tune) for ent in self.chime_entities if ent.startswith("%s." % domain)])
+                entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith("%s." % domain)})
 
         return entities_and_tunes
