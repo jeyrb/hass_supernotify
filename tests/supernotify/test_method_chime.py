@@ -1,5 +1,3 @@
-from unittest.mock import Mock, AsyncMock
-
 
 from custom_components.supernotify import CONF_DATA, METHOD_CHIME
 from custom_components.supernotify.configuration import SupernotificationConfiguration
@@ -27,7 +25,6 @@ async def test_deliver(mock_hass) -> None:
 
 async def test_deliver_alias(mock_hass) -> None:
     """Test on_notify_chime"""
-    mock_hass.services.async_call = AsyncMock()
     context = SupernotificationConfiguration(
         method_defaults={
             "chime": {

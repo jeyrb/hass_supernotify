@@ -27,7 +27,7 @@ def ensure_dict(v, default=None):
         return {}
     elif isinstance(v, dict):
         return v
-    elif isinstance(v, list):
+    elif isinstance(v, (set, list)):
         return {vv: default for vv in v}
     else:
         return {v: default}

@@ -9,7 +9,11 @@ def mock_hass():
     hass = Mock()
     hass.states = Mock()
     hass.services.async_call = AsyncMock()
+    hass.data = {}
+    hass.data["device_registry"] = Mock()
+    hass.data["entity_registry"] = Mock()
     return hass
+
 
 @pytest.fixture
 @pytest.mark.enable_socket

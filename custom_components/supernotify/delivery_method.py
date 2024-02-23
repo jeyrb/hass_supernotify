@@ -19,13 +19,14 @@ from . import (
 )
 from .notification import Envelope, Notification
 from .configuration import SupernotificationConfiguration
+from traceback import format_exception
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class DeliveryMethod:
     @abstractmethod
-    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict):
+    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict = None):
         self.hass = hass
         self.context = context
         self.default_delivery = None
@@ -94,13 +95,13 @@ class DeliveryMethod:
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
             notification.skipped += 1
-            return (),()
+            return (), ()
         if not await self.evaluate_delivery_conditions(delivery_config):
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             notification.skipped += 1
-            return (),()
+            return (), ()
 
-        envelopes = notification.build_targets(delivery_config, self)
+        envelopes = notification.generate_envelopes(delivery_config, self)
         delivered_envelopes = []
         undelivered_envelopes = []
         for envelope in envelopes:
@@ -113,6 +114,7 @@ class DeliveryMethod:
                 _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
                 _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
+                envelope.delivery_error = format_exception(e)
                 undelivered_envelopes.append(envelope)
         return delivered_envelopes, undelivered_envelopes
 
@@ -166,6 +168,7 @@ class DeliveryMethod:
             envelope.failed_calls.append((domain, service, service_data, str(e), time.time() - start_time))
             _LOGGER.error("SUPERNOTIFY Failed to notify via %s, data=%s : %s", self.method, service_data, e)
             envelope.errored += 1
+            envelope.delivery_error = format_exception(e)
             return False
 
     def abs_url(self, fragment, prefer_external=True):

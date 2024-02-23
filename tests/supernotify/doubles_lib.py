@@ -18,10 +18,20 @@ class DummyDeliveryMethod(DeliveryMethod):
         return service is None
 
     def recipient_target(self, recipient):
-        return [recipient.get(CONF_PERSON).replace('person.', 'dummy.')] if recipient else []
+        return [recipient.get(CONF_PERSON).replace("person.", "dummy.")] if recipient else []
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
         self.test_calls.append(envelope)
+
+
+class BrokenDeliveryMethod(DeliveryMethod):
+    method = "broken"
+
+    def validate_service(self, service):
+        return True
+
+    async def _delivery_impl(self, envelope: Envelope) -> None:
+        raise EnvironmentError("a self-inflicted error has occurred")
 
 
 class MockService(homeassistant.components.notify.BaseNotificationService):

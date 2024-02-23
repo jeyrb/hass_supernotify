@@ -1,7 +1,7 @@
 import io
 import os.path
 import tempfile
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 
 import pytest
 from homeassistant.const import STATE_HOME, STATE_NOT_HOME

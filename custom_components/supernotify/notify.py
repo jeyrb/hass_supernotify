@@ -204,7 +204,7 @@ class SuperNotificationService(BaseNotificationService):
         self.notification_cache[(notification_hash, notification.priority)] = notification.id
         return dupe
 
-    async def async_send_message(self, message="", title=None, target=None, **kwargs):
+    async def async_send_message(self, message="", title=None, target=None, **kwargs) -> Notification:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
         _LOGGER.debug("Message: %s, target: %s, data: %s", message, target, data)
@@ -233,6 +233,7 @@ class SuperNotificationService(BaseNotificationService):
             notification.errored,
             notification.skipped,
         )
+        return notification
 
     def cleanup_archive(self):
         if self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(

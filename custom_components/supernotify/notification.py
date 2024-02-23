@@ -6,6 +6,7 @@ import os.path
 from homeassistant.helpers.json import save_json
 import voluptuous as vol
 import time
+from traceback import format_exception
 from homeassistant.components.notify import (
     ATTR_DATA,
 )
@@ -105,6 +106,8 @@ class Notification:
         self.media = service_data.get(ATTR_MEDIA) or {}
         self.debug = service_data.get(ATTR_DEBUG, False)
         self.delivery_results = {}
+        self.delivery_errors = {}
+        self.resolved = {}
 
         self.selected_delivery_names = []
         self.enabled_scenarios = []
@@ -179,10 +182,11 @@ class Notification:
             if delivered_envelopes is not None:
                 self.delivered_envelopes.extend(delivered_envelopes)
             if undelivered_envelopes is not None:
-                self.delivered_envelopes.extend(undelivered_envelopes)
+                self.undelivered_envelopes.extend(undelivered_envelopes)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
+            self.delivery_errors[delivery] = format_exception(e)
 
     def hash(self):
         return hash((self._message, self._title))
@@ -231,7 +235,16 @@ class Notification:
             base.update(getattr(self, attribute))
         return base
 
-    def build_targets(self, delivery_config, method):
+    def record_resolve(self, delivery_config, category, resolved):
+        """debug support for recording detailed target resolution in archived notification"""
+        self.resolved.setdefault(delivery_config, {})
+        self.resolved[delivery_config].setdefault(category, [])
+        if isinstance(resolved, list):
+            self.resolved[delivery_config][category].extend(resolved)
+        else:
+            self.resolved[delivery_config][category].append(resolved)
+
+    def generate_envelopes(self, delivery_config, method):
         delivery_name = delivery_config.get(CONF_NAME)
 
         recipients = []
@@ -240,35 +253,43 @@ class Notification:
             for t in self.target:
                 if t in self.context.people:
                     recipients.append(self.context.people[t])
+                    self.record_resolve(delivery_name, "1a_person_target", self.context.people[t])
                 else:
                     recipients.append({ATTR_TARGET: t})
+                    self.record_resolve(delivery_name, "1b_non_person_target", t)
             _LOGGER.debug("SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
         else:
             # second priority is explicit entities on delivery
             if delivery_config and CONF_ENTITIES in delivery_config:
                 recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_ENTITIES))
+                self.record_resolve(delivery_name, "2a_delivery_config_entity", delivery_config.get(CONF_ENTITIES))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
             # third priority is explicit target on delivery
             if delivery_config and CONF_TARGET in delivery_config:
                 recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_TARGET))
+                self.record_resolve(delivery_name, "2b_delivery_config_target", delivery_config.get(CONF_TARGET))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
 
             # next priority is explicit recipients on delivery
             if delivery_config and CONF_RECIPIENTS in delivery_config:
                 recipients.extend(delivery_config[CONF_RECIPIENTS])
+                self.record_resolve(delivery_name, "2c_delivery_config_recipient", delivery_config.get(CONF_RECIPIENTS))
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s", method.method, recipients)
 
             # If target not specified on service call or delivery, then default to std list of recipients
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
                 recipients = self.context.filter_people_by_occupancy(delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
+                self.record_resolve(delivery_name, "2d_recipients_by_occupancy", recipients)
                 recipients = [
                     r for r in recipients if self.recipients_override is None or r.get(CONF_PERSON) in self.recipients_override
                 ]
+                self.record_resolve(delivery_name, "2d_recipients_by_occupancy_filtered", recipients)
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", method.method, recipients)
 
         # now the list of recipients determined, resolve this to target addresses or entities
         default_targets = []
         custom_envelopes = []
+
         default_data = delivery_config.get(CONF_DATA)
         for recipient in recipients:
             recipient_targets = []
@@ -397,6 +418,7 @@ class Envelope:
         self.errored = 0
         self.calls = []
         self.failed_calls = []
+        self.delivery_error = None
 
     def grab_image(self):
         return self._notification.grab_image(self.delivery_name)

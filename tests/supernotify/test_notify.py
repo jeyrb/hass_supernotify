@@ -1,12 +1,12 @@
 import time
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 import os.path
 import tempfile
 import json
 from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE, CONF_ENABLED
 
 from custom_components.supernotify.notification import Envelope, Notification
-from .doubles_lib import DummyDeliveryMethod
+from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 from homeassistant.core import HomeAssistant, callback
 from custom_components.supernotify import (
     ATTR_DUPE_POLICY_NONE,
@@ -93,20 +93,19 @@ async def test_send_message_with_scenario_mismatch(mock_hass) -> None:
     )
 
 
-async def inject_dummy_delivery_method(hass: HomeAssistant, uut: SuperNotificationService) -> None:
-    dummy = DummyDeliveryMethod(hass, uut.context)
-    await dummy.initialize()
-    await uut.context.register_delivery_methods([dummy])
-    return dummy
+async def inject_dummy_delivery_method(
+    hass: HomeAssistant, uut: SuperNotificationService, delivery_method_class: type, delivery_config=None
+) -> None:
+    dm = delivery_method_class(hass, uut.context, deliveries=delivery_config)
+    await dm.initialize()
+    await uut.context.register_delivery_methods([dm])
+    return dm
 
 
 async def test_recipient_delivery_data_override(mock_hass) -> None:
-    mock_hass.data = {}
-    mock_hass.data["device_registry"] = Mock()
-    mock_hass.data["entity_registry"] = Mock()
     uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, recipients=RECIPIENTS)
     await uut.initialize()
-    dummy = await inject_dummy_delivery_method(mock_hass, uut)
+    dummy = await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
     await uut.async_send_message(
         title="test_title",
         message="testing 123",
@@ -117,6 +116,20 @@ async def test_recipient_delivery_data_override(mock_hass) -> None:
         Envelope("dummy", uut.last_notification, targets=["dummy.new_home_owner", "xyz123"], data={"emoji_id": 912393}),
         Envelope("dummy", uut.last_notification, targets=["dummy.bidey_in", "abc789"]),
     ]
+
+
+async def test_broken_delivery(mock_hass) -> None:
+    delivery_config = {"broken": {CONF_METHOD: "broken"}}
+    uut = SuperNotificationService(mock_hass, deliveries=delivery_config, recipients=RECIPIENTS)
+    await uut.initialize()
+    await inject_dummy_delivery_method(mock_hass, uut, BrokenDeliveryMethod, delivery_config=delivery_config)
+    notification = await uut.async_send_message(
+        title="test_title",
+        message="testing 123",
+        data={"delivery_selection": DELIVERY_SELECTION_EXPLICIT, "delivery": {"broken"}},
+    )
+    assert len(notification.undelivered_envelopes) == 1
+    assert len(notification.undelivered_envelopes[0].delivery_error) > 0
 
 
 async def test_null_delivery(mock_hass) -> None:
@@ -137,8 +150,9 @@ async def test_archive(mock_hass) -> None:
         )
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
-        obj_name = os.path.join(archive, "%s_%s.json" % (uut.last_notification.created.isoformat()[:16], 
-                                                         uut.last_notification.id))
+        obj_name = os.path.join(
+            archive, "%s_%s.json" % (uut.last_notification.created.isoformat()[:16], uut.last_notification.id)
+        )
         assert os.path.exists(obj_name)
         with open(obj_name, "r") as stream:
             reobj = json.load(stream)

@@ -92,11 +92,11 @@ async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssis
     uut = Notification(context, "testing 123")
     generic = GenericDeliveryMethod(hass, context, delivery)
     await generic.initialize()
-    bundles = uut.build_targets(delivery["chatty"], generic)
+    bundles = uut.generate_envelopes(delivery["chatty"], generic)
     assert bundles == [Envelope("chatty", uut, targets=["chan1", "chan2"])]
     email = EmailDeliveryMethod(hass, context, delivery)
     await email.initialize()
-    bundles = uut.build_targets(delivery["mail"], email)
+    bundles = uut.generate_envelopes(delivery["mail"], email)
     assert bundles == [Envelope("mail", uut, targets=["bob@test.com", "jane@test.com"])]
 
 
@@ -106,7 +106,7 @@ async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:
     method = GenericDeliveryMethod(hass, context, {})
     await method.initialize()
     uut = Notification(context, "testing 123")
-    bundles = uut.build_targets({}, method)
+    bundles = uut.generate_envelopes({}, method)
     assert bundles == [Envelope(None, uut)]
 
 
@@ -147,8 +147,7 @@ async def test_snapshot_url(hass: HomeAssistant) -> None:
 async def test_merge(mock_hass):
     context = Mock()
     context.scenarios = {
-        "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, 
-                                              "snapshot_url": "/bar/789"}}, mock_hass)
+        "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_hass)
     }
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
