@@ -1,4 +1,3 @@
-
 import os
 import os.path
 
@@ -25,19 +24,21 @@ async def test_examples(hass: HomeAssistant, config_name) -> None:
     uut_config = config[CONF_NOTIFY][0]
     service_name = uut_config[CONF_NAME]
     platform = uut_config[CONF_PLATFORM]
-    assert await async_setup_component(
-        hass,
-        notify.DOMAIN,
-        config
-    )
+    assert await async_setup_component(hass, notify.DOMAIN, config)
     await hass.async_block_till_done()
 
     assert hass.services.has_service(notify.DOMAIN, service_name)
-    services = await hass.services.async_call(platform,
-                                              "enquire_deliveries_by_scenario",
-                                              blocking=True,
-                                              return_response=True)
-    expected_defaults = [d for d, dc in uut_config.get(
-        CONF_DELIVERY, {}).items() if dc.get(CONF_ENABLED, True)
-        and SELECTION_DEFAULT in dc.get(CONF_SELECTION, [SELECTION_DEFAULT])]  # noqa: F821
+    services = await hass.services.async_call(platform, "enquire_deliveries_by_scenario", blocking=True, return_response=True)
+    expected_defaults = [
+        d
+        for d, dc in uut_config.get(CONF_DELIVERY, {}).items()
+        if dc.get(CONF_ENABLED, True) and SELECTION_DEFAULT in dc.get(CONF_SELECTION, [SELECTION_DEFAULT])
+    ]  # noqa: F821
     assert services["DEFAULT"] == unordered(expected_defaults)
+
+    await hass.services.async_call(
+        notify.DOMAIN,
+        service_name,
+        {"message": "unit test - %s" % config_name, "data": {"delivery": {"testing": None}, "priority": "low"}},
+        blocking=True,
+    )

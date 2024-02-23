@@ -80,7 +80,7 @@ class DeliveryMethod:
 
         return valid_deliveries
 
-    async def deliver(self, notification: Notification, delivery: str = None) -> bool:
+    async def deliver(self, notification: Notification, delivery: str = None) -> tuple:
         """
         Deliver a notification
 
@@ -94,11 +94,11 @@ class DeliveryMethod:
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
             notification.skipped += 1
-            return
+            return (),()
         if not await self.evaluate_delivery_conditions(delivery_config):
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             notification.skipped += 1
-            return
+            return (),()
 
         envelopes = notification.build_targets(delivery_config, self)
         delivered_envelopes = []

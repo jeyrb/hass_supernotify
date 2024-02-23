@@ -1,0 +1,218 @@
+{
+  "created": "2024-02-23T09:36:27.832362",
+  "_message": "unit test - maximal.yaml",
+  "target": [],
+  "_title": null,
+  "id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+  "snapshot_image_path": null,
+  "delivered": 0,
+  "errored": 5,
+  "skipped": 2,
+  "delivered_envelopes": [
+    {
+      "targets": [
+        "media_player.kitchen_2"
+      ],
+      "delivery_name": "alexa_show",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 0,
+      "calls": [],
+      "failed_calls": []
+    },
+    {
+      "targets": [],
+      "delivery_name": "mobile_push",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 0,
+      "calls": [],
+      "failed_calls": []
+    },
+    {
+      "targets": [
+        "media_player.echo_lobby"
+      ],
+      "delivery_name": "doorbell_chime_alexa",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 1,
+      "calls": [],
+      "failed_calls": [
+        [
+          "media_player",
+          "play_media",
+          {
+            "entity_id": "media_player.echo_lobby",
+            "media_content_type": "sound",
+            "media_content_id": "amzn_sfx_doorbell_chime_01"
+          },
+          "Service media_player.play_media not found.",
+          0.00001811981201171875
+        ]
+      ]
+    },
+    {
+      "targets": [
+        "script.chime_ding_dong",
+        "switch.chime_sax",
+        "media_player.echo_lobby"
+      ],
+      "delivery_name": "play_chimes",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 2,
+      "calls": [],
+      "failed_calls": [
+        [
+          "script",
+          "chime_ding_dong",
+          {
+            "variables": {}
+          },
+          "Service script.chime_ding_dong not found.",
+          0.000010967254638671875
+        ],
+        [
+          "switch",
+          "turn_on",
+          {
+            "entity_id": "switch.chime_sax"
+          },
+          "Service switch.turn_on not found.",
+          0.000010013580322265625
+        ]
+      ]
+    },
+    {
+      "targets": [
+        "media_player.kitchen",
+        "media_player.bedroom",
+        "media_player.hall_flex",
+        "media_player.old_kitchen_flex",
+        "media_player.studio"
+      ],
+      "delivery_name": "alexa_announce",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 1,
+      "calls": [],
+      "failed_calls": [
+        [
+          "notify",
+          "alexa",
+          {
+            "message": "unit test - maximal.yaml",
+            "data": {
+              "type": "announce"
+            },
+            "target": [
+              "media_player.kitchen",
+              "media_player.bedroom",
+              "media_player.hall_flex",
+              "media_player.old_kitchen_flex",
+              "media_player.studio"
+            ]
+          },
+          "Service notify.alexa not found.",
+          0.000010967254638671875
+        ]
+      ]
+    },
+    {
+      "targets": [
+        "switch.garden_shed_chime"
+      ],
+      "delivery_name": "expensive_api_call",
+      "notification_id": "04a5a1f4-d22f-11ee-9156-725daeea5112",
+      "media": {},
+      "priority": "low",
+      "message": "unit test - maximal.yaml",
+      "message_html": null,
+      "title": null,
+      "resolved": {},
+      "data": {},
+      "delivered": 0,
+      "errored": 1,
+      "calls": [],
+      "failed_calls": [
+        [
+          "notify",
+          "megacorp_api",
+          {
+            "message": "unit test - maximal.yaml",
+            "target": [
+              "switch.garden_shed_chime"
+            ],
+            "data": {}
+          },
+          "Service notify.megacorp_api not found.",
+          9.059906005859375e-6
+        ]
+      ]
+    }
+  ],
+  "undelivered_envelopes": [],
+  "priority": "low",
+  "message_html": null,
+  "requested_scenarios": [],
+  "delivery_selection": "implicit",
+  "delivery_overrides_type": "dict",
+  "delivery_overrides": {
+    "testing": null
+  },
+  "recipients_override": null,
+  "data": {},
+  "media": {},
+  "debug": false,
+  "delivery_results": {},
+  "selected_delivery_names": [
+    "alexa_show",
+    "mobile_push",
+    "html_email",
+    "doorbell_chime_alexa",
+    "play_chimes",
+    "text_message",
+    "sleigh_bells",
+    "alexa_announce",
+    "upstairs_siren"
+  ],
+  "enabled_scenarios": [
+    "bedtime"
+  ]
+}
