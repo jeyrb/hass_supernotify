@@ -273,7 +273,7 @@ class SuperNotificationService(BaseNotificationService):
                 with os.scandir(path) as archive:
                     for entry in archive:
                         if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
-                            _LOGGER.debug("SUPERNOTIFY Purging %s", path)
+                            _LOGGER.debug("SUPERNOTIFY Purging %s", entry.path)
                             os.remove(entry.path)
                             purged += 1
             except Exception as e:
