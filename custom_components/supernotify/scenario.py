@@ -32,6 +32,7 @@ class Scenario:
         self.default = self.name == ATTR_DEFAULT
 
     async def validate(self):
+        ''' Validate Home Assistant conditiion definition at initiation '''
         if self.condition:
             if not await condition.async_validate_condition_config(self.hass, self.condition):
                 _LOGGER.warning(
@@ -40,6 +41,7 @@ class Scenario:
         return True
 
     async def evaluate(self):
+        ''' Evaluate scenario conditions '''
         if self.condition:
             try:
                 conditions = cv.CONDITION_SCHEMA(self.condition)

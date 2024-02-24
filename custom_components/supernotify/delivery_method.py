@@ -36,6 +36,9 @@ class DeliveryMethod:
         )
 
     async def initialize(self):
+        """
+        Async post-construction initialization
+        """
         assert self.method is not None
         self.valid_deliveries = await self.validate_deliveries()
 
@@ -46,9 +49,6 @@ class DeliveryMethod:
     async def validate_deliveries(self):
         """
         Validate list of deliveries at startup for this method
-
-        Args:
-            deliveries (dict): Dict of delivery name -> delivery configuration
         """
         valid_deliveries = {}
         for d, dc in self.method_deliveries.items():
@@ -87,8 +87,8 @@ class DeliveryMethod:
         Deliver a notification
 
         Args:
-            message (_type_, optional): Message to send. Defaults to None, e.g for methods like chime
-            delivery_config (_type_, optional): Delivery Configuration. Defaults to None.
+            notification (_Notification_): Notification object to handle
+            delivery (_str_, optional): Delivery name
         """
         delivery_config = self.context.deliveries.get(delivery) or self.default_delivery or {}
 
@@ -118,10 +118,20 @@ class DeliveryMethod:
 
     @abstractmethod
     async def _delivery_impl(envelope: Envelope) -> None:
+        """
+        Delivery implementation
+        
+        Args:
+            envelope (Envelope): envelope to be delivered
+        """        
         pass
 
     def select_target(self, target):
-        """Confirm if target appropriate for this delivery method"""
+        """Confirm if target appropriate for this delivery method
+
+        Args:
+            target (str): Target, typically an entity ID, or an email address, phone number
+        """
         return True
 
     def recipient_target(self, recipient):

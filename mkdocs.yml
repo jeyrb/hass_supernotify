@@ -19,7 +19,9 @@ plugins:
         # See: https://mkdocstrings.github.io/python/usage/
         python:
           options:
-            docstring_style: sphinx
+            show_source: false
+            show_root_heading: true
+            summary: true
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true

@@ -113,7 +113,9 @@ class Notification:
         self.enabled_scenarios = []
 
     async def initialize(self):
-
+        """
+        Async post-construction initialization
+        """
         if self.delivery_selection is None:
             if self.delivery_overrides_type in ("list", "str"):
                 # a bare list of deliveries implies intent to restrict
@@ -420,9 +422,11 @@ class Envelope:
         self.delivery_error = None
 
     def grab_image(self):
+        ''' Grab an image from a camera, snapshot URL, MQTT Image etc '''
         return self._notification.grab_image(self.delivery_name)
 
     def core_service_data(self):
+        ''' Build the core set of `service_data` dict to pass to underlying notify service '''
         data = {}
         # message is mandatory for notify platform
         data[CONF_MESSAGE] = self.message or ""

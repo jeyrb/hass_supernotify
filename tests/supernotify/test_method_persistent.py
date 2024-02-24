@@ -10,12 +10,11 @@ from custom_components.supernotify.notification import Notification
 async def test_deliver(mock_hass) -> None:
     """Test on_notify_persistent"""
     context = SupernotificationConfiguration()
-    uut = PersistentDeliveryMethod(
-        mock_hass, context, {})
+    uut = PersistentDeliveryMethod(mock_hass, context, {})
     await uut.initialize()
     await uut.deliver(Notification(context, "hello there", title="testing"))
-    mock_hass.services.async_call.assert_called_with("notify", "persistent_notification",
-                                                service_data={
-                                                    ATTR_TITLE: "testing",
-                                                    ATTR_MESSAGE: "hello there",
-                                                    ATTR_NOTIFICATION_ID: None})
+    mock_hass.services.async_call.assert_called_with(
+        "notify",
+        "persistent_notification",
+        service_data={ATTR_TITLE: "testing", ATTR_MESSAGE: "hello there", ATTR_NOTIFICATION_ID: None},
+    )

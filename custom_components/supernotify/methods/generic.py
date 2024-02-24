@@ -14,13 +14,18 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class GenericDeliveryMethod(DeliveryMethod):
+    ''' Call any service, including non-notify ones, like switch.turn_on or mqtt.publish '''
     method = METHOD_GENERIC
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def validate_service(self, service):
-        return service is not None and "." in service
+        if service is not None and "." in service:
+            return True
+        else:
+            _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
+            return False
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
 
