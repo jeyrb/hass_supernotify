@@ -16,11 +16,13 @@ from custom_components.supernotify import (
     CONF_DATA,
     CONF_DELIVERY,
     CONF_DUPE_POLICY,
+    CONF_OPTIONS,
     CONF_PRIORITY,
     CONF_SELECTION,
     CONF_TARGET,
     CONF_METHOD,
     CONF_PHONE_NUMBER,
+    CONF_TARGETS_REQUIRED,
     DELIVERY_SELECTION_EXPLICIT,
     METHOD_ALEXA,
     METHOD_CHIME,
@@ -60,6 +62,12 @@ RECIPIENTS = [
     {"person": "person.bidey_in", CONF_PHONE_NUMBER: "+4489393013834", CONF_DELIVERY: {"dummy": {CONF_TARGET: ["abc789"]}}},
 ]
 
+METHOD_DEFAULTS = {
+    METHOD_GENERIC: {CONF_SERVICE: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
+    METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_args": {"progressive": True}}},
+    "dummy": {CONF_TARGETS_REQUIRED: False},
+}
+
 
 async def test_send_message_with_scenario_mismatch(mock_hass) -> None:
     uut = SuperNotificationService(
@@ -67,6 +75,7 @@ async def test_send_message_with_scenario_mismatch(mock_hass) -> None:
         deliveries=DELIVERY,
         scenarios=SCENARIOS,
         recipients=RECIPIENTS,
+        method_defaults=METHOD_DEFAULTS,
         dupe_check={CONF_DUPE_POLICY: ATTR_DUPE_POLICY_NONE},
     )
     await uut.initialize()
@@ -103,7 +112,7 @@ async def inject_dummy_delivery_method(
 
 
 async def test_recipient_delivery_data_override(mock_hass) -> None:
-    uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, recipients=RECIPIENTS)
+    uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     dummy = await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
     await uut.async_send_message(
@@ -120,7 +129,9 @@ async def test_recipient_delivery_data_override(mock_hass) -> None:
 
 async def test_broken_delivery(mock_hass) -> None:
     delivery_config = {"broken": {CONF_METHOD: "broken"}}
-    uut = SuperNotificationService(mock_hass, deliveries=delivery_config, recipients=RECIPIENTS)
+    uut = SuperNotificationService(
+        mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS
+    )
     await uut.initialize()
     await inject_dummy_delivery_method(mock_hass, uut, BrokenDeliveryMethod, delivery_config=delivery_config)
     notification = await uut.async_send_message(
@@ -146,6 +157,7 @@ async def test_archive(mock_hass) -> None:
             deliveries=DELIVERY,
             scenarios=SCENARIOS,
             recipients=RECIPIENTS,
+            method_defaults=METHOD_DEFAULTS,
             archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive},
         )
         await uut.initialize()
@@ -189,6 +201,7 @@ async def test_fallback_delivery(mock_hass) -> None:
             "generic": {CONF_METHOD: METHOD_GENERIC, CONF_SELECTION: SELECTION_FALLBACK, CONF_SERVICE: "notify.dummy"},
             "push": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.push", CONF_PRIORITY: "critical"},
         },
+        method_defaults=METHOD_DEFAULTS,
     )
     await uut.initialize()
     await uut.async_send_message("just a test", data={"priority": "low"})
