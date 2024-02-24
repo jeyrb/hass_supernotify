@@ -1,5 +1,7 @@
 # SuperNotifier
 
+Easy multi-channel rich notifications.
+
 An extension of HomeAssistant's built in `notify.notify` that can greatly simplify multiple notification channels and
 complex scenarios, including multi-channel notifications, conditional notifications, mobile actions, chimes and template based HTML emails.
 
@@ -11,17 +13,21 @@ complex scenarios, including multi-channel notifications, conditional notificati
 * Reuse chunks of conditional logic as *scenarios* across multiple notifications
 * Streamlined conditionals for selecting channels per priority and scenario, or
 for sending only to people in or out of the property
-* Use `person` for all notification configuration, regardless of channel, using a unified Person model currently missing from Home Assistant
+* Use `person` for all notification configuration, regardless of channel
+  * Unified Person model currently missing from Home Assistant
 * HTML email templates, using Jinja2, with a general default template supplied
 * Single set up of consistent mobile actions across multiple notifications
-* Flexible image snapshots, supporting cameras, MQTT Images and image URLs. Cameras can be repositioned using PTZ before and after a snapshot is taken.
+* Flexible image snapshots, supporting cameras, MQTT Images and image URLs. 
+  * Cameras can be repositioned using PTZ before and after a snapshot is taken.
 * Defaulting of targets and data in static config, and overridable at notification time
-* Generic support for any notification method, plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
+* Generic support for any notification method
+  * Plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push
 * Reloadable configuration
 * Tunable duplicate notification detection
 * Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
-* Debugging support, including optional archival of message structures, and additional
-services to pull back live configuration or last known notification details.
+* Debugging support, 
+  * Optional archival of message structures
+  * Additional services to pull back live configuration or last known notification details.
 
 ## Installation
 
