@@ -123,10 +123,13 @@ async def async_get_service(
         return {"scenarios": await service.enquire_active_scenarios()}
 
     async def supplemental_service_purge_archive(call: ServiceCall) -> int:
-        return {"purged": service.cleanup_archive(days=call.data.get("days")),
-                "remaining": service.archive_size(),
-                "interval": service.ARCHIVE_PURGE_MIN_INTERVAL,
-                "days": service.context.archive.get(CONF_ARCHIVE_DAYS, 1)}
+        days = call.data.get("days")
+        return {
+            "purged": service.cleanup_archive(days=days, force=True),
+            "remaining": service.archive_size(),
+            "interval": service.ARCHIVE_PURGE_MIN_INTERVAL,
+            "days": service.context.archive.get(CONF_ARCHIVE_DAYS, 1) if days is None else days
+        }
 
     hass.services.async_register(
         DOMAIN,
@@ -254,8 +257,8 @@ class SuperNotificationService(BaseNotificationService):
         else:
             return 0
 
-    def cleanup_archive(self, days=None):
-        if self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(
+    def cleanup_archive(self, days=None, force=False):
+        if not force and self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(
             minutes=self.ARCHIVE_PURGE_MIN_INTERVAL
         ):
             return 0
