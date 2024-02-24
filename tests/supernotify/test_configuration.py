@@ -11,29 +11,6 @@ from custom_components.supernotify.notification import Envelope, Notification
 from .doubles_lib import DummyDeliveryMethod
 
 
-async def test_filter_recipients(mock_hass) -> None:
-    uut = SupernotificationConfiguration(mock_hass,
-                                         recipients=[{CONF_PERSON: "person.new_home_owner"},
-                                                     {CONF_PERSON: "person.bidey_in"}])
-    await uut.initialize()
-
-    hass_states = {"person.new_home_owner": Mock(state="not_home"),
-                   "person.bidey_in": Mock(state="home")}
-    mock_hass.states.get = hass_states.get
-
-    assert len(uut.filter_people_by_occupancy("all_in")) == 0
-    assert len(uut.filter_people_by_occupancy("all_out")) == 0
-    assert len(uut.filter_people_by_occupancy("any_in")) == 2
-    assert len(uut.filter_people_by_occupancy("any_out")) == 2
-    assert len(uut.filter_people_by_occupancy("only_in")) == 1
-    assert len(uut.filter_people_by_occupancy("only_out")) == 1
-
-    assert {r["person"] for r in uut.filter_people_by_occupancy(
-        "only_out")} == {"person.new_home_owner"}
-    assert {r["person"]
-            for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
-
-
 async def test_default_recipients(mock_hass) -> None:
     context = SupernotificationConfiguration(mock_hass,
                                              recipients=[{CONF_PERSON: "person.new_home_owner"},

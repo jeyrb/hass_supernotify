@@ -7,6 +7,7 @@ from custom_components.supernotify import (
     CONF_DELIVERY,
     CONF_DELIVERY_SELECTION,
     CONF_MEDIA,
+    CONF_PERSON,
     CONF_SCENARIOS,
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_IMPLICIT,
@@ -98,6 +99,30 @@ async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssis
     await email.initialize()
     bundles = uut.generate_envelopes(delivery["mail"], email)
     assert bundles == [Envelope("mail", uut, targets=["bob@test.com", "jane@test.com"])]
+
+
+async def test_filter_recipients(mock_hass) -> None:
+    hass_states = {"person.new_home_owner": Mock(state="not_home"),
+                   "person.bidey_in": Mock(state="home")}
+    mock_hass.states.get = hass_states.get
+    context = SupernotificationConfiguration(mock_hass,
+                                            recipients=[{CONF_PERSON: "person.new_home_owner"},
+                                                     {CONF_PERSON: "person.bidey_in"}])
+    await context.initialize()
+    uut = Notification(context, "testing 123")  
+
+    assert len(uut.filter_people_by_occupancy("all_in")) == 0
+    assert len(uut.filter_people_by_occupancy("all_out")) == 0
+    assert len(uut.filter_people_by_occupancy("any_in")) == 2
+    assert len(uut.filter_people_by_occupancy("any_out")) == 2
+    assert len(uut.filter_people_by_occupancy("only_in")) == 1
+    assert len(uut.filter_people_by_occupancy("only_out")) == 1
+
+    assert {r["person"] for r in uut.filter_people_by_occupancy(
+        "only_out")} == {"person.new_home_owner"}
+    assert {r["person"]
+            for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
+
 
 
 async def test_build_targets_for_simple_case(hass: HomeAssistant) -> None:

@@ -1,27 +1,21 @@
 import asyncio
 import copy
-import logging
 import datetime as dt
+import logging
 import os.path
-from homeassistant.helpers.json import save_json
-import voluptuous as vol
 import time
+import uuid
 from traceback import format_exception
+
+import voluptuous as vol
 from homeassistant.components.notify import (
     ATTR_DATA,
-)
-from custom_components.supernotify.common import safe_extend
-from homeassistant.components.notify import (
     ATTR_TARGET,
 )
-from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snap_image, snapshot_from_url
-from homeassistant.const import (
-    CONF_ENABLED,
-    CONF_ENTITIES,
-    CONF_NAME,
-    CONF_TARGET,
-)
-import uuid
+from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, ATTR_STATE
+from homeassistant.helpers.json import save_json
+
+from custom_components.supernotify.common import safe_extend
 
 from . import (
     ATTR_ACTIONS,
@@ -41,9 +35,9 @@ from . import (
     ATTR_TIMESTAMP,
     CONF_DATA,
     CONF_DELIVERY,
-    CONF_OPTIONS,
     CONF_MESSAGE,
     CONF_OCCUPANCY,
+    CONF_OPTIONS,
     CONF_PERSON,
     CONF_PTZ_DELAY,
     CONF_PTZ_METHOD,
@@ -55,13 +49,27 @@ from . import (
     DELIVERY_SELECTION_FIXED,
     DELIVERY_SELECTION_IMPLICIT,
     OCCUPANCY_ALL,
+    OCCUPANCY_ALL_IN,
+    OCCUPANCY_ALL_OUT,
+    OCCUPANCY_ANY_IN,
+    OCCUPANCY_ANY_OUT,
+    OCCUPANCY_NONE,
+    OCCUPANCY_ONLY_IN,
+    OCCUPANCY_ONLY_OUT,
     PRIORITY_MEDIUM,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
 )
+from .common import ensure_dict, ensure_list
 from .configuration import SupernotificationConfiguration
-from .common import ensure_list, ensure_dict
+from .media_grab import (
+    move_camera_to_ptz_preset,
+    select_avail_camera,
+    snap_camera,
+    snap_image,
+    snapshot_from_url,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,6 +121,7 @@ class Notification:
 
         self.selected_delivery_names = []
         self.enabled_scenarios = []
+        self.people_by_occupancy = []
 
     async def initialize(self):
         """
@@ -249,6 +258,37 @@ class Notification:
         else:
             self.resolved[delivery_config][category].append(resolved)
 
+    def filter_people_by_occupancy(self, occupancy):
+        people = list(self.context.people.values())
+        if occupancy == OCCUPANCY_ALL:
+            return people
+        elif occupancy == OCCUPANCY_NONE:
+            return []
+
+        at_home = []
+        away = []
+        for person_config in self.context.people_state():
+            if person_config.get(ATTR_STATE) in (None, STATE_HOME):
+                # default to at home if unknown tracker
+                at_home.append(person_config)
+            else:
+                away.append(person_config)
+        if occupancy == OCCUPANCY_ALL_IN:
+            return people if len(away) == 0 else []
+        elif occupancy == OCCUPANCY_ALL_OUT:
+            return people if len(at_home) == 0 else []
+        elif occupancy == OCCUPANCY_ANY_IN:
+            return people if len(at_home) > 0 else []
+        elif occupancy == OCCUPANCY_ANY_OUT:
+            return people if len(away) > 0 else []
+        elif occupancy == OCCUPANCY_ONLY_IN:
+            return at_home
+        elif occupancy == OCCUPANCY_ONLY_OUT:
+            return away
+        else:
+            _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
+            return []
+
     def generate_envelopes(self, delivery_config, method):
         delivery_name = delivery_config.get(CONF_NAME)
 
@@ -283,7 +323,7 @@ class Notification:
 
             # If target not specified on service call or delivery, then default to std list of recipients
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
-                recipients = self.context.filter_people_by_occupancy(delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
+                recipients = self.filter_people_by_occupancy(delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
                 self.record_resolve(delivery_name, "2d_recipients_by_occupancy", recipients)
                 recipients = [
                     r for r in recipients if self.recipients_override is None or r.get(CONF_PERSON) in self.recipients_override

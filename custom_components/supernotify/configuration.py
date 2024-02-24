@@ -1,16 +1,13 @@
 import logging
 import os.path
 import inspect
-from homeassistant.const import CONF_ENABLED, STATE_HOME
+from homeassistant.const import CONF_ENABLED
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
 import socket
-from homeassistant.const import (
-    CONF_METHOD,
-    CONF_NAME,
-)
+from homeassistant.const import CONF_METHOD, CONF_NAME, ATTR_STATE
 from custom_components.supernotify.common import safe_get, ensure_list
 
 from . import (
@@ -26,14 +23,6 @@ from . import (
     CONF_SELECTION,
     DELIVERY_SELECTION_IMPLICIT,
     METHOD_DEFAULTS_SCHEMA,
-    OCCUPANCY_ALL,
-    OCCUPANCY_ALL_IN,
-    OCCUPANCY_ALL_OUT,
-    OCCUPANCY_ANY_IN,
-    OCCUPANCY_ANY_OUT,
-    OCCUPANCY_NONE,
-    OCCUPANCY_ONLY_IN,
-    OCCUPANCY_ONLY_OUT,
     SCENARIO_DEFAULT,
     SELECTION_DEFAULT,
     SELECTION_FALLBACK,
@@ -221,6 +210,21 @@ class SupernotificationConfiguration:
             people[r[CONF_PERSON]] = r
         return people
 
+    def people_state(self):
+        results = []
+        for person, person_config in self.people.items():
+            # TODO possibly rate limit this
+            try:
+                tracker = self.hass.states.get(person)
+                if tracker is None:
+                    person_config[ATTR_STATE] = None
+                else:
+                    person_config[ATTR_STATE] = tracker.state
+            except Exception as e:
+                _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
+            results.append(person_config)
+        return results
+
     def mobile_devices_for_person(
         self,
         person_entity_id: str,
@@ -247,37 +251,3 @@ class SupernotificationConfiguration:
                             }
                         )
         return mobile_devices
-
-    def filter_people_by_occupancy(self, occupancy):
-        if occupancy == OCCUPANCY_ALL:
-            return list(self.people.values())
-        elif occupancy == OCCUPANCY_NONE:
-            return []
-
-        at_home = []
-        away = []
-        for person, person_config in self.people.items():
-            # all recipients checked for occupancy, regardless of override
-            try:
-                tracker = self.hass.states.get(person)
-                if tracker is not None and tracker.state == STATE_HOME:
-                    at_home.append(person_config)
-                else:
-                    away.append(person_config)
-            except Exception as e:
-                _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
-        if occupancy == OCCUPANCY_ALL_IN:
-            return list(self.people.values()) if len(away) == 0 else []
-        elif occupancy == OCCUPANCY_ALL_OUT:
-            return list(self.people.values()) if len(at_home) == 0 else []
-        elif occupancy == OCCUPANCY_ANY_IN:
-            return list(self.people.values()) if len(at_home) > 0 else []
-        elif occupancy == OCCUPANCY_ANY_OUT:
-            return list(self.people.values()) if len(away) > 0 else []
-        elif occupancy == OCCUPANCY_ONLY_IN:
-            return at_home
-        elif occupancy == OCCUPANCY_ONLY_OUT:
-            return away
-        else:
-            _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
-            return []
