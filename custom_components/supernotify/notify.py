@@ -275,8 +275,10 @@ class SuperNotificationService(BaseNotificationService):
                             purged += 1
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=1)
-            _LOGGER.info("SUPERNOTIFY Purged %s archived notifications", purged)
+            _LOGGER.info("SUPERNOTIFY Purged %s archived notifications for cutoff %s", purged, cutoff)
             self.last_purge = dt.datetime.now(dt.UTC)
+        else:
+            _LOGGER.debug("SUPERNOTIFY Skipping archive purge for unknown path %s", path)
         return purged
 
     def setup_condition_inputs(self, field, value):
