@@ -10,9 +10,6 @@ purge_archive:
       selector:
         number:
           min: 0
-          max: 255
-          step: 1
-          mode: slider
           unit_of_measurement: days
 
 
