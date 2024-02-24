@@ -122,6 +122,9 @@ async def async_get_service(
     async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_active_scenarios()}
 
+    async def supplemental_service_purge_archive(call: ServiceCall) -> int:
+        return service.cleanup_archive()
+
     hass.services.async_register(
         DOMAIN,
         "enquire_deliveries_by_scenario",
@@ -138,6 +141,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_active_scenarios",
         supplemental_service_enquire_active_scenarios,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "purge_archive",
+        supplemental_service_purge_archive,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -256,6 +265,7 @@ class SuperNotificationService(BaseNotificationService):
                 _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=1)
             _LOGGER.info("SUPERNOTIFY Purged %s archived notifications", purged)
             self.last_purge = dt.datetime.now(dt.UTC)
+        return purged
 
     def setup_condition_inputs(self, field, value):
         self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
