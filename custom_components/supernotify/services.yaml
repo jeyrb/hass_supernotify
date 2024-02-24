@@ -3,6 +3,17 @@ enquire_deliveries_by_scenario:
 enquire_last_notification:
 enquire_active_scenarios:
 purge_archive:
+  fields:
+    days:
+      required: false
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+          mode: slider
+          unit_of_measurement: days
 
 
 
