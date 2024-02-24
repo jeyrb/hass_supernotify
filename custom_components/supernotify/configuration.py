@@ -158,7 +158,7 @@ class SupernotificationConfiguration:
                 if not dc.get(CONF_NAME):
                     dc[CONF_NAME] = d  # for minimal tests
                 for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
-                    self.set_method_default(dc, conf_key)
+                    self.set_method_default(dc, conf_key.schema)
 
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])
