@@ -11,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
+    default_service = "notify.persistent_notification"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -19,11 +20,10 @@ class PersistentDeliveryMethod(DeliveryMethod):
         return service is None
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
-        config = self.context.deliveries.get(envelope.delivery_name) or self.default_delivery or {}
         data = envelope.data or {}
 
-        notification_id = data.get(ATTR_NOTIFICATION_ID, config.get(ATTR_NOTIFICATION_ID))
+        notification_id = data.get(ATTR_NOTIFICATION_ID, envelope.config.get(ATTR_NOTIFICATION_ID))
         service_data = envelope.core_service_data()
         service_data["notification_id"] = notification_id
 
-        await self.call_service(envelope, config.get(CONF_SERVICE, "notify.persistent_notification"), service_data)
+        await self.call_service(envelope, service_data=service_data)

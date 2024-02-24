@@ -153,6 +153,7 @@ notify:
           title_only: True 
       sms:
         service: notify.mikrotik_sms
+        targets_required: true
       mobile_push:
         options:
           timestamp: '%H:%M'

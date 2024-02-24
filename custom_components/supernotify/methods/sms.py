@@ -28,12 +28,11 @@ class SMSDeliveryMethod(DeliveryMethod):
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
         _LOGGER.debug("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
-        config = self.context.deliveries.get(
-            envelope.delivery_name) or self.default_delivery or {}
+
         data = envelope.data or {}
         mobile_numbers = envelope.targets or []
 
-        message = self.combined_message(config, envelope, default_title_only=False)
+        message = self.combined_message(envelope, default_title_only=False)
 
         service_data = {
             "message": message[:158],
@@ -42,4 +41,4 @@ class SMSDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
 
-        await self.call_service(envelope, config.get(CONF_SERVICE), service_data)
+        await self.call_service(envelope, service_data=service_data)

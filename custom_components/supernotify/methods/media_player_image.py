@@ -17,6 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
+    default_service = "media_player.play_media"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,7 +31,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     async def _delivery_impl(self, envelope: Envelope) -> None:
 
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
-        config = self.context.deliveries.get(envelope.delivery_name) or self.default_delivery or {}
+
         data = envelope.data or {}
         media_players = envelope.targets or []
         if not media_players:
@@ -49,4 +50,4 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data["extra"] = data.get("data")
 
-        await self.call_service(envelope, config.get(CONF_SERVICE, "media_player.play_media"), service_data)
+        await self.call_service(envelope, service_data=service_data)

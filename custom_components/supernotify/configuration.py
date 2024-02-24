@@ -30,6 +30,7 @@ from . import (
     CONF_PERSON,
     CONF_SELECTION,
     DELIVERY_SELECTION_IMPLICIT,
+    METHOD_DEFAULTS_SCHEMA,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -156,12 +157,8 @@ class SupernotificationConfiguration:
 
                 if not dc.get(CONF_NAME):
                     dc[CONF_NAME] = d  # for minimal tests
-
-                self.set_method_default(dc, CONF_SERVICE)
-                self.set_method_default(dc, CONF_TARGET)
-                self.set_method_default(dc, CONF_ENTITIES)
-                self.set_method_default(dc, CONF_DATA)
-                self.set_method_default(dc, CONF_OPTIONS)
+                for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
+                    self.set_method_default(dc, conf_key)
 
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])

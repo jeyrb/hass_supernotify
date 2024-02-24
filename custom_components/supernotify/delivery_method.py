@@ -1,11 +1,8 @@
 import logging
 from abc import abstractmethod
-from homeassistant.const import (
-    CONF_CONDITION,
-    CONF_DEFAULT,
-    CONF_METHOD,
-    CONF_NAME,
-    CONF_SERVICE,
+from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
+from homeassistant.components.notify import (
+    ATTR_TARGET,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
@@ -15,6 +12,7 @@ import time
 from . import (
     CONF_OPTIONS,
     CONF_PRIORITY,
+    CONF_TARGETS_REQUIRED,
     RESERVED_DELIVERY_NAMES,
 )
 from .notification import Envelope, Notification
@@ -25,6 +23,9 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class DeliveryMethod:
+    method = None
+    default_service = None
+
     @abstractmethod
     def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict = None):
         self.hass = hass
@@ -81,7 +82,7 @@ class DeliveryMethod:
 
         return valid_deliveries
 
-    async def deliver(self, notification: Notification, delivery: str = None) -> tuple:
+    async def deliver(self, notification: Notification, delivery: str = None) -> None:
         """
         Deliver a notification
 
@@ -95,28 +96,25 @@ class DeliveryMethod:
         if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
             notification.skipped += 1
-            return (), ()
+            return
         if not await self.evaluate_delivery_conditions(delivery_config):
             _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
             notification.skipped += 1
-            return (), ()
+            return
 
         envelopes = notification.generate_envelopes(delivery_config, self)
-        delivered_envelopes = []
-        undelivered_envelopes = []
         for envelope in envelopes:
             try:
                 await self._delivery_impl(envelope)
                 notification.delivered += envelope.delivered
                 notification.errored += envelope.errored
-                delivered_envelopes.append(envelope)
+                notification.delivered_envelopes.append(envelope)
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
                 _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
                 notification.errored += 1
                 envelope.delivery_error = format_exception(e)
-                undelivered_envelopes.append(envelope)
-        return delivered_envelopes, undelivered_envelopes
+                notification.undelivered_envelopes.append(envelope)
 
     @abstractmethod
     async def _delivery_impl(envelope: Envelope) -> None:
@@ -130,8 +128,8 @@ class DeliveryMethod:
         """Pick out delivery appropriate target from a person (recipient) config"""
         return []
 
-    def combined_message(self, config, envelope, default_title_only=True):
-        if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
+    def combined_message(self, envelope, default_title_only=True):
+        if envelope.config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
             return envelope.title
         else:
             if envelope.title:
@@ -156,13 +154,23 @@ class DeliveryMethod:
                 _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
                 raise
 
-    async def call_service(self, envelope, qualified_service, service_data=None):
+    async def call_service(self, envelope, qualified_service=None, service_data=None) -> bool:
+        service_data = service_data or {}
         try:
-            domain, service = qualified_service.split(".", 1)
-            start_time = time.time()
-            await self.hass.services.async_call(domain, service, service_data=service_data or {})
-            envelope.calls.append((domain, service, service_data, time.time() - start_time))
-            envelope.delivered = 1
+            qualified_service = qualified_service or envelope.config.get(CONF_SERVICE) or self.default_service
+            if qualified_service and (service_data.get(ATTR_TARGET) or not envelope.config.get(CONF_TARGETS_REQUIRED, False)):
+                domain, service = qualified_service.split(".", 1)
+                start_time = time.time()
+                await self.hass.services.async_call(domain, service, service_data=service_data)
+                envelope.calls.append((domain, service, service_data, time.time() - start_time))
+                envelope.delivered = 1
+            else:
+                _LOGGER.debug(
+                    "SUPERNOTIFY skipping service call for service %, targets %s",
+                    qualified_service,
+                    service_data.get(ATTR_TARGET),
+                )
+                envelope.skipped = 1
             return True
         except Exception as e:
             envelope.failed_calls.append((domain, service, service_data, str(e), time.time() - start_time))

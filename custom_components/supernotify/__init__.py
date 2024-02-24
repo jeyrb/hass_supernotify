@@ -64,6 +64,7 @@ CONF_DEVICE_TRACKER = "device_tracker"
 CONF_MODEL = "model"
 CONF_MESSAGE = "message"
 CONF_TITLE = "title"
+CONF_TARGETS_REQUIRED = "targets_required"
 CONF_MOBILE_DEVICES = "mobile_devices"
 CONF_MOBILE_DISCOVERY = "mobile_discovery"
 CONF_ACTION_TEMPLATE = "action_template"
@@ -219,6 +220,7 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema(
         vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(CONF_SERVICE): cv.service,
+        vol.Optional(CONF_TARGETS_REQUIRED, default=False): cv.boolean,
         vol.Optional(CONF_OPTIONS, default={}): dict,
         vol.Optional(CONF_DATA): DATA_SCHEMA,
     }

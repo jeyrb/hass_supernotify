@@ -53,7 +53,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     self.set_service_data(service_data[ATTR_VARIABLES], "chime_tune", tune)
 
                 if domain is not None and service is not None:
-                    await self.call_service(envelope, "%s.%s" % (domain, service), service_data)
+                    await self.call_service(envelope, "%s.%s" % (domain, service), service_data=service_data)
                 else:
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:

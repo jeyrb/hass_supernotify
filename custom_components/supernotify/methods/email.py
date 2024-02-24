@@ -45,12 +45,11 @@ class EmailDeliveryMethod(DeliveryMethod):
     async def _delivery_impl(self, envelope: Envelope):
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s",
                      envelope.delivery_name, envelope.targets)
-        config = self.context.deliveries.get(
-            envelope.delivery_name) or self.default_delivery or {}
-        template = config.get(CONF_TEMPLATE)
+
+        template = envelope.config.get(CONF_TEMPLATE)
         data = envelope.data or {}
         html = data.get("html")
-        template = data.get("template", config.get("template"))
+        template = data.get("template", envelope.config.get("template"))
         addresses = envelope.targets or []
         snapshot_url = data.get("snapshot_url")
         # TODO centralize in config
@@ -100,7 +99,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
-        await self.call_service(envelope, config.get(CONF_SERVICE), service_data)
+        await self.call_service(envelope, service_data=service_data)
 
     def render_template(self, template, envelope, service_data, snapshot_url, preformatted_html):
         alert = {}

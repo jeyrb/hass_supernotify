@@ -23,12 +23,11 @@ class GenericDeliveryMethod(DeliveryMethod):
         return service is not None and "." in service
 
     async def _delivery_impl(self, envelope: Envelope) -> None:
-        config = self.context.deliveries.get(
-            envelope.delivery_name) or self.default_delivery or {}
+
         data = envelope.data or {}
         targets = envelope.targets or []
 
-        qualified_service = config.get(CONF_SERVICE)
+        qualified_service = envelope.config.get(CONF_SERVICE)
         if qualified_service.startswith("notify."):
             service_data = envelope.core_service_data()
             if targets is not None:

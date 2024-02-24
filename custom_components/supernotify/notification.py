@@ -178,11 +178,7 @@ class Notification:
     async def call_delivery_method(self, delivery):
         try:
             delivery_method = self.context.delivery_method(delivery)
-            delivered_envelopes, undelivered_envelopes = await delivery_method.deliver(self, delivery=delivery)
-            if delivered_envelopes is not None:
-                self.delivered_envelopes.extend(delivered_envelopes)
-            if undelivered_envelopes is not None:
-                self.undelivered_envelopes.extend(undelivered_envelopes)
+            await delivery_method.deliver(self, delivery=delivery)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
@@ -309,11 +305,11 @@ class Notification:
                 safe_extend(default_targets, recipient.get(ATTR_TARGET))
             if enabled:
                 if custom_data:
-                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, custom_data))
+                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, custom_data, delivery_config))
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_envelopes = custom_envelopes + [Envelope(delivery_name, self, default_targets, default_data)]
+        bundled_envelopes = custom_envelopes + [Envelope(delivery_name, self, default_targets, default_data, delivery_config)]
         filtered_envelopes = []
         for envelope in bundled_envelopes:
             pre_filter_count = len(envelope.targets)
@@ -328,9 +324,10 @@ class Notification:
             else:
                 envelope.targets = targets
                 filtered_envelopes.append(envelope)
+
         if not filtered_envelopes:
             # not all delivery methods require explicit targets, or can default them internally
-            filtered_envelopes = [Envelope(delivery_name, self, data=default_data)]
+            filtered_envelopes = [Envelope(delivery_name, self, data=default_data, config=delivery_config)]
         return filtered_envelopes
 
     async def grab_image(self, delivery_name):
@@ -396,8 +393,9 @@ class Envelope:
     Wrap a notification with a specific set of targets and service data possibly customized for those targets
     """
 
-    def __init__(self, delivery_name, notification, targets=None, data=None):
+    def __init__(self, delivery_name, notification, targets=None, data=None, config=None):
         self.targets = targets or []
+        self.config = config or {}
         self.delivery_name = delivery_name
         self._notification = notification
         self.notification_id = notification.id
@@ -416,6 +414,7 @@ class Envelope:
 
         self.delivered = 0
         self.errored = 0
+        self.skipped = 0
         self.calls = []
         self.failed_calls = []
         self.delivery_error = None

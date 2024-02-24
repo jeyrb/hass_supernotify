@@ -35,7 +35,8 @@ async def test_filter_recipients(mock_hass) -> None:
 
 
 async def test_default_recipients(mock_hass) -> None:
-    context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
+    context = SupernotificationConfiguration(mock_hass,
+                                             recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     uut = DummyDeliveryMethod(mock_hass, context, {})
@@ -46,7 +47,8 @@ async def test_default_recipients(mock_hass) -> None:
 
 
 async def test_default_recipients_with_override(mock_hass) -> None:
-    context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.new_home_owner"},
+    context = SupernotificationConfiguration(mock_hass,
+                                             recipients=[{CONF_PERSON: "person.new_home_owner"},
                                                          {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     uut = DummyDeliveryMethod(mock_hass, context, {})
