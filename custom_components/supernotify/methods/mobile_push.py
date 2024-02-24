@@ -18,7 +18,7 @@ from custom_components.supernotify import (
     PRIORITY_CRITICAL,
     PRIORITY_HIGH,
     PRIORITY_LOW,
-    PRIORITY_MEDIUM
+    PRIORITY_MEDIUM,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.notification import Envelope
@@ -42,8 +42,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def recipient_target(self, recipient):
         if CONF_PERSON in recipient:
-            services = [md.get(CONF_NOTIFY_SERVICE)
-                        for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            services = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))
         else:
             return []
@@ -51,14 +50,13 @@ class MobilePushDeliveryMethod(DeliveryMethod):
     async def _delivery_impl(self, envelope: Envelope) -> None:
 
         data = envelope.data or {}
-        app_url = self.abs_url(data.get(ATTR_ACTION_URL))
-        app_url_title = data.get(ATTR_ACTION_URL_TITLE)
+        app_url = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
+        app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE)
 
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
 
-        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s",
-                     envelope.title, envelope.targets)
+        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", envelope.title, envelope.targets)
 
         data = data and data.get(ATTR_DATA) or {}
         media = envelope.media or {}
@@ -77,17 +75,16 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             push_priority = "passive"
         else:
             push_priority = "active"
-            _LOGGER.warning("SUPERNOTIFY Unexpected priority %s",
-                            envelope.priority)
+            _LOGGER.warning("SUPERNOTIFY Unexpected priority %s", envelope.priority)
 
         data.setdefault("actions", [])
         data.setdefault("push", {})
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
             data["push"].setdefault("sound", {})
-            data['push']['sound']['name'] = 'default'
-            data['push']['sound']['critical'] = 1
-            data['push']['sound']['volume'] = 1.0
+            data["push"]["sound"]["name"] = "default"
+            data["push"]["sound"]["critical"] = 1
+            data["push"]["sound"]["volume"] = 1.0
         else:
             # critical notifications cant be grouped on iOS
             category = category or camera_entity_id or "appd"
@@ -102,37 +99,27 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["image"] = snapshot_url
         if app_url:
             data["url"] = app_url
-            data["actions"].append(
-                {"action": "URI", "title": app_url_title, "uri": app_url})
+            data["actions"].append({"action": "URI", "title": app_url_title, "uri": app_url})
         if camera_entity_id:
             # TODO generalize
-            data["actions"].append({"action": "silence-%s" % camera_entity_id,
-                                    "title": "Stop camera notifications for %s" % camera_entity_id,
-                                    "destructive": "true"})
+            data["actions"].append(
+                {
+                    "action": "silence-%s" % camera_entity_id,
+                    "title": "Stop camera notifications for %s" % camera_entity_id,
+                    "destructive": "true",
+                }
+            )
         for group, actions in self.context.mobile_actions.items():
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
         service_data = envelope.core_service_data()
         service_data[ATTR_DATA] = data
 
-        calls = 0
         for mobile_target in envelope.targets:
-            try:
-                _LOGGER.debug("SUPERNOTIFY notify/%s %s",
-                              mobile_target, service_data)
-                await self.hass.services.async_call("notify", mobile_target,
-                                                    service_data=service_data)
-                calls += 1
-            except Exception as e:
-                _LOGGER.error(
-                    "SUPERNOTIFY Mobile push failure (d=%s): %s", service_data, e)
-                envelope.errored += 1
-        _LOGGER.info("SUPERNOTIFY Mobile Push, d=%s", service_data)
-        if calls > 0:
-            envelope.delivered = 1
+            await self.call_service(envelope, "notify.%s" % mobile_target, service_data=service_data)
 
 
-'''
+"""
 FRIGATE Example
 
  - device_id: !input notify_device
@@ -179,4 +166,4 @@ FRIGATE Example
                                   uri: "{{url_3}}"
                                   icon: "{{icon_3}}"
                                   destructive: true
-'''
+"""

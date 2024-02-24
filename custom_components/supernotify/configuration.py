@@ -8,25 +8,20 @@ from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
 import socket
 from homeassistant.const import (
-    CONF_ENTITIES,
     CONF_METHOD,
     CONF_NAME,
-    CONF_SERVICE,
-    CONF_TARGET,
 )
 from custom_components.supernotify.common import safe_get, ensure_list
 
 from . import (
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
-    CONF_DATA,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
     CONF_NOTIFY_SERVICE,
-    CONF_OPTIONS,
     CONF_PERSON,
     CONF_SELECTION,
     DELIVERY_SELECTION_IMPLICIT,

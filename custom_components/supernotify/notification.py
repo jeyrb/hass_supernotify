@@ -24,6 +24,7 @@ from homeassistant.const import (
 import uuid
 
 from . import (
+    ATTR_ACTIONS,
     ATTR_DEBUG,
     ATTR_DELIVERY,
     ATTR_DELIVERY_SELECTION,
@@ -105,6 +106,7 @@ class Notification:
         self.data = service_data.get(ATTR_DATA) or {}
         self.media = service_data.get(ATTR_MEDIA) or {}
         self.debug = service_data.get(ATTR_DEBUG, False)
+        self.actions = service_data.get(ATTR_ACTIONS) or {}
         self.delivery_results = {}
         self.delivery_errors = {}
         self.resolved = {}
@@ -402,6 +404,7 @@ class Envelope:
         self._notification = notification
         self.notification_id = notification.id
         self.media = notification.media
+        self.actions = notification.actions
         self.priority = notification.priority
         self.message = notification.message(delivery_name)
         self.message_html = notification.message_html

@@ -9,7 +9,7 @@ from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
-RE_VALID_CHIME = r"(switch|script|group|media_player)\.[A-Za-z0-9_]+"
+RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
             try:
                 domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
 
-                if service == "script":
+                if domain == "script":
                     self.set_service_data(service_data[ATTR_VARIABLES], ATTR_MESSAGE, envelope.message)
                     self.set_service_data(service_data[ATTR_VARIABLES], ATTR_TITLE, envelope.title)
                     self.set_service_data(service_data[ATTR_VARIABLES], "chime_tune", tune)
@@ -70,13 +70,13 @@ class ChimeDeliveryMethod(DeliveryMethod):
             service = "turn_on"
             service_data[ATTR_ENTITY_ID] = target
         elif domain == "siren":
-            service == "turn_on"
+            service = "turn_on"
             service_data[ATTR_ENTITY_ID] = target
             service_data[ATTR_DATA] = {}
             if chime_tune:
-                service_data["tone"] = chime_tune
-            service_data["duration"] = chime_duration
-            service_data["volume_level"] = chime_volume
+                service_data[ATTR_DATA]["tone"] = chime_tune
+            service_data[ATTR_DATA]["duration"] = chime_duration
+            service_data[ATTR_DATA]["volume_level"] = chime_volume
 
         elif domain == "script":
             service = name

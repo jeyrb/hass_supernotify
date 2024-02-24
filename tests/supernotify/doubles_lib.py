@@ -4,6 +4,8 @@ from homeassistant.core import callback
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.notification import Envelope
+from homeassistant.components import image
+from homeassistant.util import dt as dt_util
 
 
 class DummyDeliveryMethod(DeliveryMethod):
@@ -44,3 +46,17 @@ class MockService(homeassistant.components.notify.BaseNotificationService):
     @callback
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
         self.calls.append([message, title, target, kwargs])
+
+
+class MockImageEntity(image.ImageEntity):
+
+    _attr_name = "Test"
+
+    def __init__(self, filename):
+        self.bytes = open(filename, "rb").read()
+
+    async def async_added_to_hass(self):
+        self._attr_image_last_updated = dt_util.utcnow()
+
+    async def async_image(self) -> bytes | None:
+        return self.bytes

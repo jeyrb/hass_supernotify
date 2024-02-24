@@ -112,6 +112,7 @@ ATTR_MESSAGE_HTML = "message_html"
 ATTR_JPEG_FLAGS = "jpeg_flags"
 ATTR_TIMESTAMP = "timestamp"
 ATTR_DEBUG = "debug"
+ATTR_ACTIONS = "actions"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -326,6 +327,13 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+ACTION_SCHEMA = vol.Schema({
+        vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
+        vol.Optional(ATTR_ACTION_URL): cv.url,
+        vol.Optional(ATTR_ACTION_URL_TITLE): cv.string
+}
+)
 SERVICE_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
@@ -335,10 +343,7 @@ SERVICE_DATA_SCHEMA = vol.Schema(
         vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
         vol.Optional(ATTR_MESSAGE_HTML): cv.string,
-        vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
-        vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
-        vol.Optional(ATTR_ACTION_URL): cv.url,
-        vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
+        vol.Optional(ATTR_ACTIONS): ACTION_SCHEMA,
         vol.Optional(ATTR_DEBUG, default=False): cv.boolean,
         vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA),
     }

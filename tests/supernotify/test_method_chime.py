@@ -11,16 +11,27 @@ async def test_deliver(mock_hass) -> None:
     uut = ChimeDeliveryMethod(
         mock_hass,
         context,
-        {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True, CONF_ENTITIES: ["switch.bell_1", "script.siren_2"]}},
+        {
+            "chimes": {
+                CONF_METHOD: METHOD_CHIME,
+                CONF_DEFAULT: True,
+                CONF_ENTITIES: ["switch.bell_1", "script.alarm_2", "siren.lobby"],
+            }
+        },
     )
     await uut.initialize()
-    notification = Notification(context)
+    notification = Notification(context, message="for script only")
     await uut.deliver(notification)
     assert not notification.undelivered_envelopes
     assert len(notification.delivered_envelopes) == 1
-    assert len(notification.delivered_envelopes[0].calls) == 2
-    mock_hass.services.async_call.assert_any_call("script", "siren_2", service_data={"variables": {}})
+    assert len(notification.delivered_envelopes[0].calls) == 3
+    mock_hass.services.async_call.assert_any_call("script", "alarm_2", service_data={"variables": {"message": 'for script only'}})
     mock_hass.services.async_call.assert_any_call("switch", "turn_on", service_data={"entity_id": "switch.bell_1"})
+    mock_hass.services.async_call.assert_any_call("siren", "turn_on", service_data={"entity_id": "siren.lobby",
+                                                                                    "data":{
+                                                                                        "duration": 10,
+                                                                                        "volume_level": 1}
+                                                                                    })
 
 
 async def test_deliver_alias(mock_hass) -> None:
@@ -98,7 +109,7 @@ async def test_deliver_to_group(mock_hass) -> None:
     )
     await uut.initialize()
     await uut.deliver(Notification(context))
-    mock_hass.services.async_call.assert_any_call("script", "siren_2", service_data={"variables": {}})
+    mock_hass.services.async_call.assert_any_call("script", "siren_2", service_data={"variables": {"chime_tune":"dive_dive_dive"}})
     mock_hass.services.async_call.assert_any_call("switch", "turn_on", service_data={"entity_id": "switch.bell_1"})
     mock_hass.services.async_call.assert_any_call(
         "media_player",

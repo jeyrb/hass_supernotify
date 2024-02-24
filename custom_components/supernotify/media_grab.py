@@ -109,11 +109,13 @@ async def snap_image(hass, entity_id, media_path, notification_id, jpeg_args=Non
 
     image_entity = hass.states.get(entity_id)
     if image_entity:
-        image = Image.open(io.BytesIO(image_entity.image))
+        image = Image.open(io.BytesIO(await image_entity.async_image()))
         media_dir = os.path.join(media_path, "image")
+        os.makedirs(media_dir, exist_ok=True)
         media_ext = image.format.lower()
+        timed = str(time.time()).replace('.', '_')
         image_path = os.path.join(
-            media_dir, '%s.%s' % (notification_id, media_ext))
+            media_dir, '%s_%s.%s' % (notification_id, timed, media_ext))
         image.save(image_path)
     return image_path
 

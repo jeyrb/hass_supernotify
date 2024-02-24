@@ -17,13 +17,17 @@ from custom_components.supernotify.media_grab import (
     snap_image,
     snapshot_from_url,
 )
+from tests.supernotify.doubles_lib import MockImageEntity
+
+JPEG_PATH = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.jpg")
+PNG_PATH = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.png")
 
 
 @pytest.mark.enable_socket
 async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path = tempfile.mkdtemp()
 
-    original_image_path = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.png")
+    original_image_path = PNG_PATH
     original_binary = io.FileIO(original_image_path, "rb").readall()
     snapshot_url = local_server.url_for("/snapshot_image")
     local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/png")
@@ -41,7 +45,7 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: Blo
 async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path = tempfile.mkdtemp()
 
-    original_image_path = os.path.join("tests", "supernotify", "fixtures", "media", "example_image.jpg")
+    original_image_path = JPEG_PATH
     original_binary = io.FileIO(original_image_path, "rb").readall()
     snapshot_url = local_server.url_for("/snapshot_image")
     local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")
@@ -75,6 +79,21 @@ async def test_snap_camera(mock_hass) -> None:
     mock_hass.services.async_call.assert_awaited_once_with(
         "camera", "snapshot", service_data={"entity_id": "camera.xunit", "filename": image_path}
     )
+
+
+async def test_snap_image(mock_hass) -> None:
+    image_path = PNG_PATH
+    image_entity = MockImageEntity(image_path)
+    mock_hass.states.get.return_value = image_entity
+    with tempfile.TemporaryDirectory() as tmp_path:
+        snap_image_path = await snap_image(mock_hass, "image.testing", media_path=tmp_path, notification_id="notify_001")
+        assert snap_image_path is not None
+        retrieved_image = Image.open(snap_image_path)
+        
+    original_image = Image.open(image_path)
+    assert retrieved_image.size == original_image.size
+    diff = ImageChops.difference(retrieved_image, original_image)
+    assert diff.getbbox() is None
 
 
 async def test_move_camera_onvif(mock_hass) -> None:
@@ -121,7 +140,9 @@ async def test_no_select_unavail_primary_camera(mock_hass) -> None:
     set_states(mock_hass, [], ["device_tracker.cam1"])
     assert (
         await select_avail_camera(
-            mock_hass, {"camera.tracked": {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1"}}, "camera.tracked"
+            mock_hass,
+            {"camera.tracked": {"camera": "camera.tracked", "device_tracker": "device_tracker.cam1"}},
+            "camera.tracked",
         )
         is None
     )
@@ -165,8 +186,3 @@ async def test_select_untracked_alt_camera(mock_hass) -> None:
         )
         == "camera.alt3"
     )
-
-
-async def test_image_snapshot(hass: HomeAssistant) -> None:
-    image_path = await snap_image(hass, "image.doorbell_person_snapshot", ".", "123")
-    print(image_path)
