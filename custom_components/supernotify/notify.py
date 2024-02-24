@@ -123,7 +123,8 @@ async def async_get_service(
         return {"scenarios": await service.enquire_active_scenarios()}
 
     async def supplemental_service_purge_archive(call: ServiceCall) -> int:
-        return service.cleanup_archive()
+        return {"purged": service.cleanup_archive(),
+                "remaining": service.archive_size()}
 
     hass.services.async_register(
         DOMAIN,
@@ -203,7 +204,7 @@ class SuperNotificationService(BaseNotificationService):
             return False
         notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority):]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority) :]
         else:
             same_or_higher_priority = [notification.priority]
         dupe = False
@@ -243,6 +244,13 @@ class SuperNotificationService(BaseNotificationService):
             notification.skipped,
         )
         return notification
+
+    def archive_size(self):
+        path = self.context.archive.get(CONF_ARCHIVE_PATH)
+        if path and os.path.exists(path):
+            return len(os.listdir(path))
+        else:
+            return 0
 
     def cleanup_archive(self):
         if self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(

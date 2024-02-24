@@ -194,6 +194,18 @@ async def test_cleanup_archive(mock_hass) -> None:
     assert first_purge == uut.last_purge
 
 
+async def test_archive_size(mock_hass):
+    with tempfile.TemporaryDirectory() as tmp_path:
+        uut = SuperNotificationService(
+            mock_hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_DAYS: 7, CONF_ARCHIVE_PATH: tmp_path}
+        )
+        await uut.initialize()
+        assert uut.archive_size() == 0
+        with open(os.path.join(tmp_path, "test.foo"),"w") as f:
+            f.write("{}")
+        assert uut.archive_size() == 1
+
+
 async def test_fallback_delivery(mock_hass) -> None:
     uut = SuperNotificationService(
         mock_hass,
