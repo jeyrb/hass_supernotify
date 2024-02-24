@@ -288,7 +288,9 @@ class Notification:
                 recipients = [
                     r for r in recipients if self.recipients_override is None or r.get(CONF_PERSON) in self.recipients_override
                 ]
-                self.record_resolve(delivery_name, "2d_recipients_by_occupancy_filtered", recipients)
+                self.record_resolve(
+                    delivery_name, "2d_recipient_names_by_occupancy_filtered", [r.get(CONF_PERSON) for r in recipients]
+                )
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", method.method, recipients)
 
         # now the list of recipients determined, resolve this to target addresses or entities
