@@ -140,6 +140,13 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     await hass.async_block_till_done()
     assert response == {"scenarios": []}
 
+    response = await hass.services.async_call(
+        "supernotify", "purge_archive", None, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert "purged" in response
+    assert response["purged"] >= 0
+
 
 async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
     assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})

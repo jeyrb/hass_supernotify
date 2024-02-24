@@ -124,7 +124,8 @@ async def async_get_service(
 
     async def supplemental_service_purge_archive(call: ServiceCall) -> int:
         return {"purged": service.cleanup_archive(),
-                "remaining": service.archive_size()}
+                "remaining": service.archive_size(),
+                "interval": service.ARCHIVE_PURGE_MIN_INTERVAL}
 
     hass.services.async_register(
         DOMAIN,
@@ -256,7 +257,7 @@ class SuperNotificationService(BaseNotificationService):
         if self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(
             minutes=self.ARCHIVE_PURGE_MIN_INTERVAL
         ):
-            return
+            return 0
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
         cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=self.context.archive.get(CONF_ARCHIVE_DAYS, 1))
         cutoff = cutoff.astimezone(dt.UTC)
