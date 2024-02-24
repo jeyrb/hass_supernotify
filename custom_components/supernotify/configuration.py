@@ -250,7 +250,7 @@ class SupernotificationConfiguration:
 
     def filter_people_by_occupancy(self, occupancy):
         if occupancy == OCCUPANCY_ALL:
-            return self.people.values()
+            return list(self.people.values())
         elif occupancy == OCCUPANCY_NONE:
             return []
 
@@ -267,13 +267,13 @@ class SupernotificationConfiguration:
             except Exception as e:
                 _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
         if occupancy == OCCUPANCY_ALL_IN:
-            return self.people.values() if len(away) == 0 else []
+            return list(self.people.values()) if len(away) == 0 else []
         elif occupancy == OCCUPANCY_ALL_OUT:
-            return self.people.values() if len(at_home) == 0 else []
+            return list(self.people.values()) if len(at_home) == 0 else []
         elif occupancy == OCCUPANCY_ANY_IN:
-            return self.people.values() if len(at_home) > 0 else []
+            return list(self.people.values()) if len(at_home) > 0 else []
         elif occupancy == OCCUPANCY_ANY_OUT:
-            return self.people.values() if len(away) > 0 else []
+            return list(self.people.values()) if len(away) > 0 else []
         elif occupancy == OCCUPANCY_ONLY_IN:
             return at_home
         elif occupancy == OCCUPANCY_ONLY_OUT:

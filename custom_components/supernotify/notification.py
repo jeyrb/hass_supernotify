@@ -199,12 +199,17 @@ class Notification:
     def archive(self, path):
         if not path:
             return
+        filename = os.path.join(path, "%s_%s.json" % (self.created.isoformat()[:16], self.id))
         try:
-            filename = os.path.join(path, "%s_%s.json" % (self.created.isoformat()[:16], self.id))
             save_json(filename, self.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to archived notification: %s", e)
+            try:
+                save_json(filename, self.contents(minimal=True))
+                _LOGGER.debug("SUPERNOTIFY Archived pruned notification %s", filename)
+            except Exception as e:
+                _LOGGER.errror("SUPERNOTIFY Unable to archived pruned notification: %s", e)
 
     def delivery_data(self, delivery_name):
         delivery_override = self.delivery_overrides.get(delivery_name)
@@ -425,11 +430,11 @@ class Envelope:
         self.delivery_error = None
 
     def grab_image(self):
-        ''' Grab an image from a camera, snapshot URL, MQTT Image etc '''
+        """Grab an image from a camera, snapshot URL, MQTT Image etc"""
         return self._notification.grab_image(self.delivery_name)
 
     def core_service_data(self):
-        ''' Build the core set of `service_data` dict to pass to underlying notify service '''
+        """Build the core set of `service_data` dict to pass to underlying notify service"""
         data = {}
         # message is mandatory for notify platform
         data[CONF_MESSAGE] = self.message or ""
@@ -442,8 +447,11 @@ class Envelope:
             data[CONF_TITLE] = self.title
         return data
 
-    def contents(self):
-        sanitized = {k: v for k, v in self.__dict__.items() if k not in ("_notification")}
+    def contents(self, minimal=True):
+        exclude_attrs = ["_notification"]
+        if minimal:
+            exclude_attrs.extend("resolved")
+        sanitized = {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
         return sanitized
 
     def __eq__(self, other):

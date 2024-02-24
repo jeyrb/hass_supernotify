@@ -293,3 +293,6 @@ async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass) -> 
     assert uut.dupe_check(n1) is False
     n2 = Notification(context, "message here", "title here", service_data={ATTR_PRIORITY: "high"})
     assert uut.dupe_check(n2) is False
+
+
+
