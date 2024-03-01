@@ -210,6 +210,8 @@ The `title_only` option can be set to `False` to override the restriction of con
 
 Place a notification on Home Assistant application screen.
 
+Pass a notification ID
+
 ## Media support
 
 Images can be included by:
@@ -276,15 +278,16 @@ Use this for additional camera info:
 
 ## Delivery Method Options
 
-All of these set by passing an `options` block in either config or service call `data`
-
+All of these set by passing an `options` block in delivery config or method defaults.
 
 |Option         |Methods            |Description                                             |
 |---------------|-------------------|--------------------------------------------------------|
 |chime_aliases  |chime              |Map tunes to device name or config                      |
 |jpeg_flags     |mail               |Tune image grabs                                        |
 |title_only     |sms, alexa         |Suppress message body                                   |
-|timestamp      |all                |Add a timestamp to message.  |
+|timestamp      |all                |Add a timestamp to message.                             |
+
+`jpeg_flags` can also be set per runtime call by passing in the `media` block.
 
 ## Tips
 

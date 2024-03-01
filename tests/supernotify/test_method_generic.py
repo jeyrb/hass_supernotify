@@ -5,7 +5,7 @@ from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENER
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE, CONF_NAME
-from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notification import Envelope, Notification
 
 
 async def test_deliver(mock_hass) -> None:
@@ -16,17 +16,16 @@ async def test_deliver(mock_hass) -> None:
                                      CONF_SERVICE: "notify.teleportation",
                                      CONF_DEFAULT: True}})
     await uut.initialize()
-    await uut.deliver(Notification(context, message="hello there",
+    await uut.deliver(Envelope("teleport",Notification(context, message="hello there",
                                    title="testing",
-                                   target=["weird_generic_1",
-                                           "weird_generic_2"],
                                    service_data={
                                        CONF_DELIVERY: {
                                            "teleport": {
                                                CONF_DATA: {"cuteness": "very"}
                                            }
                                        }
-                                   }))
+                                   }),targets=["weird_generic_1",
+                                           "weird_generic_2"]))
     mock_hass.services.async_call.assert_called_with("notify", "teleportation",
                                                 service_data={
                                                     ATTR_TITLE:   "testing",
@@ -45,10 +44,8 @@ async def test_not_notify_deliver(mock_hass) -> None:
                                    CONF_SERVICE: "mqtt.publish",
                                    CONF_DEFAULT: True}})
     await uut.initialize()
-    await uut.deliver(Notification(context, message="hello there",
+    await uut.deliver(Envelope("broker",Notification(context, message="hello there",
                                    title="testing",
-                                   target=["weird_generic_1",
-                                           "weird_generic_2"],
                                    service_data={
                                        CONF_DELIVERY: {
                                            "broker": {
@@ -56,7 +53,8 @@ async def test_not_notify_deliver(mock_hass) -> None:
                                                    "topic": "testing/123", "payload": "boo"}
                                            }
                                        }
-                                   }))
+                                   }),targets=["weird_generic_1",
+                                           "weird_generic_2"]))
     mock_hass.services.async_call.assert_called_with("mqtt", "publish",
                                                 service_data={
                                                     "topic": "testing/123",

@@ -22,7 +22,7 @@ class DummyDeliveryMethod(DeliveryMethod):
     def recipient_target(self, recipient):
         return [recipient.get(CONF_PERSON).replace("person.", "dummy.")] if recipient else []
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
         self.test_calls.append(envelope)
 
 

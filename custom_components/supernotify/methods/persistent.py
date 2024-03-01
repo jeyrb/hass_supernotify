@@ -19,10 +19,11 @@ class PersistentDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is None
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
         data = envelope.data or {}
+        config = self.delivery_config(envelope.delivery_name)
 
-        notification_id = data.get(ATTR_NOTIFICATION_ID, envelope.config.get(ATTR_NOTIFICATION_ID))
+        notification_id = data.get(ATTR_NOTIFICATION_ID, config.get(ATTR_NOTIFICATION_ID))
         service_data = envelope.core_service_data()
         service_data["notification_id"] = notification_id
 

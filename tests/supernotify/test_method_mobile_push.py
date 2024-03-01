@@ -12,7 +12,7 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.methods.mobile_push import (
     MobilePushDeliveryMethod,
 )
-from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notification import Envelope, Notification
 import pytest
 
 
@@ -22,20 +22,22 @@ async def test_on_notify_mobile_push_with_media(mock_hass) -> None:
 
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
     await uut.deliver(
-        Notification(
-            context,
-            message="hello there",
-            target=["mobile_app_new_iphone"],
-            service_data={
-                "media": {
-                    "camera_entity_id": "camera.porch",
-                    "camera_ptz_preset": "front-door",
-                    "clip_url": "http://my.home/clip.mp4",
+        Envelope(
+            "media_test",
+            Notification(
+                context,
+                message="hello there",
+                service_data={
+                    "media": {
+                        "camera_entity_id": "camera.porch",
+                        "camera_ptz_preset": "front-door",
+                        "clip_url": "http://my.home/clip.mp4",
+                    },
+                    "actions": {"action_url": "http://my.home/app1", "action_url_title": "My Camera App"},
                 },
-                "actions": {"action_url": "http://my.home/app1", "action_url_title": "My Camera App"},
-            },
+            ),
+            targets=["mobile_app_new_iphone"],
         ),
-        "media_test",
     )
     mock_hass.services.async_call.assert_called_with(
         "notify",
@@ -66,7 +68,9 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass) -> None:
     context = SupernotificationConfiguration()
 
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
-    await uut.deliver(Notification(context, message="hello there", title="testing", target=["mobile_app_new_iphone"]))
+    await uut.deliver(
+        Envelope("", Notification(context, message="hello there", title="testing"), targets=["mobile_app_new_iphone"])
+    )
     mock_hass.services.async_call.assert_called_with(
         "notify",
         "mobile_app_new_iphone",
@@ -84,17 +88,12 @@ async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass) -> N
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
+    n = Notification(context, message="hello there", title="testing")
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
-    await uut.deliver(Notification(context, message="hello there", title="testing"))
-    mock_hass.services.async_call.assert_called_with(
-        "notify",
-        "mobile_app_test_user_iphone",
-        service_data={
-            "title": "testing",
-            "message": "hello there",
-            "data": {"actions": [], "push": {"interruption-level": "active"}, "group": "general"},
-        },
-    )
+    recipients = n.generate_recipients("dummy", uut)
+    assert len(recipients) == 1
+    assert recipients[0]["person"] == "person.test_user"
+    assert recipients[0]["mobile_devices"][0]["notify_service"] == "mobile_app_test_user_iphone"
 
 
 async def test_on_notify_mobile_push_with_critical_priority(mock_hass) -> None:
@@ -106,7 +105,11 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass) -> None:
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
     await uut.initialize()
     await uut.deliver(
-        Notification(context, message="hello there", title="testing", service_data={CONF_PRIORITY: PRIORITY_CRITICAL})
+        Envelope(
+            "",
+            Notification(context, message="hello there", title="testing", service_data={CONF_PRIORITY: PRIORITY_CRITICAL}),
+            targets=["mobile_app_test_user_iphone"],
+        )
     )
     mock_hass.services.async_call.assert_called_with(
         "notify",
@@ -123,18 +126,18 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass) -> None:
 
 
 @pytest.mark.parametrize("priority", PRIORITY_VALUES)
-async def test_priority_interpretation(mock_hass, priority):
+async def test_priority_interpretation(mock_hass, superconfig, priority):
     priority_map = {
         PRIORITY_CRITICAL: "critical",
         PRIORITY_HIGH: "time-sensitive",
         PRIORITY_LOW: "passive",
         PRIORITY_MEDIUM: "active",
     }
-    context = SupernotificationConfiguration(
-        recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
+    uut = MobilePushDeliveryMethod(mock_hass, superconfig, {})
+    e = Envelope(
+        "",
+        Notification(superconfig, message="hello there", title="testing", service_data={ATTR_PRIORITY: priority}),
+        targets=["mobile_app_test_user_iphone"],
     )
-    await context.initialize()
-    uut = MobilePushDeliveryMethod(mock_hass, context, {})
-    n = Notification(context, message="hello there", title="testing", service_data={ATTR_PRIORITY: priority})
-    await uut.deliver(n)
-    assert n.delivered_envelopes[0].calls[0][2]["data"]["push"]["interruption-level"] == priority_map.get(priority,"active")
+    await uut.deliver(e)
+    assert e.calls[0][2]["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")

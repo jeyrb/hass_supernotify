@@ -4,10 +4,12 @@ import re
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
-from custom_components.supernotify import ATTR_DATA, CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
+from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
+
+from custom_components.supernotify.notification import Envelope
 
 RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
 
@@ -28,8 +30,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
 
-    async def _delivery_impl(self, envelope) -> None:
-        data = envelope.data or {}
+    async def deliver(self, envelope: Envelope) -> None:
+        config = self.delivery_config(envelope.delivery_name)
+        data = config.get(CONF_DATA) or {}
+        data.update(envelope.data or {})
         targets = envelope.targets or []
 
         # chime_repeat = data.pop("chime_repeat", 1)

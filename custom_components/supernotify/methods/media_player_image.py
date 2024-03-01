@@ -28,7 +28,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is None or service == "media_player.play_media"
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
 
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
 

@@ -22,14 +22,15 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     """
 
     method = METHOD_ALEXA
+    DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def select_target(self, target):
-        return re.fullmatch(RE_VALID_ALEXA, target)
+        return re.fullmatch(RE_VALID_ALEXA, target) is not None
 
-    async def _delivery_impl(self, envelope: Envelope) -> bool:
+    async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", envelope.message)
 
         media_players = envelope.targets or []
@@ -38,7 +39,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
 
-        message = self.combined_message(envelope, default_title_only=True)
+        message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
 
         service_data = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
         if envelope.data and envelope.data.get("data"):

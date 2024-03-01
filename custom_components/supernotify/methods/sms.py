@@ -15,6 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class SMSDeliveryMethod(DeliveryMethod):
     method = METHOD_SMS
+    DEFAULT_TITLE_ONLY = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,13 +27,13 @@ class SMSDeliveryMethod(DeliveryMethod):
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
         _LOGGER.debug("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
 
         data = envelope.data or {}
         mobile_numbers = envelope.targets or []
 
-        message = self.combined_message(envelope, default_title_only=False)
+        message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
 
         service_data = {
             "message": message[:158],

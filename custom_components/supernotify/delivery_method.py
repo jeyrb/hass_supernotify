@@ -11,11 +11,10 @@ import time
 
 from . import (
     CONF_OPTIONS,
-    CONF_PRIORITY,
     CONF_TARGETS_REQUIRED,
     RESERVED_DELIVERY_NAMES,
 )
-from .notification import Envelope, Notification
+from .notification import Envelope
 from .configuration import SupernotificationConfiguration
 from traceback import format_exception
 
@@ -80,53 +79,24 @@ class DeliveryMethod:
                 _LOGGER.info("SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
 
+        if self.default_service is None and self.default_delivery:
+            self.default_service = self.default_delivery.get(CONF_SERVICE)
+
+        _LOGGER.debug("SUPERNOTIFY Validated method %s, default delivery %s, default services %s, valid deliveries: %s",
+                      self.method, self.default_delivery, self.default_service, valid_deliveries)
         return valid_deliveries
 
-    async def deliver(self, notification: Notification, delivery: str = None) -> None:
-        """
-        Deliver a notification
-
-        Args:
-            notification (_Notification_): Notification object to handle
-            delivery (_str_, optional): Delivery name
-        """
-        delivery_config = self.context.deliveries.get(delivery) or self.default_delivery or {}
-
-        delivery_priorities = delivery_config.get(CONF_PRIORITY) or ()
-        if notification.priority and delivery_priorities and notification.priority not in delivery_priorities:
-            _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on priority (%s)", self.method, notification.priority)
-            notification.skipped += 1
-            return
-        if not await self.evaluate_delivery_conditions(delivery_config):
-            _LOGGER.debug("SUPERNOTIFY Skipping delivery for %s based on conditions", self.method)
-            notification.skipped += 1
-            return
-
-        envelopes = notification.generate_envelopes(delivery_config, self)
-        for envelope in envelopes:
-            try:
-                await self._delivery_impl(envelope)
-                notification.delivered += envelope.delivered
-                notification.errored += envelope.errored
-                notification.delivered_envelopes.append(envelope)
-            except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
-                _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
-                notification.errored += 1
-                envelope.delivery_error = format_exception(e)
-                notification.undelivered_envelopes.append(envelope)
-
     @abstractmethod
-    async def _delivery_impl(envelope: Envelope) -> None:
+    async def deliver(envelope: Envelope) -> None:
         """
         Delivery implementation
-        
+
         Args:
             envelope (Envelope): envelope to be delivered
-        """        
+        """
         pass
 
-    def select_target(self, target):
+    def select_target(self, target: str):
         """Confirm if target appropriate for this delivery method
 
         Args:
@@ -134,12 +104,16 @@ class DeliveryMethod:
         """
         return True
 
-    def recipient_target(self, recipient):
+    def recipient_target(self, recipient: str) -> list:
         """Pick out delivery appropriate target from a person (recipient) config"""
         return []
 
+    def delivery_config(self, delivery_name):
+        return self.context.deliveries.get(delivery_name) or self.default_delivery or {}
+    
     def combined_message(self, envelope, default_title_only=True):
-        if envelope.config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
+        config = self.delivery_config(envelope.delivery_name)
+        if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
             return envelope.title
         else:
             if envelope.title:
@@ -166,9 +140,10 @@ class DeliveryMethod:
 
     async def call_service(self, envelope, qualified_service=None, service_data=None) -> bool:
         service_data = service_data or {}
+        config = self.delivery_config(envelope.delivery_name)
         try:
-            qualified_service = qualified_service or envelope.config.get(CONF_SERVICE) or self.default_service
-            if qualified_service and (service_data.get(ATTR_TARGET) or not envelope.config.get(CONF_TARGETS_REQUIRED, False)):
+            qualified_service = qualified_service or config.get(CONF_SERVICE) or self.default_service
+            if qualified_service and (service_data.get(ATTR_TARGET) or not config.get(CONF_TARGETS_REQUIRED, False)):
                 domain, service = qualified_service.split(".", 1)
                 start_time = time.time()
                 await self.hass.services.async_call(domain, service, service_data=service_data)

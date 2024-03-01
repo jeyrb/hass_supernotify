@@ -39,6 +39,7 @@ from . import (
     CONF_OCCUPANCY,
     CONF_OPTIONS,
     CONF_PERSON,
+    CONF_PRIORITY,
     CONF_PTZ_DELAY,
     CONF_PTZ_METHOD,
     CONF_PTZ_PRESET_DEFAULT,
@@ -191,7 +192,33 @@ class Notification:
     async def call_delivery_method(self, delivery):
         try:
             delivery_method = self.context.delivery_method(delivery)
-            await delivery_method.deliver(self, delivery=delivery)
+            delivery_config = delivery_method.delivery_config(delivery)
+
+            delivery_priorities = delivery_config.get(CONF_PRIORITY) or ()
+            if self.priority and delivery_priorities and self.priority not in delivery_priorities:
+                _LOGGER.debug("SUPERNOTIFY Skipping delivery %s based on priority (%s)", delivery, self.priority)
+                self.skipped += 1
+                return
+            if not await delivery_method.evaluate_delivery_conditions(delivery_config):
+                _LOGGER.debug("SUPERNOTIFY Skipping delivery %s based on conditions", delivery)
+                self.skipped += 1
+                return
+
+            recipients = self.generate_recipients(delivery, delivery_method)
+            envelopes = self.generate_envelopes(delivery, delivery_method, recipients)
+            for envelope in envelopes:
+                try:
+                    await delivery_method.deliver(envelope)
+                    self.delivered += envelope.delivered
+                    self.errored += envelope.errored
+                    self.delivered_envelopes.append(envelope)
+                except Exception as e:
+                    _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
+                    _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
+                    self.errored += 1
+                    envelope.delivery_error = format_exception(e)
+                    self.undelivered_envelopes.append(envelope)
+
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Failed to notify using %s: %s", delivery, e)
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
@@ -289,8 +316,8 @@ class Notification:
             _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
             return []
 
-    def generate_envelopes(self, delivery_config, method):
-        delivery_name = delivery_config.get(CONF_NAME)
+    def generate_recipients(self, delivery_name, delivery_method):
+        delivery_config = delivery_method.delivery_config(delivery_name)
 
         recipients = []
         if self.target:
@@ -319,7 +346,7 @@ class Notification:
             if delivery_config and CONF_RECIPIENTS in delivery_config:
                 recipients.extend(delivery_config[CONF_RECIPIENTS])
                 self.record_resolve(delivery_name, "2c_delivery_config_recipient", delivery_config.get(CONF_RECIPIENTS))
-                _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s", method.method, recipients)
+                _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s", delivery_name, recipients)
 
             # If target not specified on service call or delivery, then default to std list of recipients
             elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
@@ -331,13 +358,17 @@ class Notification:
                 self.record_resolve(
                     delivery_name, "2d_recipient_names_by_occupancy_filtered", [r.get(CONF_PERSON) for r in recipients]
                 )
-                _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", method.method, recipients)
+                _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
+        return recipients
 
+    def generate_envelopes(self, delivery_name, method, recipients):
         # now the list of recipients determined, resolve this to target addresses or entities
+
+        delivery_config = method.delivery_config(delivery_name)
+        default_data = delivery_config.get(CONF_DATA)
         default_targets = []
         custom_envelopes = []
 
-        default_data = delivery_config.get(CONF_DATA)
         for recipient in recipients:
             recipient_targets = []
             enabled = True
@@ -356,11 +387,11 @@ class Notification:
                 safe_extend(default_targets, recipient.get(ATTR_TARGET))
             if enabled:
                 if custom_data:
-                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, custom_data, delivery_config))
+                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, custom_data))
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_envelopes = custom_envelopes + [Envelope(delivery_name, self, default_targets, default_data, delivery_config)]
+        bundled_envelopes = custom_envelopes + [Envelope(delivery_name, self, default_targets, default_data)]
         filtered_envelopes = []
         for envelope in bundled_envelopes:
             pre_filter_count = len(envelope.targets)
@@ -378,7 +409,7 @@ class Notification:
 
         if not filtered_envelopes:
             # not all delivery methods require explicit targets, or can default them internally
-            filtered_envelopes = [Envelope(delivery_name, self, data=default_data, config=delivery_config)]
+            filtered_envelopes = [Envelope(delivery_name, self, data=default_data)]
         return filtered_envelopes
 
     async def grab_image(self, delivery_name):
@@ -444,26 +475,35 @@ class Envelope:
     Wrap a notification with a specific set of targets and service data possibly customized for those targets
     """
 
-    def __init__(self, delivery_name, notification, targets=None, data=None, config=None):
+    def __init__(self, delivery_name, notification=None, targets=None, data=None):
         self.targets = targets or []
-        self.config = config or {}
         self.delivery_name = delivery_name
         self._notification = notification
-        self.notification_id = notification.id
-        self.media = notification.media
-        self.actions = notification.actions
-        self.priority = notification.priority
-        self.message = notification.message(delivery_name)
-        self.message_html = notification.message_html
-        self.title = notification.title(delivery_name)
-        self.resolved = {}
-        delivery_config_data = notification.delivery_data(delivery_name)
+        if notification:
+            self.notification_id = notification.id 
+            self.media = notification.media 
+            self.actions = notification.actions 
+            self.priority = notification.priority 
+            self.message = notification.message(delivery_name)
+            self.message_html = notification.message_html 
+            self.title = notification.title(delivery_name)
+            delivery_config_data = notification.delivery_data(delivery_name)
+        else:
+            self.notification_id = None
+            self.media = None
+            self.actions = []
+            self.priority = PRIORITY_MEDIUM
+            self.message = None
+            self.title = None
+            self.message_html = None
+            delivery_config_data = None
         if data:
             self.data = copy.deepcopy(delivery_config_data) if delivery_config_data else {}
             self.data |= data
         else:
             self.data = delivery_config_data
 
+        self.resolved = {}
         self.delivered = 0
         self.errored = 0
         self.skipped = 0
@@ -473,7 +513,10 @@ class Envelope:
 
     def grab_image(self):
         """Grab an image from a camera, snapshot URL, MQTT Image etc"""
-        return self._notification.grab_image(self.delivery_name)
+        if self._notification:
+            return self._notification.grab_image(self.delivery_name)
+        else:
+            return None
 
     def core_service_data(self):
         """Build the core set of `service_data` dict to pass to underlying notify service"""

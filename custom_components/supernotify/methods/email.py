@@ -42,14 +42,14 @@ class EmailDeliveryMethod(DeliveryMethod):
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
-    async def _delivery_impl(self, envelope: Envelope):
+    async def deliver(self, envelope: Envelope):
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s",
                      envelope.delivery_name, envelope.targets)
 
-        template = envelope.config.get(CONF_TEMPLATE)
         data = envelope.data or {}
+        config = self.delivery_config(envelope.delivery_name)
         html = data.get("html")
-        template = data.get("template", envelope.config.get("template"))
+        template = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
         addresses = envelope.targets or []
         snapshot_url = data.get("snapshot_url")
         # TODO centralize in config

@@ -2,7 +2,7 @@ from custom_components.supernotify import CONF_DATA, METHOD_CHIME
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_TARGET, ATTR_ENTITY_ID
-from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notification import Envelope, Notification
 
 
 async def test_deliver(mock_hass) -> None:
@@ -11,27 +11,24 @@ async def test_deliver(mock_hass) -> None:
     uut = ChimeDeliveryMethod(
         mock_hass,
         context,
-        {
-            "chimes": {
-                CONF_METHOD: METHOD_CHIME,
-                CONF_DEFAULT: True,
-                CONF_ENTITIES: ["switch.bell_1", "script.alarm_2", "siren.lobby"],
-            }
-        },
+        {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True}},
     )
     await uut.initialize()
-    notification = Notification(context, message="for script only")
-    await uut.deliver(notification)
-    assert not notification.undelivered_envelopes
-    assert len(notification.delivered_envelopes) == 1
-    assert len(notification.delivered_envelopes[0].calls) == 3
-    mock_hass.services.async_call.assert_any_call("script", "alarm_2", service_data={"variables": {"message": 'for script only'}})
+    envelope = Envelope(
+        "", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
+    )
+    await uut.deliver(envelope)
+    assert envelope.skipped == 0
+    assert envelope.delivered == 1
+    assert len(envelope.calls) == 3
+
+    mock_hass.services.async_call.assert_any_call(
+        "script", "alarm_2", service_data={"variables": {"message": "for script only"}}
+    )
     mock_hass.services.async_call.assert_any_call("switch", "turn_on", service_data={"entity_id": "switch.bell_1"})
-    mock_hass.services.async_call.assert_any_call("siren", "turn_on", service_data={"entity_id": "siren.lobby",
-                                                                                    "data":{
-                                                                                        "duration": 10,
-                                                                                        "volume_level": 1}
-                                                                                    })
+    mock_hass.services.async_call.assert_any_call(
+        "siren", "turn_on", service_data={"entity_id": "siren.lobby", "data": {"duration": 10, "volume_level": 1}}
+    )
 
 
 async def test_deliver_alias(mock_hass) -> None:
@@ -55,11 +52,15 @@ async def test_deliver_alias(mock_hass) -> None:
         mock_hass, context, {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True, CONF_DATA: {"chime_tune": "doorbell"}}}
     )
     await uut.initialize()
-    notification = Notification(context)
-    await uut.deliver(notification)
-    assert not notification.undelivered_envelopes
-    assert len(notification.delivered_envelopes) == 1
-    assert len(notification.delivered_envelopes[0].calls) == 3
+    envelope = Envelope(
+        "", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
+    )
+    await uut.deliver(envelope)
+    assert envelope.skipped == 0
+    assert envelope.errored == 0
+    assert envelope.delivered == 1
+    assert len(envelope.calls) == 6
+
     mock_hass.services.async_call.assert_any_call("switch", "turn_on", service_data={"entity_id": "switch.chime_ding_dong"})
     mock_hass.services.async_call.assert_any_call(
         "media_player",
@@ -86,7 +87,7 @@ class MockGroup:
         self.attributes = {ATTR_ENTITY_ID: entities}
 
 
-async def test_deliver_to_group(mock_hass) -> None:
+async def test_deliver_to_group(mock_hass, superconfig) -> None:
     """Test on_notify_chime"""
     GROUPS = {
         "group.alexa": MockGroup(["media_player.alexa_1", "media_player.alexa_2"]),
@@ -94,22 +95,24 @@ async def test_deliver_to_group(mock_hass) -> None:
     }
 
     mock_hass.states.get.side_effect = lambda v: GROUPS.get(v)
-    context = SupernotificationConfiguration()
     uut = ChimeDeliveryMethod(
         mock_hass,
-        context,
+        superconfig,
         {
             "chimes": {
                 CONF_METHOD: METHOD_CHIME,
                 CONF_DEFAULT: True,
-                CONF_TARGET: ["group.alexa", "group.chime", "script.siren_2"],
                 CONF_DATA: {"chime_tune": "dive_dive_dive"},
             }
         },
     )
     await uut.initialize()
-    await uut.deliver(Notification(context))
-    mock_hass.services.async_call.assert_any_call("script", "siren_2", service_data={"variables": {"chime_tune":"dive_dive_dive"}})
+    await uut.deliver(Envelope("chimes", 
+                               Notification(superconfig), 
+                               targets=["group.alexa", "group.chime", "script.siren_2"]))
+    mock_hass.services.async_call.assert_any_call(
+        "script", "siren_2", service_data={"variables": {"chime_tune": "dive_dive_dive"}}
+    )
     mock_hass.services.async_call.assert_any_call("switch", "turn_on", service_data={"entity_id": "switch.bell_1"})
     mock_hass.services.async_call.assert_any_call(
         "media_player",

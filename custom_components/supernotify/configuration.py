@@ -94,7 +94,7 @@ class SupernotificationConfiguration:
         self.scenarios = {}
         self.people = {}
         self.configured_scenarios = scenarios or {}
-        self.delivery_by_scenario = {}
+        self.delivery_by_scenario = {SCENARIO_DEFAULT: []}
         self.fallback_on_error = {}
         self.fallback_by_default = {}
 
@@ -157,10 +157,9 @@ class SupernotificationConfiguration:
                 if safe_get(scenario_definition_delivery.get(scenario_delivery), CONF_ENABLED, True):
                     self.delivery_by_scenario[scenario_name].append(scenario_delivery)
 
-        if SCENARIO_DEFAULT not in self.delivery_by_scenario:
-            self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
+        self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
 
-    async def register_delivery_methods(self, delivery_methods):
+    async def register_delivery_methods(self, delivery_methods, set_as_default=False):
         """available directly for test fixtures supplying class or instance"""
         for delivery_method in delivery_methods:
             if inspect.isclass(delivery_method):
@@ -173,6 +172,8 @@ class SupernotificationConfiguration:
         for d, dc in self.deliveries.items():
             if dc.get(CONF_METHOD) not in self.methods:
                 _LOGGER.info("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
+            elif set_as_default and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
+                self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
 

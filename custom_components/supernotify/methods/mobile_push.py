@@ -47,7 +47,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         else:
             return []
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
 
         data = envelope.data or {}
         app_url = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
