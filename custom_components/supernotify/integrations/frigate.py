@@ -1,4 +1,4 @@
-
+'''
   domain: automation
   source_url: https://github.com/SgtBatten/HA_blueprints/blob/main/Frigate%20Camera%20Notifications/Beta
   input:
@@ -1278,3 +1278,4 @@ action:
                                       icon: "{{icon_3}}"
                                       destructive: true
               until: "{{ not wait.trigger or wait.trigger.payload_json['type'] == 'end' }}"
+'''
