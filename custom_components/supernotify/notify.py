@@ -93,6 +93,8 @@ async def async_get_service(
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
         },
     )
+    hass.states.async_set("%s.failures" % DOMAIN, 0)
+    hass.states.async_set("%s.sent" % DOMAIN, 0)
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), [], {})
 
@@ -128,7 +130,7 @@ async def async_get_service(
             "purged": service.cleanup_archive(days=days, force=True),
             "remaining": service.archive_size(),
             "interval": service.ARCHIVE_PURGE_MIN_INTERVAL,
-            "days": service.context.archive.get(CONF_ARCHIVE_DAYS, 1) if days is None else days
+            "days": service.context.archive.get(CONF_ARCHIVE_DAYS, 1) if days is None else days,
         }
 
     hass.services.async_register(
@@ -182,6 +184,8 @@ class SuperNotificationService(BaseNotificationService):
         """Initialize the service."""
         self.hass = hass
         self.last_notification = None
+        self.failures = 0
+        self.sent = 0
         self.context = SupernotificationConfiguration(
             hass,
             deliveries,
@@ -224,18 +228,28 @@ class SuperNotificationService(BaseNotificationService):
         data = kwargs.get(ATTR_DATA, {})
         _LOGGER.debug("Message: %s, target: %s, data: %s", message, target, data)
 
-        notification = Notification(self.context, message, title, target, data)
-        await notification.initialize()
-        if self.dupe_check(notification):
-            _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
-            notification.skipped += 1
-        else:
-            self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
-            self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios)
-            _LOGGER.debug(
-                "Message: %s, notification: %s, delveries: %s", message, notification.id, notification.selected_delivery_names
-            )
-            await notification.deliver()
+        try:
+            notification = Notification(self.context, message, title, target, data)
+            await notification.initialize()
+            if self.dupe_check(notification):
+                _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
+                notification.skipped += 1
+            else:
+                self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
+                self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios)
+                _LOGGER.debug(
+                    "Message: %s, notification: %s, delveries: %s",
+                    message,
+                    notification.id,
+                    notification.selected_delivery_names,
+                )
+                await notification.deliver()
+                self.sent += 1
+                self.hass.states.async_set("%s.sent" % DOMAIN, self.sent)
+        except Exception as e:
+            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, e)
+            self.failures += 1
+            self.hass.states.async_set("%s.failures" % DOMAIN, self.failures)
 
         self.last_notification = notification
         if self.context.archive.get(CONF_ENABLED):
@@ -258,8 +272,10 @@ class SuperNotificationService(BaseNotificationService):
             return 0
 
     def cleanup_archive(self, days=None, force=False):
-        if not force and self.last_purge is not None and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(
-            minutes=self.ARCHIVE_PURGE_MIN_INTERVAL
+        if (
+            not force
+            and self.last_purge is not None
+            and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(minutes=self.ARCHIVE_PURGE_MIN_INTERVAL)
         ):
             return 0
         if days is None:

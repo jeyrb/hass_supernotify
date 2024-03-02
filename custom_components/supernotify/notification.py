@@ -1,5 +1,6 @@
 import asyncio
 import copy
+from dataclasses import dataclass, field
 import datetime as dt
 import logging
 import os.path
@@ -8,10 +9,7 @@ import uuid
 from traceback import format_exception
 
 import voluptuous as vol
-from homeassistant.components.notify import (
-    ATTR_DATA,
-    ATTR_TARGET,
-)
+from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, ATTR_STATE
 from homeassistant.helpers.json import save_json
 
@@ -84,8 +82,8 @@ class Notification:
         target: list = None,
         service_data: dict = None,
     ) -> None:
-
         self.created = dt.datetime.now()
+        self.debug_trace = DebugTrace(message=message, title=title, data=service_data, target=target)
         self._message = message
         self.context = context
         service_data = service_data or {}
@@ -118,7 +116,6 @@ class Notification:
         self.actions = service_data.get(ATTR_ACTIONS) or {}
         self.delivery_results = {}
         self.delivery_errors = {}
-        self.resolved = {}
 
         self.selected_delivery_names = []
         self.enabled_scenarios = []
@@ -278,12 +275,12 @@ class Notification:
 
     def record_resolve(self, delivery_config, category, resolved):
         """debug support for recording detailed target resolution in archived notification"""
-        self.resolved.setdefault(delivery_config, {})
-        self.resolved[delivery_config].setdefault(category, [])
+        self.debug_trace.resolved.setdefault(delivery_config, {})
+        self.debug_trace.resolved[delivery_config].setdefault(category, [])
         if isinstance(resolved, list):
-            self.resolved[delivery_config][category].extend(resolved)
+            self.debug_trace.resolved[delivery_config][category].extend(resolved)
         else:
-            self.resolved[delivery_config][category].append(resolved)
+            self.debug_trace.resolved[delivery_config][category].append(resolved)
 
     def filter_people_by_occupancy(self, occupancy):
         people = list(self.context.people.values())
@@ -480,12 +477,12 @@ class Envelope:
         self.delivery_name = delivery_name
         self._notification = notification
         if notification:
-            self.notification_id = notification.id 
-            self.media = notification.media 
-            self.actions = notification.actions 
-            self.priority = notification.priority 
+            self.notification_id = notification.id
+            self.media = notification.media
+            self.actions = notification.actions
+            self.priority = notification.priority
             self.message = notification.message(delivery_name)
-            self.message_html = notification.message_html 
+            self.message_html = notification.message_html
             self.title = notification.title(delivery_name)
             delivery_config_data = notification.delivery_data(delivery_name)
         else:
@@ -503,7 +500,6 @@ class Envelope:
         else:
             self.data = delivery_config_data
 
-        self.resolved = {}
         self.delivered = 0
         self.errored = 0
         self.skipped = 0
@@ -548,3 +544,12 @@ class Envelope:
             and self.data == other.data
             and self.notification_id == other.notification_id
         )
+
+
+@dataclass
+class DebugTrace:
+    message: str = field(default=None)
+    title: str = field(default=None)
+    data: dict = field(default_factory=lambda: {})
+    target: list = field(default=None)
+    resolved: dict = field(init=False, default_factory=lambda: {})
