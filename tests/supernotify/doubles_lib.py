@@ -32,7 +32,7 @@ class BrokenDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return True
 
-    async def _delivery_impl(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
         raise EnvironmentError("a self-inflicted error has occurred")
 
 
