@@ -58,7 +58,6 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", envelope.title, envelope.targets)
 
-        data = data and data.get(ATTR_DATA) or {}
         media = envelope.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
@@ -82,9 +81,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
             data["push"].setdefault("sound", {})
-            data["push"]["sound"]["name"] = "default"
+            data["push"]["sound"].setdefault("name","default")
             data["push"]["sound"]["critical"] = 1
-            data["push"]["sound"]["volume"] = 1.0
+            data["push"]["sound"].setdefault("volume", 1.0)
         else:
             # critical notifications cant be grouped on iOS
             category = category or camera_entity_id or "appd"
@@ -101,7 +100,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["url"] = app_url
             data["actions"].append({"action": "URI", "title": app_url_title, "uri": app_url})
         if camera_entity_id:
-            # TODO generalize
+            # TODO generalize and add the actual action
             data["actions"].append(
                 {
                     "action": "silence-%s" % camera_entity_id,
