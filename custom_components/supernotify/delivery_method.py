@@ -1,22 +1,18 @@
 import logging
+import time
 from abc import abstractmethod
-from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
-from homeassistant.components.notify import (
-    ATTR_TARGET,
-)
+from traceback import format_exception
+
+from homeassistant.components.notify import ATTR_TARGET
+from homeassistant.const import (CONF_CONDITION, CONF_DEFAULT, CONF_METHOD,
+                                 CONF_NAME, CONF_SERVICE)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
-import time
 
-from . import (
-    CONF_OPTIONS,
-    CONF_TARGETS_REQUIRED,
-    RESERVED_DELIVERY_NAMES,
-)
-from .notification import Envelope
+from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES
 from .configuration import SupernotificationConfiguration
-from traceback import format_exception
+from .notification import Envelope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,12 +78,17 @@ class DeliveryMethod:
         if self.default_service is None and self.default_delivery:
             self.default_service = self.default_delivery.get(CONF_SERVICE)
 
-        _LOGGER.debug("SUPERNOTIFY Validated method %s, default delivery %s, default services %s, valid deliveries: %s",
-                      self.method, self.default_delivery, self.default_service, valid_deliveries)
+        _LOGGER.debug(
+            "SUPERNOTIFY Validated method %s, default delivery %s, default services %s, valid deliveries: %s",
+            self.method,
+            self.default_delivery,
+            self.default_service,
+            valid_deliveries,
+        )
         return valid_deliveries
 
     @abstractmethod
-    async def deliver(envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> None:
         """
         Delivery implementation
 
@@ -110,7 +111,7 @@ class DeliveryMethod:
 
     def delivery_config(self, delivery_name):
         return self.context.deliveries.get(delivery_name) or self.default_delivery or {}
-    
+
     def combined_message(self, envelope, default_title_only=True):
         config = self.delivery_config(envelope.delivery_name)
         if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
@@ -151,7 +152,7 @@ class DeliveryMethod:
                 envelope.delivered = 1
             else:
                 _LOGGER.debug(
-                    "SUPERNOTIFY skipping service call for service %, targets %s",
+                    "SUPERNOTIFY skipping service call for service %s, targets %s",
                     qualified_service,
                     service_data.get(ATTR_TARGET),
                 )

@@ -1,29 +1,13 @@
 """The SuperNotification integration"""
 
-from homeassistant.const import Platform
-
 import voluptuous as vol
-from homeassistant.components.notify import (
-    PLATFORM_SCHEMA,
-)
-from homeassistant.const import (
-    CONF_ALIAS,
-    CONF_CONDITION,
-    ATTR_DOMAIN,
-    ATTR_SERVICE,
-    CONF_DEFAULT,
-    CONF_DESCRIPTION,
-    CONF_EMAIL,
-    CONF_ENABLED,
-    CONF_ENTITIES,
-    CONF_ICON,
-    CONF_NAME,
-    CONF_ID,
-    CONF_PLATFORM,
-    CONF_SERVICE,
-    CONF_TARGET,
-    CONF_URL,
-)
+from homeassistant.components.notify import PLATFORM_SCHEMA
+from homeassistant.const import (ATTR_DOMAIN, ATTR_SERVICE, CONF_ALIAS,
+                                 CONF_CONDITION, CONF_DEFAULT,
+                                 CONF_DESCRIPTION, CONF_EMAIL, CONF_ENABLED,
+                                 CONF_ENTITIES, CONF_ICON, CONF_ID, CONF_NAME,
+                                 CONF_PLATFORM, CONF_SERVICE, CONF_TARGET,
+                                 CONF_URL, Platform)
 from homeassistant.helpers import config_validation as cv
 
 DOMAIN = "supernotify"

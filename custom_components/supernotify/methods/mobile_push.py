@@ -1,5 +1,7 @@
 import logging
 import re
+import requests
+from bs4 import BeautifulSoup
 
 from homeassistant.components.notify.const import ATTR_DATA
 from custom_components.supernotify import (
@@ -33,6 +35,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.action_titles = {}
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_MOBILE_APP, target)
@@ -47,11 +50,24 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         else:
             return []
 
+    async def action_title(self, url):
+        if url in self.action_titles:
+            return self.action_titles[url]
+        try:
+            resp = requests.get(url, allow_redirects=True, timeout=5)
+            html = BeautifulSoup(resp.text)
+            self.action_titles[url] = html.title.string
+            return html.title.string
+        except Exception as e:
+            _LOGGER.debug("SUPERNOTIFY failed to retrieve url title at %s: %s", url, e)
+            return None
+
     async def deliver(self, envelope: Envelope) -> None:
 
         data = envelope.data or {}
         app_url = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
-        app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE)
+        if app_url:
+            app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE) or self.action_title(app_url) or "Click for Action"
 
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
@@ -81,7 +97,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         data["push"]["interruption-level"] = push_priority
         if push_priority == "critical":
             data["push"].setdefault("sound", {})
-            data["push"]["sound"].setdefault("name","default")
+            data["push"]["sound"].setdefault("name", "default")
             data["push"]["sound"]["critical"] = 1
             data["push"]["sound"].setdefault("volume", 1.0)
         else:
