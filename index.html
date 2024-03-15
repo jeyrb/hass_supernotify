@@ -1,0 +1,1104 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Advanced, concise, flexible notification upgrade for Home Assistant">
+      
+      
+      
+        <link rel="canonical" href="https://jeyrb.github.io/hass_supernotify/">
+      
+      
+      
+        <link rel="next" href="HASS_config_tips/">
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.6">
+    
+    
+      
+        <title>Home Assistant Supernotifier</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.558e4712.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.2505c338.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="" data-md-color-accent="">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#supernotifier" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="Home Assistant Supernotifier" class="md-header__button md-logo" aria-label="Home Assistant Supernotifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Home Assistant Supernotifier
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Home
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jeyrb/hass_supernotify" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jeyrb/hass_supernotify
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Home Assistant Supernotifier" class="md-nav__button md-logo" aria-label="Home Assistant Supernotifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Home Assistant Supernotifier
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jeyrb/hass_supernotify" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jeyrb/hass_supernotify
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Home
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        Home
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    Usage
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#minimal" class="md-nav__link">
+    Minimal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-features" class="md-nav__link">
+    More features
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templated" class="md-nav__link">
+    Templated
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-methods" class="md-nav__link">
+    Delivery Methods
+  </a>
+  
+    <nav class="md-nav" aria-label="Delivery Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mobile-push" class="md-nav__link">
+    Mobile Push
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chime" class="md-nav__link">
+    Chime
+  </a>
+  
+    <nav class="md-nav" aria-label="Chime">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sms" class="md-nav__link">
+    SMS
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generic" class="md-nav__link">
+    Generic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email" class="md-nav__link">
+    Email
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#media-image" class="md-nav__link">
+    Media Image
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alexa-announce" class="md-nav__link">
+    Alexa Announce
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent" class="md-nav__link">
+    Persistent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#media-support" class="md-nav__link">
+    Media support
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flexible-configuration" class="md-nav__link">
+    Flexible Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    Setup
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cameras" class="md-nav__link">
+    Cameras
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-method-options" class="md-nav__link">
+    Delivery Method Options
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tips" class="md-nav__link">
+    Tips
+  </a>
+  
+    <nav class="md-nav" aria-label="Tips">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#message-formatting" class="md-nav__link">
+    Message formatting
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="HASS_config_tips/" class="md-nav__link">
+        Home Assistant Notification Config Tips
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="classes/" class="md-nav__link">
+        Core Classes
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="maximal_example/" class="md-nav__link">
+        Maximal Configuration
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="minimal_example/" class="md-nav__link">
+        Minimal Configuration
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    Installation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    Usage
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#minimal" class="md-nav__link">
+    Minimal
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-features" class="md-nav__link">
+    More features
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templated" class="md-nav__link">
+    Templated
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-methods" class="md-nav__link">
+    Delivery Methods
+  </a>
+  
+    <nav class="md-nav" aria-label="Delivery Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mobile-push" class="md-nav__link">
+    Mobile Push
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chime" class="md-nav__link">
+    Chime
+  </a>
+  
+    <nav class="md-nav" aria-label="Chime">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sms" class="md-nav__link">
+    SMS
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generic" class="md-nav__link">
+    Generic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email" class="md-nav__link">
+    Email
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#media-image" class="md-nav__link">
+    Media Image
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alexa-announce" class="md-nav__link">
+    Alexa Announce
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent" class="md-nav__link">
+    Persistent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#media-support" class="md-nav__link">
+    Media support
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flexible-configuration" class="md-nav__link">
+    Flexible Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    Setup
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cameras" class="md-nav__link">
+    Cameras
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-method-options" class="md-nav__link">
+    Delivery Method Options
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tips" class="md-nav__link">
+    Tips
+  </a>
+  
+    <nav class="md-nav" aria-label="Tips">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#message-formatting" class="md-nav__link">
+    Message formatting
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+
+<h1 id="supernotifier">SuperNotifier<a class="headerlink" href="#supernotifier" title="Permanent link">&para;</a></h1>
+<p>Easy multi-channel rich notifications.</p>
+<p>An extension of HomeAssistant&rsquo;s built in <code>notify.notify</code> that can greatly simplify multiple notification channels and
+complex scenarios, including multi-channel notifications, conditional notifications, mobile actions, chimes and template based HTML emails.</p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Send out notifications on multiple channels from one call, removing repetitive config and code from automations</li>
+<li>Standard <code>notify</code> implementation so easy to switch out for other notify implementations, or <code>notify.group</code></li>
+<li>Conditional notification using standard Home Assistant <code>condition</code> config</li>
+<li>Reuse chunks of conditional logic as <em>scenarios</em> across multiple notifications</li>
+<li>Streamlined conditionals for selecting channels per priority and scenario, or
+for sending only to people in or out of the property</li>
+<li>Use <code>person</code> for all notification configuration, regardless of channel</li>
+<li>Unified Person model currently missing from Home Assistant</li>
+<li>HTML email templates, using Jinja2, with a general default template supplied</li>
+<li>Single set up of consistent mobile actions across multiple notifications</li>
+<li>Flexible image snapshots, supporting cameras, MQTT Images and image URLs. </li>
+<li>Cameras can be repositioned using PTZ before and after a snapshot is taken.</li>
+<li>Defaulting of targets and data in static config, and overridable at notification time</li>
+<li>Generic support for any notification method</li>
+<li>Plus canned delivery methods to simplify common cases, especially for tricky ones like Apple Push</li>
+<li>Reloadable configuration</li>
+<li>Tunable duplicate notification detection</li>
+<li>Well-behaved <code>notify</code> extension, so can use data templating, <code>notify.group</code> and other notify features.</li>
+<li>Debugging support, </li>
+<li>Optional archival of message structures</li>
+<li>Additional services to pull back live configuration or last known notification details.</li>
+</ul>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Add git repo to HACS as custom repo</li>
+<li>Select <em>SuperNotify</em> in the list of available integrations in HACS and install</li>
+<li>Add a <code>notify</code> config for the <code>supernotifier</code> integration, see <code>examples</code> folder</li>
+<li>In order to use email attachments, e.g. from camera snapshot or a <code>snapshot_url</code>,
+you must set the <code>allowlist_external_dirs</code> in main HomeAssistant config to the same as
+<code>media_path</code> in the supernotify configuration</li>
+</ul>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h3 id="minimal">Minimal<a class="headerlink" href="#minimal" title="Permanent link">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotifier</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">        </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Security Notification</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{state_attr(sensor,&quot;friendly_name&quot;)}}</span><span class="nv"> </span><span class="s">triggered&#39;</span><span class="w">                    </span>
+</span></code></pre></div>
+<h3 id="more-features">More features<a class="headerlink" href="#more-features" title="Permanent link">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotifier</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">        </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Security Notification</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{state_attr(sensor,&quot;friendly_name&quot;)}}</span><span class="nv"> </span><span class="s">triggered&#39;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">person.jim_bob</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">person.neighbour</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="nt">priority</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">high</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="nt">scenarios</span><span class="p">:</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">home_security</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">garden</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="nt">delivery</span><span class="p">:</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">            </span><span class="nt">mobile_push</span><span class="p">:</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">                </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">                    </span><span class="nt">clickAction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://my.home.net/dashboard</span>
+</span></code></pre></div>
+<h3 id="templated">Templated<a class="headerlink" href="#templated" title="Permanent link">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotifier</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">data_template</span><span class="p">:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Tank Notification</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;Fuel</span><span class="nv"> </span><span class="s">tank</span><span class="nv"> </span><span class="s">depth</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">{{</span><span class="nv"> </span><span class="s">state_attr(&#39;sensor.tank&#39;,</span><span class="nv"> </span><span class="s">&#39;depth&#39;)</span><span class="nv"> </span><span class="s">}}&quot;</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">            </span><span class="nt">priority</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="err">%</span><span class="w"> </span><span class="nv">if</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">state_attr(&#39;sensor.tank&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;depth&#39;</span><span class="nv">)</span><span class="w"> </span><span class="p p-Indicator">}}</span><span class="nv">&lt;10</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="l l-Scalar l-Scalar-Plain">critical{% else %}medium {% endif %}</span><span class="w">               </span>
+</span></code></pre></div>
+<h2 id="delivery-methods">Delivery Methods<a class="headerlink" href="#delivery-methods" title="Permanent link">&para;</a></h2>
+<h3 id="mobile-push">Mobile Push<a class="headerlink" href="#mobile-push" title="Permanent link">&para;</a></h3>
+<p>Send a push message out, with option for camera integration, mobile actions, and
+translate general priority to Apple specific push priority. </p>
+<p>Some functionality may also work with Android push, though has not been tested.</p>
+<p>Although SuperNotifier will automatically set most useful mobile push options,
+its also possible to directly set them, as in this example:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotifier</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">      </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Movement at garden gate</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">        </span><span class="nt">priority</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">high</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="nt">media</span><span class="p">:</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">          </span><span class="nt">camera_entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">camera.porch</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">          </span><span class="nt">camera_ptz_preset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">garden_gate</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="nt">delivery</span><span class="p">:</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">          </span><span class="nt">mobile_push</span><span class="p">:</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">              </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;backyard-motion-detected&quot;</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">              </span><span class="nt">presentation_options</span><span class="p">:</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alert</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">badge</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">              </span><span class="nt">push</span><span class="p">:</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">                </span><span class="nt">sound</span><span class="p">:</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">                  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;US-EN-Alexa-Motion-Detected-Generic.wav&quot;</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">                  </span><span class="nt">volume</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+</span></code></pre></div>
+<h3 id="chime">Chime<a class="headerlink" href="#chime" title="Permanent link">&para;</a></h3>
+<p>Provide a list of <code>switch</code>, <code>siren</code>, <code>media_player</code> or <code>script</code> entities to use for chimes
+and it will call the <code>switch.turn_on</code>, <code>script.turn_on</code> or <code>media_player.play_media</code>
+services automatically for each.</p>
+<p>See https://github.com/alandtse/alexa_media_player/wiki#known-available-sounds for
+a list of known tunes that work with Alexa devices.</p>
+<p>Optionally chime aliases can be set up so that simple names can be given for 
+Amazon tune paths, or multiple types of chime all mapped to same name. This can
+be used in combination with method default targets for concise notifications.</p>
+<p>Switches are a little special, in that they are binary on/off. However, since many
+433Mhz ones can take an additional melody code, its common to have different melodies
+represented by separate <code>switch</code> entities for the same underlying devices.</p>
+<h4 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h4>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">methods</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">chime</span><span class="p">:</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">media_player.kitchen_echo</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">media_player.bedroom</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">options</span><span class="p">:</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">        </span><span class="nt">chime_aliases</span><span class="p">:</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">              </span><span class="nt">doorbell</span><span class="p">:</span><span class="w">    </span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">                </span><span class="nt">media_player</span><span class="p">:</span><span class="w"> </span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">                    </span><span class="c1"># resolves to media_player/play_media with sound configured for this path        </span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">                    </span><span class="nt">tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">home/amzn_sfx_doorbell_chime_02</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">                    </span><span class="c1"># device defaults to `target` of method default or service call</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">                </span><span class="nt">media_player_alt</span><span class="p">:</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">                    </span><span class="c1"># Not all the media players are Amazon Alexa based, so override for other flavours</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">                    </span><span class="nt">domain</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">media_player</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">                    </span><span class="nt">tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">raindrops_and_roses.mp4</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">                    </span><span class="nt">entity_id</span><span class="p">:</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">                        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">media_player.hall_custom</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">                </span><span class="nt">switch</span><span class="p">:</span><span class="w"> </span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">                    </span><span class="c1"># resolves to switch/turn_on with entity id switch.ding_dong            </span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">                    </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">switch.chime_ding_dong</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">                </span><span class="nt">siren</span><span class="p">:</span><span class="w"> </span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">                    </span><span class="c1"># resolves to siren/turn_on with tune bleep, only front door siren called</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">                    </span><span class="nt">tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bleep</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">                    </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">siren.front_door</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">              </span><span class="nt">red_alert</span><span class="p">:</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">                </span><span class="c1"># non-dict defaults to a dict keyed on `tune`</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">                </span><span class="nt">alexa</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">scifi/amzn_sfx_scifi_alarm_04</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">                </span><span class="nt">siren</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">emergency</span>
+</span></code></pre></div>
+<p>With this chime config, a doorbell notification can be sent to multiple devices just
+by selecting a tune.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotify</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">        </span><span class="nt">delivery</span><span class="p">:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">            </span><span class="nt">chimes</span><span class="p">:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">                </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">                    </span><span class="nt">chime_tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doorbell</span>
+</span></code></pre></div>
+<h3 id="sms">SMS<a class="headerlink" href="#sms" title="Permanent link">&para;</a></h3>
+<p>Uses the <code>phone_number</code> attribute of recipient, and truncates message to fit in an SMS.</p>
+<p>The <code>title_only</code> option can be sent to restrict content to just title, when both title and
+message on a notification. Otherwise, the combined title/message is sent out.</p>
+<h3 id="generic">Generic<a class="headerlink" href="#generic" title="Permanent link">&para;</a></h3>
+<p>Use to call any service.
+If service is in <code>notify</code> domain, then <code>message</code>,<code>title</code>,<code>target</code> and <code>data</code> will be
+passed in the Service Data, otherwise the <code>data</code> supplied will be passed directly
+as the Service Data.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotify</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">        </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;My</span><span class="nv"> </span><span class="s">Home</span><span class="nv"> </span><span class="s">Notification&quot;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Notify</span><span class="nv"> </span><span class="s">via</span><span class="nv"> </span><span class="s">custom</span><span class="nv"> </span><span class="s">chat&quot;</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">        </span><span class="nt">delivery</span><span class="p">:</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">            </span><span class="nt">chat_notify</span><span class="p">:</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">                </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">                    </span><span class="nt">channel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3456</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">notify.supernotify</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">        </span><span class="nt">delivery</span><span class="p">:</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">            </span><span class="nt">mqtt_notify</span><span class="p">:</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">                </span><span class="nt">data</span><span class="p">:</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">                  </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alert/family_all</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">                  </span><span class="nt">payload</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">something happened</span>
+</span></code></pre></div>
+<h3 id="email">Email<a class="headerlink" href="#email" title="Permanent link">&para;</a></h3>
+<p>Can be used for plain or HTML template emails, and handle images as attachments or embedded HTML.</p>
+<p>Also supports <code>message_html</code> override to supply html that will be ignored for other notification
+types, and does not require templates. In this case, HTML will automatically be tagged onto the
+end to include any attached images.</p>
+<h3 id="media-image">Media Image<a class="headerlink" href="#media-image" title="Permanent link">&para;</a></h3>
+<p>Show an image on a media player, e.g. an Alexa Show ( where that actually works, depending on model )</p>
+<h3 id="alexa-announce">Alexa Announce<a class="headerlink" href="#alexa-announce" title="Permanent link">&para;</a></h3>
+<p>Announce a message on an Alexa Echo device using the <code>alexa_media_player</code> integration</p>
+<p>The <code>title_only</code> option can be set to <code>False</code> to override the restriction of content to just title, when both title and message on a notification. Otherwise, only the title is announced.</p>
+<h3 id="persistent">Persistent<a class="headerlink" href="#persistent" title="Permanent link">&para;</a></h3>
+<p>Place a notification on Home Assistant application screen.</p>
+<p>Pass a notification ID</p>
+<h2 id="media-support">Media support<a class="headerlink" href="#media-support" title="Permanent link">&para;</a></h2>
+<p>Images can be included by:</p>
+<ul>
+<li>camera entity, as created by any <a href="https://www.home-assistant.io/integrations/camera/">Camera Integration</a></li>
+<li>image entity, for example an <a href="https://www.home-assistant.io/integrations/image.mqtt/">MQTT Image</a>, ideal for Frigate or cameras that stream to MQTT</li>
+<li><code>snapshot_url</code></li>
+</ul>
+<p>Additionally a video clip can be referenced by <code>clip_url</code> where supported by a delivery method (currently mobile push only).</p>
+<p>An optional PTZ preset can also be referenced in <code>data</code>, a PTZ delay before snapshot taken,
+and a choice of <code>onvif</code> or <code>frigate</code> for the PTZ control. After the snap, an additional PTZ will be commanded to return to the <code>ptz_default_preset</code> defined for the camera.This image will taken once and then reused across all supporting delivery methods.</p>
+<p>Some cameras, like Hikvision, add JPEG comment blocks which confuse the very simplistic media
+detection in the SMTP integration, and leads to spurious log entries. Supernotify will automatically rewrite JPEGs into simpler standard forms to avoid this, and optionally <code>JPEG_ARGS</code>
+can be set, for example to reduce image quality for smaller email attachments.</p>
+<h2 id="flexible-configuration">Flexible Configuration<a class="headerlink" href="#flexible-configuration" title="Permanent link">&para;</a></h2>
+<p>Delivery configuration can be done in lots of different ways to suit different configurations
+and to keep those configuration as minimal as possible.</p>
+<p>Priority order of application</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>When</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Service Data</td>
+<td>Runtime call</td>
+<td></td>
+</tr>
+<tr>
+<td>Recipient delivery override</td>
+<td>Runtime call</td>
+<td></td>
+</tr>
+<tr>
+<td>Scenario delivery override</td>
+<td>Runtime call</td>
+<td>Multiple scenarios applied in no special order</td>
+</tr>
+<tr>
+<td>Delivery definition</td>
+<td>Startup</td>
+<td><code>message</code> and <code>title</code> override Service Data</td>
+</tr>
+<tr>
+<td>Method defaults</td>
+<td>Startup</td>
+<td></td>
+</tr>
+<tr>
+<td>Target notification service defaults</td>
+<td>Downstream call</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>Service Data passed at runtime call</li>
+<li>Recipient delivery override </li>
+<li>Scenario delivery override</li>
+<li>Delivery definition</li>
+<li>Method defaults</li>
+<li>Target notification service defaults, e.g. mail recipients ( this isn&rsquo;t applied inside supernotifier )</li>
+</ol>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<p>Register this GitHub repo as a custom repo 
+in your <a href="https://hacs.xyz">HACS</a> configuration. </p>
+<p>Configure in the main Home Assistant config yaml, or an included notify.yaml</p>
+<p>See <code>examples</code> directory for working minimal and maximal configuration examples.</p>
+<h3 id="cameras">Cameras<a class="headerlink" href="#cameras" title="Permanent link">&para;</a></h3>
+<p>Use this for additional camera info:</p>
+<ul>
+<li>Link a <code>device_tracker</code> to the camera</li>
+<li>Notifications will first check its online, then use an alternative if primary is down</li>
+<li>Define alternative cameras to use if first fails using <code>alt_camera</code></li>
+<li>For ONVIF or Frigate cameras set up for PTZ</li>
+<li>Home preset can be defined using <code>ptz_default_preset</code> so camera can be reset after taking a snapshot</li>
+<li>Delay between PTZ command and snapshot can be defined using <code>ptz_delay</code></li>
+<li>Choose between ONVIF or Frigate PTZ control using <code>ptz_method</code><ul>
+<li>Note that ONVIF may have numeric reference for presets while Frigate uses labels</li>
+</ul>
+</li>
+</ul>
+<h2 id="delivery-method-options">Delivery Method Options<a class="headerlink" href="#delivery-method-options" title="Permanent link">&para;</a></h2>
+<p>All of these set by passing an <code>options</code> block in delivery config or method defaults.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Methods</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chime_aliases</td>
+<td>chime</td>
+<td>Map tunes to device name or config</td>
+</tr>
+<tr>
+<td>jpeg_flags</td>
+<td>mail</td>
+<td>Tune image grabs</td>
+</tr>
+<tr>
+<td>title_only</td>
+<td>sms, alexa</td>
+<td>Suppress message body</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>all</td>
+<td>Add a timestamp to message.</td>
+</tr>
+</tbody>
+</table>
+<p><code>jpeg_flags</code> can also be set per runtime call by passing in the <code>media</code> block.</p>
+<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
+<h3 id="message-formatting">Message formatting<a class="headerlink" href="#message-formatting" title="Permanent link">&para;</a></h3>
+<p>To send a glob of html to include in email, set <code>message_html</code> in service_data. This will be ignored
+by other delivery methods that don&rsquo;t handle email. This can be also be used to have a notification
+with only a title ( that gets picked up for mobile push, alexa and other brief communications ) with
+a much more detailed body only for email.</p>
+<p>Use <code>data_template</code> to build the <code>data</code> dictionary with Jinja2 logic from automations or scripts.</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.copy", "content.code.select", "content.code.annotate"], "search": "assets/javascripts/workers/search.e5c33ebb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.51d95adb.min.js"></script>
+      
+    
+  </body>
+</html>

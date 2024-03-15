@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://jeyrb.github.io/hass_supernotify/</loc>
+         <lastmod>2024-03-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://jeyrb.github.io/hass_supernotify/HASS_config_tips/</loc>
+         <lastmod>2024-03-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://jeyrb.github.io/hass_supernotify/classes/</loc>
+         <lastmod>2024-03-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://jeyrb.github.io/hass_supernotify/maximal_example/</loc>
+         <lastmod>2024-03-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://jeyrb.github.io/hass_supernotify/minimal_example/</loc>
+         <lastmod>2024-03-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+</urlset>
