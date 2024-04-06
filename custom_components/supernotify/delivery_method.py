@@ -87,6 +87,14 @@ class DeliveryMethod:
         )
         return valid_deliveries
 
+    def attributes(self):
+        return {
+            CONF_METHOD: self.method,
+            "default_service": self.default_service,
+            "default_delivery": self.default_delivery,
+            "deliveries": list(self.valid_deliveries.keys()),
+        }
+
     @abstractmethod
     async def deliver(self, envelope: Envelope) -> None:
         """

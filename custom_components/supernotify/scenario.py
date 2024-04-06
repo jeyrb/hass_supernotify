@@ -31,6 +31,17 @@ class Scenario:
         self.delivery = scenario_definition.get(CONF_DELIVERY) or {}
         self.default = self.name == ATTR_DEFAULT
 
+    def attributes(self):
+        ''' Return scenario attributes '''
+        return {
+            "name": self.name,
+            "alias": self.alias,
+            "media": self.media,
+            "delivery_selection": self.delivery_selection,
+            "delivery": self.delivery,
+            "default": self.default,
+        }
+        
     async def validate(self):
         ''' Validate Home Assistant conditiion definition at initiation '''
         if self.condition:

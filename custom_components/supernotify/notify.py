@@ -2,6 +2,7 @@ import logging
 import datetime as dt
 import os.path
 import os
+import time
 
 from cachetools import TTLCache
 from homeassistant.components.notify import (
@@ -10,6 +11,7 @@ from homeassistant.components.notify import (
 import homeassistant.util.dt as dt_util
 from homeassistant.const import CONF_CONDITION, CONF_ENABLED
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import Event, callback
 from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -201,12 +203,62 @@ class SuperNotificationService(BaseNotificationService):
         )
         self.dupe_check_config = dupe_check
         self.last_purge = None
+        self.unsubscribes = []
+        self.snoozes = {}
         self.notification_cache = TTLCache(maxsize=dupe_check.get(CONF_SIZE, 100), ttl=dupe_check.get(CONF_TTL, 120))
 
     async def initialize(self):
         await self.context.initialize()
         await self.context.register_delivery_methods(METHODS)
+        self.expose_entities()
+        self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))
 
+    def expose_entities(self):
+        for scenario in self.context.scenarios.values():
+            self.hass.states.async_set("%s.scenario_%s" % (DOMAIN, scenario.name), None, scenario.attributes())
+        for method in self.context.methods.values():
+            self.hass.states.async_set("%s.method_%s" % (DOMAIN, method.method), len(method.valid_deliveries)>0, method.attributes())
+        for delivery in self.context._deliveries.values():
+            self.hass.states.async_set("%s.delivery_%s" % (DOMAIN, delivery["name"]), delivery["name"] in self.context.deliveries, delivery)
+        
+    async def async_shutdown(self, event: Event) -> None:
+        _LOGGER.info("SUPERNOTIFY shutting down")
+        self.shutdown()
+
+    def shutdown(self):
+        for unsub in self.unsubscribes:
+            unsub()
+        _LOGGER.info("SUPERNOTIFY shut down")
+
+    @callback
+    def on_mobile_action(self, event):
+        event_name = event.data.get("action")
+        try:
+            if event_name.startswith("SUPERNOTIFY_"):
+                _LOGGER.debug("SUPERNOTIFY Mobile Action: %s", event)
+                _, cmd, target_type, target = event_name.split('_')
+                if target_type not in ('METHOD', 'DELIVERY', 'PERSON', 'CAMERA'):
+                    _LOGGER.warning("SUPERNOTIFY Invalid mobile target type %s (event: %s)", target_type, event)                
+                    return
+                SNOOZE_TIME = 60 * 60
+
+                short_key = '_'.join((target_type, target))
+                if cmd == 'SNOOZE':
+                    self.snoozes[short_key]=(time.time(),time.time()+SNOOZE_TIME)
+                elif cmd == 'SILENCE':
+                    self.snoozes[short_key]=(time.time(),None)
+                elif cmd == 'ENABLE':
+                    if short_key in self.snoozes:
+                        del self.snoozes[short_key]
+                else:
+                    _LOGGER.warning("SUPERNOTIFY Invalid mobile cmd %s (event: %s)", cmd, event)                
+
+        except Exception as e:
+            _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event,e)
+        
+            
+            
+            
     def dupe_check(self, notification):
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
         if policy == ATTR_DUPE_POLICY_NONE:
