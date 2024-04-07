@@ -30,7 +30,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def select_target(self, target):
         return re.fullmatch(RE_VALID_CHIME, target)
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
         config = self.delivery_config(envelope.delivery_name)
         data = config.get(CONF_DATA) or {}
         data.update(envelope.data or {})
@@ -62,7 +62,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
-
+                
     def analyze_target(self, target: str, chime_tune: str, data: dict):
         domain, name = target.split(".", 1)
         service_data = {}

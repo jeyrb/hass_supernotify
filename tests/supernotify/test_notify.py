@@ -115,6 +115,7 @@ async def test_recipient_delivery_data_override(mock_hass) -> None:
     uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     dummy = await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
+    assert dummy is not None
     await uut.async_send_message(
         title="test_title",
         message="testing 123",

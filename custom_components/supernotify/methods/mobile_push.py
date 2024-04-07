@@ -62,13 +62,14 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY failed to retrieve url title at %s: %s", url, e)
             return None
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
 
         data = envelope.data or {}
         app_url = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
         if app_url:
             app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE) or self.action_title(app_url) or "Click for Action"
-
+        else:
+            app_url_title = "Action Link"
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
 

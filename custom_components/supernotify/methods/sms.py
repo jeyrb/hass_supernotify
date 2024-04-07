@@ -27,7 +27,7 @@ class SMSDeliveryMethod(DeliveryMethod):
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.debug("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
 
         data = envelope.data or {}
@@ -42,4 +42,4 @@ class SMSDeliveryMethod(DeliveryMethod):
         if data and data.get("data"):
             service_data[ATTR_DATA] = data.get("data")
 
-        await self.call_service(envelope, service_data=service_data)
+        return await self.call_service(envelope, service_data=service_data)

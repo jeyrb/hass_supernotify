@@ -46,7 +46,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
-    async def deliver(self, envelope: Envelope):
+    async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", envelope.delivery_name, envelope.targets)
 
         data = envelope.data or {}
@@ -95,7 +95,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
-        await self.call_service(envelope, service_data=service_data)
+        return await self.call_service(envelope, service_data=service_data)
 
     def render_template(self, template, envelope, service_data, snapshot_url, preformatted_html):
         alert = {}

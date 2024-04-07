@@ -88,7 +88,7 @@ class DeliveryMethod:
         return valid_deliveries
 
     @abstractmethod
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
         """
         Delivery implementation
 
@@ -141,6 +141,8 @@ class DeliveryMethod:
 
     async def call_service(self, envelope, qualified_service=None, service_data=None) -> bool:
         service_data = service_data or {}
+        start_time = time.time()
+        domain = service = None
         config = self.delivery_config(envelope.delivery_name)
         try:
             qualified_service = qualified_service or config.get(CONF_SERVICE) or self.default_service

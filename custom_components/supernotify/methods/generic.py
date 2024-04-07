@@ -28,7 +28,7 @@ class GenericDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
             return False
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
 
         data = envelope.data or {}
         targets = envelope.targets or []
@@ -44,4 +44,4 @@ class GenericDeliveryMethod(DeliveryMethod):
         else:
             service_data = data
 
-        await self.call_service(envelope, qualified_service, service_data)
+        return await self.call_service(envelope, qualified_service, service_data)

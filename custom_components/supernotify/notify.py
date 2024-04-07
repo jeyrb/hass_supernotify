@@ -226,6 +226,7 @@ class SuperNotificationService(BaseNotificationService):
     async def async_send_message(self, message="", title=None, target=None, **kwargs) -> Notification:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
+        notification = None
         _LOGGER.debug("Message: %s, target: %s, data: %s", message, target, data)
 
         try:
