@@ -1,7 +1,14 @@
-from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
+from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
+
+from custom_components.supernotify import (
+    ATTR_DATA,
+    ATTR_DELIVERY,
+    CONF_PERSON,
+    CONF_TEMPLATE,
+    METHOD_EMAIL,
+)
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
-from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
 from custom_components.supernotify.notification import Envelope, Notification
 
 
@@ -128,3 +135,25 @@ async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:
             "data": {"images": ["/local/picture.jpg"], "html": '<H3>testing</H3><div><p><img src="cid:picture.jpg"></p></div>'},
         },
     )
+
+
+async def test_good_email_addresses(mock_hass):
+    """Test good email addresses."""
+    uut = EmailDeliveryMethod(mock_hass, SupernotificationConfiguration(), {})
+    assert uut.select_target("test421@example.com")
+    assert uut.select_target("t@example.com")
+    assert uut.select_target("t.1.g@example.com")
+    assert uut.select_target("test-hyphen+ext@example.com")
+    assert uut.select_target("test@sub.topsub.example.com")
+    assert uut.select_target("test+fancy_rules@example.com")
+
+
+async def test_bad_email_addresses(mock_hass):
+    """Test good email addresses."""
+    uut = EmailDeliveryMethod(mock_hass, SupernotificationConfiguration(), {})
+    assert not uut.select_target("test@example@com")
+    assert not uut.select_target("sub.topsub.example.com")
+    assert not uut.select_target("test+fancy_rules@com")
+    assert not uut.select_target("")
+    assert not uut.select_target("@")
+    assert not uut.select_target("a@b")

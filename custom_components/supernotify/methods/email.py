@@ -2,16 +2,23 @@ import logging
 import os.path
 import re
 
+from homeassistant.components.notify.const import (
+    ATTR_DATA,
+    ATTR_MESSAGE,
+    ATTR_TARGET,
+    ATTR_TITLE,
+)
+from homeassistant.const import CONF_EMAIL
+from homeassistant.core import HomeAssistant
 from jinja2 import Environment, FileSystemLoader
-
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
-from homeassistant.const import CONF_EMAIL, CONF_SERVICE
-
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.notification import Envelope
 
-RE_VALID_EMAIL = r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
+RE_VALID_EMAIL = (
+    r"^[a-zA-Z0-9.+/=?^_-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,21 +26,18 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     method = METHOD_EMAIL
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict = None):
+        super().__init__(hass, context, deliveries)
         self.template_path = None
         if self.context.template_path:
-            self.template_path = os.path.join(
-                self.context.template_path, "email")
+            self.template_path = os.path.join(self.context.template_path, "email")
             if not os.path.exists(self.template_path):
-                _LOGGER.warning(
-                    "SUPERNOTIFY Email templates not available at %s", self.template_path)
+                _LOGGER.warning("SUPERNOTIFY Email templates not available at %s", self.template_path)
                 self.template_path = None
         if self.template_path is None:
             _LOGGER.warning("SUPERNOTIFY Email templates not available")
         else:
-            _LOGGER.debug(
-                "SUPERNOTIFY Loading email templates from %s", self.template_path)
+            _LOGGER.debug("SUPERNOTIFY Loading email templates from %s", self.template_path)
 
     def select_target(self, target):
         return re.fullmatch(RE_VALID_EMAIL, target)
@@ -43,8 +47,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         return [email] if email else []
 
     async def deliver(self, envelope: Envelope):
-        _LOGGER.info("SUPERNOTIFY notify_email: %s %s",
-                     envelope.delivery_name, envelope.targets)
+        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", envelope.delivery_name, envelope.targets)
 
         data = envelope.data or {}
         config = self.delivery_config(envelope.delivery_name)
@@ -54,8 +57,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         snapshot_url = data.get("snapshot_url")
         # TODO centralize in config
         footer_template = data.get("footer")
-        footer = footer_template.format(
-            e=envelope) if footer_template else None
+        footer = footer_template.format(e=envelope) if footer_template else None
 
         service_data = envelope.core_service_data()
 
@@ -68,8 +70,7 @@ class EmailDeliveryMethod(DeliveryMethod):
 
         if not template or not self.template_path:
             if footer and service_data.get(ATTR_MESSAGE):
-                service_data[ATTR_MESSAGE] = "%s\n\n%s" % (
-                    service_data[ATTR_MESSAGE], footer)
+                service_data[ATTR_MESSAGE] = "%s\n\n%s" % (service_data[ATTR_MESSAGE], footer)
 
             image_path = await envelope.grab_image()
             if image_path:
@@ -80,22 +81,17 @@ class EmailDeliveryMethod(DeliveryMethod):
                 html = envelope.message_html
                 if image_path:
                     image_name = os.path.basename(image_path)
-                    if html and "cid:%s" not in html and not html.endswith('</html'):
+                    if html and "cid:%s" not in html and not html.endswith("</html"):
                         if snapshot_url:
-                            html += "<div><p><a href=\"%s\">" % snapshot_url
-                            html += "<img src=\"cid:%s\"/></a>" % image_name
+                            html += '<div><p><a href="%s">' % snapshot_url
+                            html += '<img src="cid:%s"/></a>' % image_name
                             html += "</p></div>"
                         else:
-                            html += "<div><p><img src=\"cid:%s\"></p></div>" % image_name
+                            html += '<div><p><img src="cid:%s"></p></div>' % image_name
 
                 service_data["data"]["html"] = html
         else:
-            html = self.render_template(
-                template,
-                envelope,
-                service_data,
-                snapshot_url,
-                envelope.message_html)
+            html = self.render_template(template, envelope, service_data, snapshot_url, envelope.message_html)
             if html:
                 service_data.setdefault("data", {})
                 service_data["data"]["html"] = html
@@ -104,19 +100,17 @@ class EmailDeliveryMethod(DeliveryMethod):
     def render_template(self, template, envelope, service_data, snapshot_url, preformatted_html):
         alert = {}
         try:
-            alert = {"message": service_data.get(ATTR_MESSAGE),
-                     "title": service_data.get(ATTR_TITLE),
-                     "envelope": envelope,
-                     "subheading": "Home Assistant Notification",
-                     "configuration": self.context,
-                     "preformatted_html": preformatted_html,
-                     "img": None,
-                     }
+            alert = {
+                "message": service_data.get(ATTR_MESSAGE),
+                "title": service_data.get(ATTR_TITLE),
+                "envelope": envelope,
+                "subheading": "Home Assistant Notification",
+                "configuration": self.context,
+                "preformatted_html": preformatted_html,
+                "img": None,
+            }
             if snapshot_url:
-                alert["img"] = {
-                    "text": "Snapshot Image",
-                    "url": snapshot_url
-                }
+                alert["img"] = {"text": "Snapshot Image", "url": snapshot_url}
             env = Environment(loader=FileSystemLoader(self.template_path))
             template_obj = env.get_template(template)
             html = template_obj.render(alert=alert)
@@ -126,5 +120,4 @@ class EmailDeliveryMethod(DeliveryMethod):
                 return html
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Failed to generate html mail: %s", e)
-            _LOGGER.debug("SUPERNOTIFY Template failure: %s",
-                          alert, exc_info=True)
+            _LOGGER.debug("SUPERNOTIFY Template failure: %s", alert, exc_info=True)
