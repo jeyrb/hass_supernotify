@@ -29,7 +29,7 @@ async def test_default_recipients_with_override(mock_hass) -> None:
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
     await context.register_delivery_methods([dummy], set_as_default=True)
-    uut = Notification(context, None, service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
+    uut = Notification(context, "testing", service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.initialize()
     await uut.deliver()
     assert dummy.test_calls == [Envelope("dummy", uut, targets=["dummy.new_home_owner"])]
