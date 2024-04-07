@@ -1,19 +1,20 @@
 import asyncio
-import copy
-from dataclasses import dataclass, field
 import datetime as dt
 import logging
 import os.path
-import time
+import typing
 import uuid
+from dataclasses import dataclass, field
 from traceback import format_exception
 
 import voluptuous as vol
-from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET, ATTR_MESSAGE, ATTR_TITLE
-from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, ATTR_STATE
+from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET
+from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME
 from homeassistant.helpers.json import save_json
 
 from custom_components.supernotify.common import safe_extend
+from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.envelope import Envelope
 
 from . import (
     ATTR_ACTIONS,
@@ -30,7 +31,6 @@ from . import (
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS,
-    ATTR_TIMESTAMP,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_MESSAGE,
@@ -62,13 +62,7 @@ from . import (
 )
 from .common import ensure_dict, ensure_list
 from .configuration import SupernotificationConfiguration
-from .media_grab import (
-    move_camera_to_ptz_preset,
-    select_avail_camera,
-    snap_camera,
-    snap_image,
-    snapshot_from_url,
-)
+from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snap_image, snapshot_from_url
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,10 +71,10 @@ class Notification:
     def __init__(
         self,
         context: SupernotificationConfiguration,
-        message: str = None,
-        title: str = None,
-        target: list = None,
-        service_data: dict = None,
+        message: typing.Optional[str] = None,
+        title: typing.Optional[str] = None,
+        target: typing.Optional[list] = None,
+        service_data: typing.Optional[dict] = None,
     ) -> None:
         self.created = dt.datetime.now()
         self.debug_trace = DebugTrace(message=message, title=title, data=service_data, target=target)
@@ -188,7 +182,7 @@ class Notification:
 
     async def call_delivery_method(self, delivery):
         try:
-            delivery_method = self.context.delivery_method(delivery)
+            delivery_method: DeliveryMethod = self.context.delivery_method(delivery)
             delivery_config = delivery_method.delivery_config(delivery)
 
             delivery_priorities = delivery_config.get(CONF_PRIORITY) or ()
@@ -224,9 +218,9 @@ class Notification:
     def hash(self):
         return hash((self._message, self._title))
 
-    def contents(self):
+    def contents(self, minimal: bool = False):
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
-        sanitized["delivered_envelopes"] = [e.contents() for e in self.delivered_envelopes]
+        sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
         return sanitized
 
     def archive(self, path):
@@ -242,7 +236,7 @@ class Notification:
                 save_json(filename, self.contents(minimal=True))
                 _LOGGER.debug("SUPERNOTIFY Archived pruned notification %s", filename)
             except Exception as e:
-                _LOGGER.errror("SUPERNOTIFY Unable to archived pruned notification: %s", e)
+                _LOGGER.error("SUPERNOTIFY Unable to archived pruned notification: %s", e)
 
     def delivery_data(self, delivery_name):
         delivery_override = self.delivery_overrides.get(delivery_name)
@@ -255,15 +249,15 @@ class Notification:
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
 
-    async def select_scenarios(self):
-        scenarios = []
+    async def select_scenarios(self) -> list[str]:
+        scenarios: list[str] = []
         for scenario in self.context.scenarios.values():
             if await scenario.evaluate():
                 scenarios.append(scenario.name)
         return scenarios
 
     def merge(self, attribute, delivery_name):
-        delivery = self.delivery_overrides.get(delivery_name, {})
+        delivery: dict = self.delivery_overrides.get(delivery_name, {})
         base = delivery.get(attribute, {})
         for scenario_name in self.enabled_scenarios:
             scenario = self.context.scenarios.get(scenario_name)
@@ -467,89 +461,10 @@ class Notification:
             return image_path
 
 
-class Envelope:
-    """
-    Wrap a notification with a specific set of targets and service data possibly customized for those targets
-    """
-
-    def __init__(self, delivery_name, notification=None, targets=None, data=None):
-        self.targets = targets or []
-        self.delivery_name = delivery_name
-        self._notification = notification
-        if notification:
-            self.notification_id = notification.id
-            self.media = notification.media
-            self.actions = notification.actions
-            self.priority = notification.priority
-            self.message = notification.message(delivery_name)
-            self.message_html = notification.message_html
-            self.title = notification.title(delivery_name)
-            delivery_config_data = notification.delivery_data(delivery_name)
-        else:
-            self.notification_id = None
-            self.media = None
-            self.actions = []
-            self.priority = PRIORITY_MEDIUM
-            self.message = None
-            self.title = None
-            self.message_html = None
-            delivery_config_data = None
-        if data:
-            self.data = copy.deepcopy(delivery_config_data) if delivery_config_data else {}
-            self.data |= data
-        else:
-            self.data = delivery_config_data
-
-        self.delivered = 0
-        self.errored = 0
-        self.skipped = 0
-        self.calls = []
-        self.failed_calls = []
-        self.delivery_error = None
-
-    def grab_image(self):
-        """Grab an image from a camera, snapshot URL, MQTT Image etc"""
-        if self._notification:
-            return self._notification.grab_image(self.delivery_name)
-        else:
-            return None
-
-    def core_service_data(self):
-        """Build the core set of `service_data` dict to pass to underlying notify service"""
-        data = {}
-        # message is mandatory for notify platform
-        data[CONF_MESSAGE] = self.message or ""
-        if self.data.get(ATTR_TIMESTAMP):
-            data[CONF_MESSAGE] = "%s [%s]" % (
-                data[CONF_MESSAGE],
-                time.strftime(self.data.get(ATTR_TIMESTAMP), time.localtime()),
-            )
-        if self.title:
-            data[CONF_TITLE] = self.title
-        return data
-
-    def contents(self, minimal=True):
-        exclude_attrs = ["_notification"]
-        if minimal:
-            exclude_attrs.extend("resolved")
-        sanitized = {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
-        return sanitized
-
-    def __eq__(self, other):
-        if not isinstance(other, Envelope):
-            return False
-        return (
-            self.targets == other.targets
-            and self.delivery_name == other.delivery_name
-            and self.data == other.data
-            and self.notification_id == other.notification_id
-        )
-
-
 @dataclass
 class DebugTrace:
-    message: str = field(default=None)
-    title: str = field(default=None)
+    message: typing.Optional[str] = field(default=None)
+    title: typing.Optional[str] = field(default=None)
     data: dict = field(default_factory=lambda: {})
-    target: list = field(default=None)
+    target: typing.Optional[list] = field(default=None)
     resolved: dict = field(init=False, default_factory=lambda: {})

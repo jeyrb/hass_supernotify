@@ -8,7 +8,7 @@ from custom_components.supernotify import (
     METHOD_GENERIC,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class GenericDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service):
+    def validate_service(self, service) -> bool:
         if service is not None and "." in service:
             return True
         else:
@@ -35,7 +35,7 @@ class GenericDeliveryMethod(DeliveryMethod):
         config = self.delivery_config(envelope.delivery_name)
 
         qualified_service = config.get(CONF_SERVICE)
-        if qualified_service.startswith("notify."):
+        if qualified_service and qualified_service.startswith("notify."):
             service_data = envelope.core_service_data()
             if targets is not None:
                 service_data[CONF_TARGET] = targets

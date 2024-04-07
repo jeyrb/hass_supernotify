@@ -1,5 +1,5 @@
 from unittest.mock import patch, Mock, AsyncMock
-import homeassistant
+from homeassistant.core import HomeAssistant
 
 import pytest
 from pytest_httpserver import HTTPServer
@@ -8,7 +8,7 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 
 
 @pytest.fixture
-def mock_hass() -> homeassistant:
+def mock_hass() -> HomeAssistant:
     hass = Mock()
     hass.states = Mock()
     hass.services.async_call = AsyncMock()
@@ -17,11 +17,13 @@ def mock_hass() -> homeassistant:
     hass.data["entity_registry"] = Mock()
     return hass
 
+
 @pytest.fixture
 async def superconfig() -> SupernotificationConfiguration:
     context = SupernotificationConfiguration()
     await context.initialize()
     return context
+
 
 @pytest.fixture
 @pytest.mark.enable_socket

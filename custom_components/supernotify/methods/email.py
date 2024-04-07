@@ -14,7 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_EMAIL = (
     r"^[a-zA-Z0-9.+/=?^_-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
@@ -39,8 +39,8 @@ class EmailDeliveryMethod(DeliveryMethod):
         else:
             _LOGGER.debug("SUPERNOTIFY Loading email templates from %s", self.template_path)
 
-    def select_target(self, target):
-        return re.fullmatch(RE_VALID_EMAIL, target)
+    def select_target(self, target) -> bool:
+        return re.fullmatch(RE_VALID_EMAIL, target) is not None
 
     def recipient_target(self, recipient):
         email = recipient.get(CONF_EMAIL)

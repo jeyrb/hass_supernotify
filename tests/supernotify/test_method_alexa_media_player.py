@@ -4,7 +4,8 @@ from custom_components.supernotify import METHOD_ALEXA
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_SERVICE
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 DELIVERY = {
     "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},

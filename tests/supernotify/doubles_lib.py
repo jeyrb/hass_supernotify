@@ -3,7 +3,7 @@ from homeassistant.core import callback
 
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 from homeassistant.components import image
 from homeassistant.util import dt as dt_util
 
@@ -32,7 +32,7 @@ class BrokenDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return True
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
         raise EnvironmentError("a self-inflicted error has occurred")
 
 

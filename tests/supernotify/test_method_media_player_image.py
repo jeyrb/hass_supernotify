@@ -4,7 +4,8 @@ from custom_components.supernotify import ATTR_DELIVERY, CONF_DATA, METHOD_MEDIA
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.media_player_image import MediaPlayerImageDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_NAME
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 
 async def test_notify_media_image(mock_hass) -> None:

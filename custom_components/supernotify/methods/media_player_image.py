@@ -8,7 +8,7 @@ import urllib.parse
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import CONF_SERVICE
 
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
 
@@ -22,8 +22,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target):
-        return re.fullmatch(RE_VALID_MEDIA_PLAYER, target)
+    def select_target(self, target) -> bool:
+        return re.fullmatch(RE_VALID_MEDIA_PLAYER, target) is not None
 
     def validate_service(self, service):
         return service is None or service == "media_player.play_media"

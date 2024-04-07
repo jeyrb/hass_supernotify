@@ -5,7 +5,8 @@ from custom_components.supernotify.configuration import \
     SupernotificationConfiguration
 from custom_components.supernotify.methods.persistent import \
     PersistentDeliveryMethod
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 
 async def test_deliver(mock_hass) -> None:

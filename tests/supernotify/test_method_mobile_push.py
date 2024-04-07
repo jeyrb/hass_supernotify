@@ -12,7 +12,8 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.methods.mobile_push import (
     MobilePushDeliveryMethod,
 )
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 import pytest
 
 

@@ -17,7 +17,8 @@ from custom_components.supernotify import (
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.scenario import Scenario
 from unittest.mock import Mock, patch
 from pytest_unordered import unordered

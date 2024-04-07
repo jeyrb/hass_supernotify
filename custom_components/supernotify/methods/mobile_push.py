@@ -23,7 +23,7 @@ from custom_components.supernotify import (
     PRIORITY_MEDIUM,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_MOBILE_APP = r"mobile_app_[A-Za-z0-9_]+"
 
@@ -37,10 +37,10 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         super().__init__(*args, **kwargs)
         self.action_titles = {}
 
-    def select_target(self, target):
-        return re.fullmatch(RE_VALID_MOBILE_APP, target)
+    def select_target(self, target) -> bool:
+        return re.fullmatch(RE_VALID_MOBILE_APP, target) is not None
 
-    def validate_service(self, service):
+    def validate_service(self, service) -> bool:
         return service is None
 
     def recipient_target(self, recipient):

@@ -9,5 +9,16 @@
     ],
     "flake8.args": [
         "--max-line-length=128"
-     ]
+    ],
+    "python.analysis.include": [
+        "custom_components/supernotify/**",
+        "tests/**",
+        "conftest.py"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.inlayHints.callArgumentNames": "all",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    "python.analysis.inlayHints.variableTypes": true
 }

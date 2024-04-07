@@ -11,8 +11,8 @@ from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
 
 from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES
-from .configuration import SupernotificationConfiguration
-from .notification import Envelope
+from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 import logging
 import os.path
 import inspect
+import typing
 from homeassistant.const import CONF_ENABLED
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
@@ -9,6 +10,7 @@ from homeassistant.helpers.network import get_url
 import socket
 from homeassistant.const import CONF_METHOD, CONF_NAME, ATTR_STATE
 from custom_components.supernotify.common import safe_get, ensure_list
+
 
 from . import (
     CONF_ARCHIVE_PATH,
@@ -36,7 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 class SupernotificationConfiguration:
     def __init__(
         self,
-        hass: HomeAssistant = None,
+        hass: typing.Optional[HomeAssistant] = None,
         deliveries=None,
         links=(),
         recipients=(),
@@ -183,7 +185,7 @@ class SupernotificationConfiguration:
             if method_default.get(attr):
                 delivery_config[attr] = method_default[attr]
                 _LOGGER.debug(
-                    "SUPERNOTIFY Defaulting delivery % to %s %s", delivery_config[CONF_NAME], attr, delivery_config[attr]
+                    "SUPERNOTIFY Defaulting delivery %s to %s %s", delivery_config[CONF_NAME], attr, delivery_config[attr]
                 )
 
     def delivery_method(self, delivery):

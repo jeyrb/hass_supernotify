@@ -1,10 +1,9 @@
 import logging
 
-from homeassistant.const import CONF_SERVICE
 
 from custom_components.supernotify import ATTR_NOTIFICATION_ID, METHOD_PERSISTENT
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +15,7 @@ class PersistentDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service):
+    def validate_service(self, service) -> bool:
         return service is None
 
     async def deliver(self, envelope: Envelope) -> bool:

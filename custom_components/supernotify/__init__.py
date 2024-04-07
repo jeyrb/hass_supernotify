@@ -1,13 +1,27 @@
 """The SuperNotification integration"""
 
+from abc import abstractmethod
 import voluptuous as vol
 from homeassistant.components.notify import PLATFORM_SCHEMA
-from homeassistant.const import (ATTR_DOMAIN, ATTR_SERVICE, CONF_ALIAS,
-                                 CONF_CONDITION, CONF_DEFAULT,
-                                 CONF_DESCRIPTION, CONF_EMAIL, CONF_ENABLED,
-                                 CONF_ENTITIES, CONF_ICON, CONF_ID, CONF_NAME,
-                                 CONF_PLATFORM, CONF_SERVICE, CONF_TARGET,
-                                 CONF_URL, Platform)
+from homeassistant.const import (
+    ATTR_DOMAIN,
+    ATTR_SERVICE,
+    CONF_ALIAS,
+    CONF_CONDITION,
+    CONF_DEFAULT,
+    CONF_DESCRIPTION,
+    CONF_EMAIL,
+    CONF_ENABLED,
+    CONF_ENTITIES,
+    CONF_ICON,
+    CONF_ID,
+    CONF_NAME,
+    CONF_PLATFORM,
+    CONF_SERVICE,
+    CONF_TARGET,
+    CONF_URL,
+    Platform,
+)
 from homeassistant.helpers import config_validation as cv
 
 DOMAIN = "supernotify"
@@ -179,15 +193,15 @@ MOBILE_DEVICE_SCHEMA = vol.Schema(
 NOTIFICATION_DUPE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_TTL): cv.positive_int,
-        vol.Optional(CONF_SIZE, default=100): cv.positive_int,
-        vol.Optional(CONF_DUPE_POLICY, default=ATTR_DUPE_POLICY_MTSLP): vol.In([ATTR_DUPE_POLICY_MTSLP, ATTR_DUPE_POLICY_NONE]),
+        vol.Optional(CONF_SIZE, default=100): cv.positive_int,  # type: ignore
+        vol.Optional(CONF_DUPE_POLICY, default=ATTR_DUPE_POLICY_MTSLP): vol.In([ATTR_DUPE_POLICY_MTSLP, ATTR_DUPE_POLICY_NONE]),  # type: ignore
     }
 )
 DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-        vol.Optional(CONF_ENABLED, default=True): cv.boolean,
+        vol.Optional(CONF_ENABLED, default=True): cv.boolean,  # type: ignore
         vol.Optional(CONF_DATA): DATA_SCHEMA,
     }
 )
@@ -205,8 +219,8 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema(
         vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(CONF_SERVICE): cv.service,
-        vol.Optional(CONF_TARGETS_REQUIRED, default=False): cv.boolean,
-        vol.Optional(CONF_OPTIONS, default={}): dict,
+        vol.Optional(CONF_TARGETS_REQUIRED, default=False): cv.boolean,  # type: ignore
+        vol.Optional(CONF_OPTIONS, default=dict): dict,
         vol.Optional(CONF_DATA): DATA_SCHEMA,
     }
 )
@@ -214,12 +228,12 @@ RECIPIENT_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PERSON): cv.entity_id,
         vol.Optional(CONF_ALIAS): cv.string,
-        vol.Optional(CONF_EMAIL): vol.Email(),
+        vol.Optional(CONF_EMAIL): cv.string,
         vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_PHONE_NUMBER): cv.string,
         vol.Optional(CONF_MOBILE_DISCOVERY, default=True): cv.boolean,
-        vol.Optional(CONF_MOBILE_DEVICES, default=[]): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
-        vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA},
+        vol.Optional(CONF_MOBILE_DEVICES, default=list): vol.All(cv.ensure_list, [MOBILE_DEVICE_SCHEMA]),
+        vol.Optional(CONF_DELIVERY, default=dict): {cv.string: DELIVERY_CUSTOMIZE_SCHEMA},
     }
 )
 CAMERA_SCHEMA = vol.Schema(
@@ -260,7 +274,7 @@ DELIVERY_SCHEMA = vol.Schema(
         vol.Optional(CONF_TITLE): vol.Any(None, cv.string),
         vol.Optional(CONF_DATA): DATA_SCHEMA,
         vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-        vol.Optional(CONF_OPTIONS, default={}): dict,
+        vol.Optional(CONF_OPTIONS, default=dict): dict,
         vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES): vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
         vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL): vol.In(OCCUPANCY_VALUES),
         vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
@@ -273,7 +287,7 @@ SCENARIO_SCHEMA = vol.Schema(
         vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
         vol.Optional(CONF_MEDIA): MEDIA_SCHEMA,
         vol.Optional(CONF_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
-        vol.Optional(CONF_DELIVERY, default={}): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)},
+        vol.Optional(CONF_DELIVERY, default=dict): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)},
     }
 )
 
@@ -300,23 +314,24 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_TEMPLATE_PATH, default=TEMPLATE_DIR): cv.path,
         vol.Optional(CONF_MEDIA_PATH, default=MEDIA_DIR): cv.path,
         vol.Optional(CONF_ARCHIVE, default={CONF_ENABLED: False}): ARCHIVE_SCHEMA,
-        vol.Optional(CONF_DUPE_CHECK, default={}): NOTIFICATION_DUPE_SCHEMA,
-        vol.Optional(CONF_DELIVERY, default={}): {cv.string: DELIVERY_SCHEMA},
-        vol.Optional(CONF_ACTIONS, default={}): {cv.string: [PUSH_ACTION_SCHEMA]},
-        vol.Optional(CONF_RECIPIENTS, default=[]): vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
-        vol.Optional(CONF_LINKS, default=[]): vol.All(cv.ensure_list, [LINK_SCHEMA]),
-        vol.Optional(CONF_SCENARIOS, default={}): {cv.string: SCENARIO_SCHEMA},
-        vol.Optional(CONF_METHODS, default={}): {cv.string: METHOD_DEFAULTS_SCHEMA},
-        vol.Optional(CONF_CAMERAS, default=[]): vol.All(cv.ensure_list, [CAMERA_SCHEMA]),
+        vol.Optional(CONF_DUPE_CHECK, default=dict): NOTIFICATION_DUPE_SCHEMA,
+        vol.Optional(CONF_DELIVERY, default=dict): {cv.string: DELIVERY_SCHEMA},
+        vol.Optional(CONF_ACTIONS, default=dict): {cv.string: [PUSH_ACTION_SCHEMA]},
+        vol.Optional(CONF_RECIPIENTS, default=list): vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
+        vol.Optional(CONF_LINKS, default=list): vol.All(cv.ensure_list, [LINK_SCHEMA]),
+        vol.Optional(CONF_SCENARIOS, default=dict): {cv.string: SCENARIO_SCHEMA},
+        vol.Optional(CONF_METHODS, default=dict): {cv.string: METHOD_DEFAULTS_SCHEMA},
+        vol.Optional(CONF_CAMERAS, default=list): vol.All(cv.ensure_list, [CAMERA_SCHEMA]),
     }
 )
 
-ACTION_SCHEMA = vol.Schema({
+ACTION_SCHEMA = vol.Schema(
+    {
         vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
         vol.Optional(ATTR_ACTION_URL): cv.url,
-        vol.Optional(ATTR_ACTION_URL_TITLE): cv.string
-}
+        vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
+    }
 )
 SERVICE_DATA_SCHEMA = vol.Schema(
     {

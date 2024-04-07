@@ -2,6 +2,7 @@ import logging
 import datetime as dt
 import os.path
 import os
+import typing
 
 from cachetools import TTLCache
 from homeassistant.components.notify import (
@@ -183,7 +184,7 @@ class SuperNotificationService(BaseNotificationService):
     ):
         """Initialize the service."""
         self.hass = hass
-        self.last_notification = None
+        self.last_notification: typing.Optional[Notification] = None  # noqa: F821
         self.failures = 0
         self.sent = 0
         self.context = SupernotificationConfiguration(

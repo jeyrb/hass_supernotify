@@ -5,7 +5,8 @@ from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENER
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE, CONF_NAME
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 
 async def test_deliver(mock_hass) -> None:

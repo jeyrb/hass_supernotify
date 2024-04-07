@@ -5,9 +5,8 @@ import re
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from custom_components.supernotify import METHOD_ALEXA
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from homeassistant.const import CONF_SERVICE
 
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_ALEXA = r"media_player\.[A-Za-z0-9_]+"
 
@@ -27,7 +26,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target):
+    def select_target(self, target) -> bool:
         return re.fullmatch(RE_VALID_ALEXA, target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:
@@ -44,4 +43,4 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         service_data = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
         if envelope.data and envelope.data.get("data"):
             service_data[ATTR_DATA].update(envelope.data.get("data"))
-        await self.call_service(envelope, service_data=service_data)
+        return await self.call_service(envelope, service_data=service_data)

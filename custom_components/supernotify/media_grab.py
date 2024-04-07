@@ -109,7 +109,7 @@ async def snap_image(hass, entity_id, media_path, notification_id, jpeg_args=Non
 
     image_entity = hass.states.get(entity_id)
     if image_entity:
-        image = Image.open(io.BytesIO(await image_entity.async_image()))
+        image: Image.Image = Image.open(io.BytesIO(await image_entity.async_image()))
         media_dir = os.path.join(media_path, "image")
         os.makedirs(media_dir, exist_ok=True)
         media_ext = image.format.lower()

@@ -2,11 +2,10 @@ import logging
 import re
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
+
 from custom_components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from homeassistant.const import CONF_SERVICE
-
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"
 
@@ -20,8 +19,8 @@ class SMSDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target):
-        return re.fullmatch(RE_VALID_PHONE, target)
+    def select_target(self, target) -> bool:
+        return re.fullmatch(RE_VALID_PHONE, target) is not None
 
     def recipient_target(self, recipient):
         phone = recipient.get(CONF_PHONE_NUMBER)

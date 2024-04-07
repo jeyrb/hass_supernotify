@@ -1,8 +1,9 @@
 from custom_components.supernotify import CONF_DATA, METHOD_CHIME
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
-from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_TARGET, ATTR_ENTITY_ID
-from custom_components.supernotify.notification import Envelope, Notification
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD, ATTR_ENTITY_ID
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 
 async def test_deliver(mock_hass) -> None:

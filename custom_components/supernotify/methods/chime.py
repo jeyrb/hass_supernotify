@@ -9,7 +9,7 @@ from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from homeassistant.const import ATTR_ENTITY_ID
 
-from custom_components.supernotify.notification import Envelope
+from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
 
@@ -24,11 +24,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
         self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
 
-    def validate_service(self, service):
+    def validate_service(self, service) -> bool:
         return service is None
 
-    def select_target(self, target):
-        return re.fullmatch(RE_VALID_CHIME, target)
+    def select_target(self, target) -> bool:
+        return re.fullmatch(RE_VALID_CHIME, target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:
         config = self.delivery_config(envelope.delivery_name)
@@ -44,7 +44,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         expanded_targets = {ent: chime_tune for ent in expand_entity_ids(self.hass, targets)}
         entities_and_tunes = self.resolve_tune(chime_tune)
         expanded_targets.update(entities_and_tunes)  # overwrite and extend
-
+        chimes = 0
         for chime_entity_id, tune in expanded_targets.items():
             _LOGGER.debug("SUPERNOTIFY chime %s: %s", chime_entity_id, tune)
             service_data = None
@@ -57,11 +57,13 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     self.set_service_data(service_data[ATTR_VARIABLES], "chime_tune", tune)
 
                 if domain is not None and service is not None:
-                    await self.call_service(envelope, "%s.%s" % (domain, service), service_data=service_data)
+                    if await self.call_service(envelope, "%s.%s" % (domain, service), service_data=service_data):
+                        chimes += 1
                 else:
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
+        return chimes > 0
                 
     def analyze_target(self, target: str, chime_tune: str, data: dict):
         domain, name = target.split(".", 1)

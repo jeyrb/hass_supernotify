@@ -4,7 +4,8 @@ from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS, SCENARIO_DEFAULT
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.notification import Envelope, Notification
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.envelope import Envelope
 
 from .doubles_lib import DummyDeliveryMethod
 
