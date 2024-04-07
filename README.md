@@ -1,3 +1,5 @@
+[![Rhizomatics Open Source](https://avatars.githubusercontent.com/u/162821163?s=96&v=4)](https://github.com/rhizomatics) Rhizomatics Open Source
+
 # SuperNotifier
 
 Easy multi-channel rich notifications.
