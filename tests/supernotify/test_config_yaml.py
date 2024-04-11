@@ -2,18 +2,16 @@ import pathlib
 from unittest.mock import patch
 
 import homeassistant.components.notify as notify
+import pytest
 from homeassistant import config as hass_config
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
-import pytest
-from .doubles_lib import MockService
 from homeassistant.helpers.service import async_call_from_config
-from custom_components.supernotify import (
-    DOMAIN,
-    PLATFORM_SCHEMA,
-    SCENARIO_DEFAULT,
-)
+from homeassistant.setup import async_setup_component
+
+from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
+
+from .doubles_lib import MockService
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath("..", "..", "examples", "maximal.yaml")
 
@@ -140,9 +138,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     await hass.async_block_till_done()
     assert response == {"scenarios": []}
 
-    response = await hass.services.async_call(
-        "supernotify", "purge_archive", None, blocking=True, return_response=True
-    )
+    response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
     await hass.async_block_till_done()
     assert "purged" in response
     assert response["purged"] >= 0

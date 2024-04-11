@@ -1,22 +1,20 @@
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import (
-    condition,
-    config_validation as cv,
-)
+from homeassistant.helpers import condition
+from homeassistant.helpers import config_validation as cv
 
-''' test bed for checking conditions rather than supernotifier functionality '''
+""" test bed for checking conditions rather than supernotifier functionality """
 
 
 async def test_and_condition(hass: HomeAssistant) -> None:
     """Test the 'and' condition."""
-
     config = {
         "condition": "and",
         "conditions": [
             {
                 "condition": "state",
                 "entity_id": "alarm_control_panel.home_alarm_control",
-                "state": ["armed_home", "armed_away"]},
+                "state": ["armed_home", "armed_away"],
+            },
             {
                 "condition": "state",
                 "entity_id": "supernotifier.delivery_priority",
@@ -32,8 +30,7 @@ async def test_and_condition(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
     assert not test(hass)
 
-    hass.states.async_set(
-        "alarm_control_panel.home_alarm_control", "armed_home")
+    hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
     assert test(hass)
 
     hass.states.async_set("supernotifier.delivery_priority", "low")
@@ -42,12 +39,11 @@ async def test_and_condition(hass: HomeAssistant) -> None:
 
 async def test_template_condition(hass: HomeAssistant) -> None:
     """Test templated conditions."""
-
     config = {
         "condition": "template",
         "value_template": """
                         {% set n = states('sensor.bedroom_temperature') | float %}
-                        {{ 15 <= n <= 20 }}"""
+                        {{ 15 <= n <= 20 }}""",
     }
     config = cv.CONDITION_SCHEMA(config)
     config = await condition.async_validate_condition_config(hass, config)

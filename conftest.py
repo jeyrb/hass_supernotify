@@ -1,7 +1,7 @@
-from unittest.mock import patch, Mock, AsyncMock
-from homeassistant.core import HomeAssistant
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from homeassistant.core import HomeAssistant
 from pytest_httpserver import HTTPServer
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration

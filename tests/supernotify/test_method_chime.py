@@ -1,9 +1,10 @@
+from homeassistant.const import ATTR_ENTITY_ID, CONF_DEFAULT, CONF_METHOD
+
 from custom_components.supernotify import CONF_DATA, METHOD_CHIME
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, ATTR_ENTITY_ID
-from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
+from custom_components.supernotify.notification import Notification
 
 
 async def test_deliver(mock_hass) -> None:
@@ -108,9 +109,7 @@ async def test_deliver_to_group(mock_hass, superconfig) -> None:
         },
     )
     await uut.initialize()
-    await uut.deliver(Envelope("chimes", 
-                               Notification(superconfig), 
-                               targets=["group.alexa", "group.chime", "script.siren_2"]))
+    await uut.deliver(Envelope("chimes", Notification(superconfig), targets=["group.alexa", "group.chime", "script.siren_2"]))
     mock_hass.services.async_call.assert_any_call(
         "script", "siren_2", service_data={"variables": {"chime_tune": "dive_dive_dive"}}
     )

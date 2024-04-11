@@ -2,21 +2,29 @@ import copy
 import logging
 import time
 import typing
+from typing import Any
 
-from . import (ATTR_TIMESTAMP, CONF_MESSAGE, CONF_TITLE, PRIORITY_MEDIUM)
+from . import ATTR_TIMESTAMP, CONF_MESSAGE, CONF_TITLE, PRIORITY_MEDIUM
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class Envelope:
-    """
-    Wrap a notification with a specific set of targets and service data possibly customized for those targets
-    """
+    """Wrap a notification with a specific set of targets and service data possibly customized for those targets"""
 
     def __init__(self, delivery_name: str, notification=None, targets=None, data=None):
         self.targets = targets or []
         self.delivery_name: str = delivery_name
         self._notification = notification
+        self.actions: dict[str, Any] = {}
+        self.notification_id = None
+        self.media = None
+        self.priority = PRIORITY_MEDIUM
+        self.message: str | None = None
+        self.title: str | None = None
+        self.message_html: str | None = None
+        self.data: dict = {}
+        delivery_config_data: dict = {}
         if notification:
             self.notification_id = notification.id
             self.media = notification.media
@@ -26,44 +34,36 @@ class Envelope:
             self.message_html = notification.message_html
             self.title = notification.title(delivery_name)
             delivery_config_data = notification.delivery_data(delivery_name)
-        else:
-            self.notification_id = None
-            self.media = None
-            self.actions = []
-            self.priority = PRIORITY_MEDIUM
-            self.message: typing.Optional[str] = None
-            self.title: typing.Optional[str] = None
-            self.message_html: typing.Optional[str] = None
-            delivery_config_data = None
+
         if data:
             self.data = copy.deepcopy(delivery_config_data) if delivery_config_data else {}
             self.data |= data
         else:
             self.data = delivery_config_data
 
-        self.delivered = 0
-        self.errored = 0
-        self.skipped = 0
-        self.calls = []
-        self.failed_calls = []
-        self.delivery_error = None
+        self.delivered: int = 0
+        self.errored: int = 0
+        self.skipped: int = 0
+        self.calls: list = []
+        self.failed_calls: list = []
+        self.delivery_error: list[str] | None = None
 
-    def grab_image(self):
+    async def grab_image(self) -> str | None:
         """Grab an image from a camera, snapshot URL, MQTT Image etc"""
         if self._notification:
-            return self._notification.grab_image(self.delivery_name)
-        else:
-            return None
+            return await self._notification.grab_image(self.delivery_name)
+        return None
 
-    def core_service_data(self):
+    def core_service_data(self) -> dict:
         """Build the core set of `service_data` dict to pass to underlying notify service"""
         data: dict = {}
         # message is mandatory for notify platform
         data[CONF_MESSAGE] = self.message or ""
-        if self.data.get(ATTR_TIMESTAMP):
-            data[CONF_MESSAGE] = "%s [%s]" % (
+        timestamp = self.data.get(ATTR_TIMESTAMP)
+        if timestamp:
+            data[CONF_MESSAGE] = "{} [{}]".format(
                 data[CONF_MESSAGE],
-                time.strftime(self.data.get(ATTR_TIMESTAMP), time.localtime()),
+                time.strftime(timestamp, time.localtime()),
             )
         if self.title:
             data[CONF_TITLE] = self.title
@@ -77,6 +77,7 @@ class Envelope:
         return sanitized
 
     def __eq__(self, other):
+        """Specialized equality check for subset of attributesfl"""
         if not isinstance(other, Envelope):
             return False
         return (
@@ -85,4 +86,3 @@ class Envelope:
             and self.data == other.data
             and self.notification_id == other.notification_id
         )
-

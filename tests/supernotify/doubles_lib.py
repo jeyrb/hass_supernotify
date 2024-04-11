@@ -1,11 +1,13 @@
-import homeassistant
+from typing import Any
+
+from homeassistant.components import image
+from homeassistant.components.notify import BaseNotificationService
 from homeassistant.core import callback
+from homeassistant.util import dt as dt_util
 
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
-from homeassistant.components import image
-from homeassistant.util import dt as dt_util
 
 
 class DummyDeliveryMethod(DeliveryMethod):
@@ -19,11 +21,16 @@ class DummyDeliveryMethod(DeliveryMethod):
     def validate_service(self, service):
         return service is None
 
-    def recipient_target(self, recipient):
-        return [recipient.get(CONF_PERSON).replace("person.", "dummy.")] if recipient else []
+    def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
+        if recipient:
+            person: str | None = recipient.get(CONF_PERSON)
+            if person:
+                return [person.replace("person.", "dummy.")]
+        return []
 
-    async def deliver(self, envelope: Envelope) -> None:
+    async def deliver(self, envelope: Envelope) -> bool:
         self.test_calls.append(envelope)
+        return True
 
 
 class BrokenDeliveryMethod(DeliveryMethod):
@@ -33,10 +40,10 @@ class BrokenDeliveryMethod(DeliveryMethod):
         return True
 
     async def deliver(self, envelope: Envelope) -> bool:
-        raise EnvironmentError("a self-inflicted error has occurred")
+        raise OSError("a self-inflicted error has occurred")
 
 
-class MockService(homeassistant.components.notify.BaseNotificationService):
+class MockService(BaseNotificationService):
     """A test class for notification services."""
 
     def __init__(self, *args, **kwargs):

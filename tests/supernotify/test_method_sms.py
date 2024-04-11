@@ -1,11 +1,10 @@
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
 
 from custom_components.supernotify import CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.methods.sms import SMSDeliveryMethod
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
-
-from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.methods.sms import SMSDeliveryMethod
+from custom_components.supernotify.notification import Notification
 
 
 async def test_deliver(mock_hass) -> None:
@@ -23,8 +22,9 @@ async def test_deliver(mock_hass) -> None:
         "notify", "smsify", service_data={"target": ["+447979123456"], "message": "testing hello there"}
     )
     mock_hass.reset_mock()
-    await uut.deliver(Envelope("smsify",Notification(context, message="explicit target", title="testing"), 
-                               targets=["+19876123456"]))
+    await uut.deliver(
+        Envelope("smsify", Notification(context, message="explicit target", title="testing"), targets=["+19876123456"])
+    )
     mock_hass.services.async_call.assert_called_with(
         "notify", "smsify", service_data={"target": ["+19876123456"], "message": "testing explicit target"}
     )

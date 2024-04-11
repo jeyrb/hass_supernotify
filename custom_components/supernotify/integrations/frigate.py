@@ -384,7 +384,7 @@
           unit_of_measurement: seconds
     custom_filter:
       name: Custom Filter (Optional - Advanced)
-      description: A filter that must result in true or false but can be templated as necessary. You will need to ensure it is enclosed with appropriate \"quotes\" and \{\{brackets\}\}.
+      description: A filter that must result in true or false but can be templated as necessary. You will need to ensure it is enclosed with appropriate \"quotes\" and \\{\\{brackets\\}\\}.
       default: true
     silence_timer:
       name: Silence New Object Notifications (Optional)

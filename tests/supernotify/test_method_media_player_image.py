@@ -1,11 +1,10 @@
-from unittest.mock import Mock
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_NAME
 
 from custom_components.supernotify import ATTR_DELIVERY, CONF_DATA, METHOD_MEDIA
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.methods.media_player_image import MediaPlayerImageDeliveryMethod
-from homeassistant.const import CONF_DEFAULT, CONF_ENTITIES, CONF_METHOD, CONF_NAME
-from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.methods.media_player_image import MediaPlayerImageDeliveryMethod
+from custom_components.supernotify.notification import Notification
 
 
 async def test_notify_media_image(mock_hass) -> None:
@@ -16,13 +15,7 @@ async def test_notify_media_image(mock_hass) -> None:
     uut = MediaPlayerImageDeliveryMethod(
         mock_hass,
         context,
-        {
-            "alexa_show": {
-                CONF_METHOD: METHOD_MEDIA,
-                CONF_NAME: "alexa_show",
-                CONF_DEFAULT: True
-            }
-        },
+        {"alexa_show": {CONF_METHOD: METHOD_MEDIA, CONF_NAME: "alexa_show", CONF_DEFAULT: True}},
     )
     await uut.initialize()
     await uut.deliver(
@@ -33,7 +26,7 @@ async def test_notify_media_image(mock_hass) -> None:
                 "hello there",
                 service_data={ATTR_DELIVERY: {"alexa_show": {CONF_DATA: {"snapshot_url": "/ftp/pic.jpeg"}}}},
             ),
-            targets=["media_player.echo_show_8", "media_player.echo_show_10"]
+            targets=["media_player.echo_show_8", "media_player.echo_show_10"],
         )
     )
 

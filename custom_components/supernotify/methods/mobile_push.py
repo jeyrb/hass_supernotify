@@ -1,9 +1,11 @@
 import logging
 import re
+
 import requests
 from bs4 import BeautifulSoup
-
 from homeassistant.components.notify.const import ATTR_DATA
+
+import custom_components.supernotify
 from custom_components.supernotify import (
     ATTR_ACTION_CATEGORY,
     ATTR_ACTION_GROUPS,
@@ -14,13 +16,8 @@ from custom_components.supernotify import (
     ATTR_MEDIA_SNAPSHOT_URL,
     CONF_MOBILE_DEVICES,
     CONF_NOTIFY_SERVICE,
-    CONF_OPTIONS,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
-    PRIORITY_CRITICAL,
-    PRIORITY_HIGH,
-    PRIORITY_LOW,
-    PRIORITY_MEDIUM,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -47,20 +44,20 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         if CONF_PERSON in recipient:
             services = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))
-        else:
-            return []
+        return []
 
-    async def action_title(self, url):
+    async def action_title(self, url: str) -> str | None:
         if url in self.action_titles:
             return self.action_titles[url]
         try:
             resp = requests.get(url, allow_redirects=True, timeout=5)
             html = BeautifulSoup(resp.text)
-            self.action_titles[url] = html.title.string
-            return html.title.string
+            if html.title:
+                self.action_titles[url] = html.title.string
+                return html.title.string
         except Exception as e:
             _LOGGER.debug("SUPERNOTIFY failed to retrieve url title at %s: %s", url, e)
-            return None
+        return None
 
     async def deliver(self, envelope: Envelope) -> bool:
 
@@ -79,19 +76,20 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
         snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
-        options = data.get(CONF_OPTIONS, {})
+        # options = data.get(CONF_OPTIONS, {})
 
-        if envelope.priority == PRIORITY_CRITICAL:
-            push_priority = "critical"
-        elif envelope.priority == PRIORITY_HIGH:
-            push_priority = "time-sensitive"
-        elif envelope.priority == PRIORITY_MEDIUM:
-            push_priority = "active"
-        elif envelope.priority == PRIORITY_LOW:
-            push_priority = "passive"
-        else:
-            push_priority = "active"
-            _LOGGER.warning("SUPERNOTIFY Unexpected priority %s", envelope.priority)
+        match envelope.priority:
+            case custom_components.supernotify.PRIORITY_CRITICAL:
+                push_priority = "critical"
+            case custom_components.supernotify.PRIORITY_HIGH:
+                push_priority = "time-sensitive"
+            case custom_components.supernotify.PRIORITY_MEDIUM:
+                push_priority = "active"
+            case custom_components.supernotify.PRIORITY_LOW:
+                push_priority = "passive"
+            case _:
+                push_priority = "active"
+                _LOGGER.warning("SUPERNOTIFY Unexpected priority %s", envelope.priority)
 
         data.setdefault("actions", [])
         data.setdefault("push", {})
@@ -102,7 +100,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["push"]["sound"]["critical"] = 1
             data["push"]["sound"].setdefault("volume", 1.0)
         else:
-            # critical notifications cant be grouped on iOS
+            # critical notifications can't be grouped on iOS
             category = category or camera_entity_id or "appd"
             data.setdefault("group", category)
 
@@ -130,56 +128,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                 data["actions"].extend(actions)
         service_data = envelope.core_service_data()
         service_data[ATTR_DATA] = data
-
+        hits = 0
         for mobile_target in envelope.targets:
-            await self.call_service(envelope, "notify.%s" % mobile_target, service_data=service_data)
-
-
-"""
-FRIGATE Example
-
- - device_id: !input notify_device
-                            domain: mobile_app
-                            type: notify
-                            title: "{{title}}"
-                            message: "{{message}}"
-                            data:
-                              tag: "{{ id }}"
-                              group: "{{ group }}"
-                              color: "{{color}}"
-                              # Android Specific
-                              subject: "{{subtitle}}"
-                              image: "{{base_url}}/api/frigate{{client_id}}/notifications/{{id}}/{{attachment}}{{'&' if '?' in attachment else '?'}}format=android"
-                              video: "{{video}}"
-                              clickAction: "{{tap_action}}"
-                              ttl: 0
-                              priority: high
-                              notification_icon: "{{icon}}"
-                              sticky: "{{sticky}}"
-                              channel: "{{'alarm_stream' if critical else channel}}"
-                              car_ui: "{{android_auto}}"
-                              # iOS Specific
-                              subtitle: "{{subtitle}}"
-                              url: "{{tap_action}}"
-                              attachment:
-                                url: "{{base_url}}/api/frigate{{client_id}}/notifications/{{id}}/{{attachment}}"
-                              push:
-                                sound: "{{sound}}"
-                                interruption-level: "{{ iif(critical, 'critical', 'active') }}"
-                              entity_id: "{{ios_live_view}}"
-                              # Actions
-                              actions:
-                                - action: URI
-                                  title: "{{button_1}}"
-                                  uri: "{{url_1}}"
-                                  icon: "{{icon_1}}"
-                                - action: URI
-                                  title: "{{button_2}}"
-                                  uri: "{{url_2}}"
-                                  icon: "{{icon_2}}"
-                                - action: "{{ 'URI' if '/' in url_3 else url_3 }}"
-                                  title: "{{button_3}}"
-                                  uri: "{{url_3}}"
-                                  icon: "{{icon_3}}"
-                                  destructive: true
-"""
+            if await self.call_service(envelope, "notify.%s" % mobile_target, service_data=service_data):
+                hits += 1
+        return hits > 0

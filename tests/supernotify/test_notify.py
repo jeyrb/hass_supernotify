@@ -1,14 +1,13 @@
-import time
-from unittest.mock import Mock, patch
+import json
 import os.path
 import tempfile
-import json
-from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE, CONF_ENABLED
+import time
+from typing import cast
+from unittest.mock import Mock, patch
 
-from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.envelope import Envelope
-from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
+from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENABLED, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
 from homeassistant.core import HomeAssistant, callback
+
 from custom_components.supernotify import (
     ATTR_DUPE_POLICY_NONE,
     ATTR_PRIORITY,
@@ -17,12 +16,12 @@ from custom_components.supernotify import (
     CONF_DATA,
     CONF_DELIVERY,
     CONF_DUPE_POLICY,
+    CONF_METHOD,
     CONF_OPTIONS,
+    CONF_PHONE_NUMBER,
     CONF_PRIORITY,
     CONF_SELECTION,
     CONF_TARGET,
-    CONF_METHOD,
-    CONF_PHONE_NUMBER,
     CONF_TARGETS_REQUIRED,
     DELIVERY_SELECTION_EXPLICIT,
     METHOD_ALEXA,
@@ -35,7 +34,12 @@ from custom_components.supernotify import (
     SELECTION_BY_SCENARIO,
     SELECTION_FALLBACK,
 )
+from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.notify import SuperNotificationService
+
+from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
 DELIVERY = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
@@ -46,13 +50,13 @@ DELIVERY = {
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SELECTION: SELECTION_BY_SCENARIO},
     "dummy": {CONF_METHOD: "dummy"},
 }
-SCENARIOS = {
+SCENARIOS: dict[str, dict] = {
     SCENARIO_DEFAULT: {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat": {}}},
     "scenario1": {CONF_DELIVERY: {"persistent": {}}},
     "scenario2": {CONF_DELIVERY: {"persistent": {}}},
 }
 
-RECIPIENTS = [
+RECIPIENTS: list[dict] = [
     {
         "person": "person.new_home_owner",
         "email": "me@tester.net",
@@ -105,23 +109,26 @@ async def test_send_message_with_scenario_mismatch(mock_hass) -> None:
 
 async def inject_dummy_delivery_method(
     hass: HomeAssistant, uut: SuperNotificationService, delivery_method_class: type, delivery_config=None
-) -> None:
+) -> DeliveryMethod:
     dm = delivery_method_class(hass, uut.context, deliveries=delivery_config)
     await dm.initialize()
-    await uut.context.register_delivery_methods([dm],set_as_default=True)
+    await uut.context.register_delivery_methods([dm], set_as_default=True)
     return dm
 
 
 async def test_recipient_delivery_data_override(mock_hass) -> None:
     uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
-    dummy = await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
+    dummy: DummyDeliveryMethod = cast(
+        DummyDeliveryMethod, await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
+    )
     assert dummy is not None
     await uut.async_send_message(
         title="test_title",
         message="testing 123",
         data={"delivery_selection": DELIVERY_SELECTION_EXPLICIT, "delivery": {"pigeon": {}, "dummy": {}}},
     )
+
     assert len(dummy.test_calls) == 2
     assert dummy.test_calls == [
         Envelope("dummy", uut.last_notification, targets=["dummy.new_home_owner", "xyz123"], data={"emoji_id": 912393}),
@@ -136,13 +143,18 @@ async def test_broken_delivery(mock_hass) -> None:
     )
     await uut.initialize()
     await inject_dummy_delivery_method(mock_hass, uut, BrokenDeliveryMethod, delivery_config=delivery_config)
-    notification = await uut.async_send_message(
+    await uut.async_send_message(
         title="test_title",
         message="testing 123",
         data={"delivery_selection": DELIVERY_SELECTION_EXPLICIT, "delivery": {"broken"}},
     )
+    notification = uut.last_notification
+    assert notification is not None
     assert len(notification.undelivered_envelopes) == 1
-    assert len(notification.undelivered_envelopes[0].delivery_error) > 0
+    assert isinstance(notification.undelivered_envelopes[0], Envelope)
+    assert isinstance(notification.undelivered_envelopes[0].delivery_error, list)
+    assert len(notification.undelivered_envelopes[0].delivery_error) == 4
+    assert notification.undelivered_envelopes[0].delivery_error[3] == "OSError: a self-inflicted error has occurred\n"
 
 
 async def test_null_delivery(mock_hass) -> None:
@@ -164,11 +176,10 @@ async def test_archive(mock_hass) -> None:
         )
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
-        obj_name = os.path.join(
-            archive, "%s_%s.json" % (uut.last_notification.created.isoformat()[:16], uut.last_notification.id)
-        )
+        assert uut.last_notification is not None
+        obj_name = os.path.join(archive, f"{uut.last_notification.created.isoformat()[:16]}_{uut.last_notification.id}.json")
         assert os.path.exists(obj_name)
-        with open(obj_name, "r") as stream:
+        with open(obj_name) as stream:
             reobj = json.load(stream)
         assert reobj["_message"] == "just a test"
         assert reobj["target"] == ["person.bob"]
@@ -203,7 +214,7 @@ async def test_archive_size(mock_hass):
         )
         await uut.initialize()
         assert uut.archive_size() == 0
-        with open(os.path.join(tmp_path, "test.foo"),"w") as f:
+        with open(os.path.join(tmp_path, "test.foo"), "w") as f:
             f.write("{}")
         assert uut.archive_size() == 1
 
@@ -295,6 +306,3 @@ async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass) -> 
     assert uut.dupe_check(n1) is False
     n2 = Notification(context, "message here", "title here", service_data={ATTR_PRIORITY: "high"})
     assert uut.dupe_check(n2) is False
-
-
-

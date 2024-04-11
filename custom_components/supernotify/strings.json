@@ -3,8 +3,10 @@
     "reload": {
       "name": "[%key:common::action::reload%]",
       "description": "Reloads supernotify services."
+    },
+    "enquire_deliveries_by_scenario": {
+      "name": "Enquire Deliveries By Scenario",
+      "description": "Debugging assistant to show list of deliveries for each scenario, including default usage"
     }
-    "enquire_deliveries_by_scenario": "name": "Enquire Deliveries By Scenario",
-    "description": "Debugging assistant to show list of deliveries for each scenario, including default usage"
   }
 }

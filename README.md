@@ -19,7 +19,7 @@ for sending only to people in or out of the property
   * Unified Person model currently missing from Home Assistant
 * HTML email templates, using Jinja2, with a general default template supplied
 * Single set up of consistent mobile actions across multiple notifications
-* Flexible image snapshots, supporting cameras, MQTT Images and image URLs. 
+* Flexible image snapshots, supporting cameras, MQTT Images and image URLs.
   * Cameras can be repositioned using PTZ before and after a snapshot is taken.
 * Defaulting of targets and data in static config, and overridable at notification time
 * Generic support for any notification method
@@ -27,7 +27,7 @@ for sending only to people in or out of the property
 * Reloadable configuration
 * Tunable duplicate notification detection
 * Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
-* Debugging support, 
+* Debugging support,
   * Optional archival of message structures
   * Additional services to pull back live configuration or last known notification details.
 
@@ -48,7 +48,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
   - service: notify.supernotifier
     data:
         title: Security Notification
-        message: '{{state_attr(sensor,"friendly_name")}} triggered'                    
+        message: '{{state_attr(sensor,"friendly_name")}} triggered'
 ```
 
 ### More features
@@ -57,7 +57,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
     data:
         title: Security Notification
         message: '{{state_attr(sensor,"friendly_name")}} triggered'
-        target: 
+        target:
           - person.jim_bob
           - person.neighbour
         priority: high
@@ -68,7 +68,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
             mobile_push:
                 data:
                     clickAction: https://my.home.net/dashboard
-                    
+
 ```
 
 ### Templated
@@ -80,7 +80,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
         title: Tank Notification
         message:  "Fuel tank depth is {{ state_attr('sensor.tank', 'depth') }}"
         data:
-            priority: {% if {{ state_attr('sensor.tank', 'depth') }}<10 }critical{% else %}medium {% endif %}               
+            priority: {% if {{ state_attr('sensor.tank', 'depth') }}<10 }critical{% else %}medium {% endif %}
 ```
 
 ## Delivery Methods
@@ -88,7 +88,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
 ### Mobile Push
 
 Send a push message out, with option for camera integration, mobile actions, and
-translate general priority to Apple specific push priority. 
+translate general priority to Apple specific push priority.
 
 Some functionality may also work with Android push, though has not been tested.
 
@@ -126,7 +126,7 @@ services automatically for each.
 See https://github.com/alandtse/alexa_media_player/wiki#known-available-sounds for
 a list of known tunes that work with Alexa devices.
 
-Optionally chime aliases can be set up so that simple names can be given for 
+Optionally chime aliases can be set up so that simple names can be given for
 Amazon tune paths, or multiple types of chime all mapped to same name. This can
 be used in combination with method default targets for concise notifications.
 
@@ -145,9 +145,9 @@ methods:
       - media_player.bedroom
     options:
         chime_aliases:
-              doorbell:    
-                media_player: 
-                    # resolves to media_player/play_media with sound configured for this path        
+              doorbell:
+                media_player:
+                    # resolves to media_player/play_media with sound configured for this path
                     tune: home/amzn_sfx_doorbell_chime_02
                     # device defaults to `target` of method default or service call
                 media_player_alt:
@@ -156,10 +156,10 @@ methods:
                     tune: raindrops_and_roses.mp4
                     entity_id:
                         - media_player.hall_custom
-                switch: 
-                    # resolves to switch/turn_on with entity id switch.ding_dong            
+                switch:
+                    # resolves to switch/turn_on with entity id switch.ding_dong
                     entity_id: switch.chime_ding_dong
-                siren: 
+                siren:
                     # resolves to siren/turn_on with tune bleep, only front door siren called
                     tune: bleep
                     entity_id: siren.front_door
@@ -246,7 +246,7 @@ Images can be included by:
 - camera entity, as created by any [Camera Integration](https://www.home-assistant.io/integrations/camera/)
 - image entity, for example an [MQTT Image](https://www.home-assistant.io/integrations/image.mqtt/), ideal for Frigate or cameras that stream to MQTT
 - `snapshot_url`
-  
+
 Additionally a video clip can be referenced by `clip_url` where supported by a delivery method (currently mobile push only).
 
 An optional PTZ preset can also be referenced in `data`, a PTZ delay before snapshot taken,
@@ -275,7 +275,7 @@ Priority order of application
 
 
 1. Service Data passed at runtime call
-2. Recipient delivery override 
+2. Recipient delivery override
 3. Scenario delivery override
 4. Delivery definition
 5. Method defaults
@@ -283,8 +283,8 @@ Priority order of application
 
 ## Setup
 
-Register this GitHub repo as a custom repo 
-in your [HACS]( https://hacs.xyz) configuration. 
+Register this GitHub repo as a custom repo
+in your [HACS]( https://hacs.xyz) configuration.
 
 Configure in the main Home Assistant config yaml, or an included notify.yaml
 
@@ -327,5 +327,4 @@ a much more detailed body only for email.
 
 Use `data_template` to build the `data` dictionary with Jinja2 logic from automations or scripts.
 
-
-            
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)

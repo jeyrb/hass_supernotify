@@ -1,13 +1,9 @@
 import logging
 import re
-
-from custom_components.supernotify import (
-    METHOD_MEDIA,
-)
 import urllib.parse
-from custom_components.supernotify.delivery_method import DeliveryMethod
-from homeassistant.const import CONF_SERVICE
 
+from custom_components.supernotify import METHOD_MEDIA
+from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
@@ -42,9 +38,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         if snapshot_url is None:
             _LOGGER.debug("SUPERNOTIFY skipping media player, no image url")
             return False
-        else:
-            # absolutize relative URL for external URl, probably preferred by Alexa Show etc
-            snapshot_url = urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
+        # absolutize relative URL for external URl, probably preferred by Alexa Show etc
+        snapshot_url = urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
 
         service_data = {"media_content_id": snapshot_url, "media_content_type": "image", "entity_id": media_players}
         if data and data.get("data"):

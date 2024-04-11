@@ -4,7 +4,7 @@ import os.path
 import homeassistant.components.notify as notify
 import pytest
 import yaml
-from homeassistant.const import CONF_NAME, CONF_PLATFORM, CONF_ENABLED
+from homeassistant.const import CONF_ENABLED, CONF_NAME, CONF_PLATFORM
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_unordered import unordered
@@ -19,7 +19,7 @@ examples = os.listdir(EXAMPLES_ROOT)
 @pytest.mark.parametrize("config_name", examples)
 async def test_examples(hass: HomeAssistant, config_name) -> None:
 
-    with open(os.path.join(EXAMPLES_ROOT, config_name), "r") as f:
+    with open(os.path.join(EXAMPLES_ROOT, config_name)) as f:
         config = yaml.safe_load(f)
     uut_config = config[CONF_NOTIFY][0]
     service_name = uut_config[CONF_NAME]

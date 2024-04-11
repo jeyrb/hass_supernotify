@@ -1,13 +1,13 @@
-from .hass_setup_lib import register_mobile_app
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry, entity_registry
 
-from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS, SCENARIO_DEFAULT
+from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.notification import Notification
 
 from .doubles_lib import DummyDeliveryMethod
+from .hass_setup_lib import register_mobile_app
 
 
 async def test_default_recipients(mock_hass) -> None:
@@ -16,7 +16,7 @@ async def test_default_recipients(mock_hass) -> None:
     )
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
-    await context.register_delivery_methods([dummy],set_as_default=True)
+    await context.register_delivery_methods([dummy], set_as_default=True)
     uut = Notification(context)
     await uut.initialize()
     await uut.deliver()

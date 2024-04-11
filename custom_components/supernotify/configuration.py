@@ -1,16 +1,18 @@
+from __future__ import annotations
+
+import inspect
 import logging
 import os.path
-import inspect
-import typing
-from homeassistant.const import CONF_ENABLED
+import socket
+from typing import Any
+
+from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_METHOD, CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.util import slugify
 from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
-import socket
-from homeassistant.const import CONF_METHOD, CONF_NAME, ATTR_STATE
-from custom_components.supernotify.common import safe_get, ensure_list
+from homeassistant.util import slugify
 
+from custom_components.supernotify.common import ensure_list, safe_get
 
 from . import (
     CONF_ARCHIVE_PATH,
@@ -38,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 class SupernotificationConfiguration:
     def __init__(
         self,
-        hass: typing.Optional[HomeAssistant] = None,
+        hass: HomeAssistant | None = None,
         deliveries=None,
         links=(),
         recipients=(),
@@ -50,6 +52,7 @@ class SupernotificationConfiguration:
         method_defaults=None,
         cameras=None,
     ):
+        self.hass: HomeAssistant | None = None
         if hass:
             self.hass = hass
             self.hass_name = hass.config.location_name
@@ -64,10 +67,10 @@ class SupernotificationConfiguration:
                 _LOGGER.warning("SUPERNOTIFY could not get external hass url: %s", e)
                 self.hass_external_url = self.hass_internal_url
         else:
-            self.hass = None
             self.hass_internal_url = ""
             self.hass_external_url = ""
             self.hass_name = "!UNDEFINED!"
+            _LOGGER.warning("SUPERNOTIFY Configured without HomeAssistant instance")
 
         _LOGGER.debug(
             "SUPERNOTIFY Configured for HomeAssistant instance %s at %s , %s",
@@ -81,29 +84,29 @@ class SupernotificationConfiguration:
 
         self.links = ensure_list(links)
         # raw configured deliveries
-        self._deliveries = deliveries if isinstance(deliveries, dict) else {}
+        self._deliveries: dict = deliveries if isinstance(deliveries, dict) else {}
         # validated deliveries
-        self.deliveries = {}
-        self._recipients = ensure_list(recipients)
-        self.mobile_actions = mobile_actions or {}
-        self.template_path = template_path
-        self.media_path = media_path
-        self.archive = archive or {}
+        self.deliveries: dict = {}
+        self._recipients: list = ensure_list(recipients)
+        self.mobile_actions: dict = mobile_actions or {}
+        self.template_path: str | None = template_path
+        self.media_path: str | None = media_path
+        self.archive: dict = archive or {}
         self.archive.setdefault(CONF_ENABLED, False)
-        self.cameras = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
-        self.methods = {}
-        self.method_defaults = method_defaults or {}
-        self.scenarios = {}
-        self.people = {}
-        self.configured_scenarios = scenarios or {}
-        self.delivery_by_scenario = {SCENARIO_DEFAULT: []}
-        self.fallback_on_error = {}
-        self.fallback_by_default = {}
+        self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
+        self.methods: dict = {}
+        self.method_defaults: dict = method_defaults or {}
+        self.scenarios: dict[str, Scenario] = {}
+        self.people: dict[str, Any] = {}
+        self.configured_scenarios: dict = scenarios or {}
+        self.delivery_by_scenario: dict[str, list] = {SCENARIO_DEFAULT: []}
+        self.fallback_on_error: dict = {}
+        self.fallback_by_default: dict = {}
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         self.people = self.setup_people(self._recipients)
 
-        if self.configured_scenarios:
+        if self.configured_scenarios and self.hass:
             for scenario_name, scenario_definition in self.configured_scenarios.items():
                 scenario = Scenario(scenario_name, scenario_definition, self.hass)
                 if await scenario.validate():
@@ -122,14 +125,19 @@ class SupernotificationConfiguration:
                 self.media_path = None
         if self.media_path is not None:
             _LOGGER.info("SUPERNOTIFY abs media path: %s", os.path.abspath(self.media_path))
-        if self.archive and self.archive.get(CONF_ARCHIVE_PATH) and not os.path.exists(self.archive.get(CONF_ARCHIVE_PATH)):
-            _LOGGER.info("SUPERNOTIFY archive path not found at %s", self.archive.get(CONF_ARCHIVE_PATH))
-            try:
-                os.makedirs(self.archive.get(CONF_ARCHIVE_PATH))
-            except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY archive path %s cannot be created: %s", self.archive.get(CONF_ARCHIVE_PATH), e)
-                self.archive[CONF_ENABLED] = False
+        if self.archive:
+            archive_path = self.archive.get(CONF_ARCHIVE_PATH)
+            if archive_path and not os.path.exists(archive_path):
+                _LOGGER.info("SUPERNOTIFY archive path not found at %s", archive_path)
+                try:
+                    os.makedirs(archive_path)
+                except Exception as e:
+                    _LOGGER.warning("SUPERNOTIFY archive path %s cannot be created: %s", self.archive.get(CONF_ARCHIVE_PATH), e)
+                    self.archive[CONF_ENABLED] = False
+        default_deliveries: dict = self.initialize_deliveries()
+        self.initialize_scenarios(default_deliveries)
 
+    def initialize_deliveries(self) -> dict:
         default_deliveries = {}
         if self._deliveries:
             for d, dc in self._deliveries.items():
@@ -145,7 +153,9 @@ class SupernotificationConfiguration:
                     dc[CONF_NAME] = d  # for minimal tests
                 for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
                     self.set_method_default(dc, conf_key.schema)
+        return default_deliveries
 
+    def initialize_scenarios(self, default_deliveries: dict) -> None:
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])
             if scenario.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
@@ -162,7 +172,7 @@ class SupernotificationConfiguration:
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
 
     async def register_delivery_methods(self, delivery_methods, set_as_default=False):
-        """available directly for test fixtures supplying class or instance"""
+        """Available directly for test fixtures supplying class or instance"""
         for delivery_method in delivery_methods:
             if inspect.isclass(delivery_method):
                 self.methods[delivery_method.method] = delivery_method(self.hass, self, self._deliveries)
@@ -188,21 +198,22 @@ class SupernotificationConfiguration:
                     "SUPERNOTIFY Defaulting delivery %s to %s %s", delivery_config[CONF_NAME], attr, delivery_config[attr]
                 )
 
-    def delivery_method(self, delivery):
+    def delivery_method(self, delivery: str) -> DeliveryMethod:  # type: ignore  # noqa: F821
         method_name = self.deliveries.get(delivery, {}).get(CONF_METHOD)
         if not method_name:
             raise ValueError("SUPERNOTIFY No method for delivery %s" % delivery)
         return self.methods.get(method_name)
 
-    def setup_people(self, recipients):
+    def setup_people(self, recipients: list | tuple) -> dict[str, dict]:
         dev_reg = ent_reg = None
-        try:
-            dev_reg = device_registry.async_get(self.hass)
-            ent_reg = entity_registry.async_get(self.hass)
-        except Exception as e:
-            _LOGGER.warning("SUPERNOTIFY Unable to get device/entity registry, mobile app discovery disabled: %s", e)
+        if self.hass is not None:
+            try:
+                dev_reg = device_registry.async_get(self.hass)
+                ent_reg = entity_registry.async_get(self.hass)
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY Unable to get device/entity registry, mobile app discovery disabled: %s", e)
 
-        people = {}
+        people: dict[str, dict] = {}
         for r in recipients:
             if r.get(CONF_MOBILE_DISCOVERY) and dev_reg and ent_reg:
                 r[CONF_MOBILE_DEVICES].extend(self.mobile_devices_for_person(r[CONF_PERSON], dev_reg, ent_reg))
@@ -215,34 +226,35 @@ class SupernotificationConfiguration:
 
     def people_state(self):
         results = []
-        for person, person_config in self.people.items():
-            # TODO possibly rate limit this
-            try:
-                tracker = self.hass.states.get(person)
-                if tracker is None:
-                    person_config[ATTR_STATE] = None
-                else:
-                    person_config[ATTR_STATE] = tracker.state
-            except Exception as e:
-                _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
-            results.append(person_config)
+        if self.hass:
+            for person, person_config in self.people.items():
+                # TODO possibly rate limit this
+                try:
+                    tracker = self.hass.states.get(person)
+                    if tracker is None:
+                        person_config[ATTR_STATE] = None
+                    else:
+                        person_config[ATTR_STATE] = tracker.state
+                except Exception as e:
+                    _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
+                results.append(person_config)
         return results
 
     def mobile_devices_for_person(
         self,
         person_entity_id: str,
-        dev_reg: device_registry.DeviceRegistry = None,
-        ent_reg: entity_registry.EntityRegistry = None,
+        dev_reg: device_registry.DeviceRegistry | None = None,
+        ent_reg: entity_registry.EntityRegistry | None = None,
     ) -> list:
 
         mobile_devices = []
-        person_state = self.hass.states.get(person_entity_id)
-        if not person_state:
+        person_state = self.hass.states.get(person_entity_id) if self.hass else None
+        if not person_state or not ent_reg or not dev_reg:
             _LOGGER.warning("SUPERNOTIFY Unable to resolve %s", person_entity_id)
         else:
             for d_t in person_state.attributes.get("device_trackers", ()):
                 entity = ent_reg.async_get(d_t)
-                if entity and entity.platform == "mobile_app":
+                if entity and entity.platform == "mobile_app" and entity.device_id:
                     device = dev_reg.async_get(entity.device_id)
                     if device:
                         mobile_devices.append(

@@ -2,7 +2,6 @@ import asyncio
 import datetime as dt
 import logging
 import os.path
-import typing
 import uuid
 from dataclasses import dataclass, field
 from traceback import format_exception
@@ -11,6 +10,7 @@ import voluptuous as vol
 from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET
 from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME
 from homeassistant.helpers.json import save_json
+from voluptuous import humanize
 
 from custom_components.supernotify.common import safe_extend
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -71,54 +71,52 @@ class Notification:
     def __init__(
         self,
         context: SupernotificationConfiguration,
-        message: typing.Optional[str] = None,
-        title: typing.Optional[str] = None,
-        target: typing.Optional[list] = None,
-        service_data: typing.Optional[dict] = None,
+        message: str | None = None,
+        title: str | None = None,
+        target: list | None = None,
+        service_data: dict | None = None,
     ) -> None:
         self.created = dt.datetime.now()
         self.debug_trace = DebugTrace(message=message, title=title, data=service_data, target=target)
-        self._message = message
-        self.context = context
+        self._message: str | None = message
+        self.context: SupernotificationConfiguration = context
         service_data = service_data or {}
-        self.target = ensure_list(target)
-        self._title = title
+        self.target: list = ensure_list(target)
+        self._title: str | None = title
         self.id = str(uuid.uuid1())
-        self.snapshot_image_path = None
-        self.delivered = 0
-        self.errored = 0
-        self.skipped = 0
-        self.delivered_envelopes = []
-        self.undelivered_envelopes = []
+        self.snapshot_image_path: str | None = None
+        self.delivered: int = 0
+        self.errored: int = 0
+        self.skipped: int = 0
+        self.delivered_envelopes: list[Envelope] = []
+        self.undelivered_envelopes: list[Envelope] = []
 
         try:
-            vol.humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
+            humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
         except vol.Invalid as e:
             _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
             raise
 
         self.priority = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html = service_data.get(ATTR_MESSAGE_HTML)
-        self.requested_scenarios = ensure_list(service_data.get(ATTR_SCENARIOS))
+        self.requested_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS))
         self.delivery_selection = service_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type = service_data.get(ATTR_DELIVERY).__class__.__name__
-        self.delivery_overrides = ensure_dict(service_data.get(ATTR_DELIVERY))
+        self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
         self.recipients_override = service_data.get(ATTR_RECIPIENTS)
-        self.data = service_data.get(ATTR_DATA) or {}
-        self.media = service_data.get(ATTR_MEDIA) or {}
-        self.debug = service_data.get(ATTR_DEBUG, False)
-        self.actions = service_data.get(ATTR_ACTIONS) or {}
-        self.delivery_results = {}
-        self.delivery_errors = {}
+        self.data: dict = service_data.get(ATTR_DATA) or {}
+        self.media: dict = service_data.get(ATTR_MEDIA) or {}
+        self.debug: bool = service_data.get(ATTR_DEBUG, False)
+        self.actions: dict = service_data.get(ATTR_ACTIONS) or {}
+        self.delivery_results: dict = {}
+        self.delivery_errors: dict = {}
 
-        self.selected_delivery_names = []
-        self.enabled_scenarios = []
-        self.people_by_occupancy = []
+        self.selected_delivery_names: list = []
+        self.enabled_scenarios: list = []
+        self.people_by_occupancy: list = []
 
     async def initialize(self):
-        """
-        Async post-construction initialization
-        """
+        """Async post-construction initialization"""
         if self.delivery_selection is None:
             if self.delivery_overrides_type in ("list", "str"):
                 # a bare list of deliveries implies intent to restrict
@@ -158,11 +156,11 @@ class Notification:
         all_disabled = scenario_disable_deliveries + override_disable_deliveries
         self.selected_delivery_names = [d for d in all_enabled if d not in all_disabled]
 
-    def message(self, delivery_name):
+    def message(self, delivery_name: str):
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         return self.context.deliveries.get(CONF_MESSAGE, self._message)
 
-    def title(self, delivery_name):
+    def title(self, delivery_name: str):
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         return self.context.deliveries.get(CONF_TITLE, self._title)
 
@@ -180,7 +178,7 @@ class Notification:
                 if delivery not in self.selected_delivery_names:
                     await self.call_delivery_method(delivery)
 
-    async def call_delivery_method(self, delivery):
+    async def call_delivery_method(self, delivery: str) -> None:
         try:
             delivery_method: DeliveryMethod = self.context.delivery_method(delivery)
             delivery_config = delivery_method.delivery_config(delivery)
@@ -226,7 +224,7 @@ class Notification:
     def archive(self, path):
         if not path:
             return
-        filename = os.path.join(path, "%s_%s.json" % (self.created.isoformat()[:16], self.id))
+        filename = os.path.join(path, f"{self.created.isoformat()[:16]}_{self.id}.json")
         try:
             save_json(filename, self.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
@@ -256,9 +254,9 @@ class Notification:
                 scenarios.append(scenario.name)
         return scenarios
 
-    def merge(self, attribute, delivery_name):
+    def merge(self, attribute: str, delivery_name: str) -> dict:
         delivery: dict = self.delivery_overrides.get(delivery_name, {})
-        base = delivery.get(attribute, {})
+        base: dict = delivery.get(attribute, {})
         for scenario_name in self.enabled_scenarios:
             scenario = self.context.scenarios.get(scenario_name)
             if scenario and hasattr(scenario, attribute):
@@ -268,7 +266,7 @@ class Notification:
         return base
 
     def record_resolve(self, delivery_config, category, resolved):
-        """debug support for recording detailed target resolution in archived notification"""
+        """Debug support for recording detailed target resolution in archived notification"""
         self.debug_trace.resolved.setdefault(delivery_config, {})
         self.debug_trace.resolved[delivery_config].setdefault(category, [])
         if isinstance(resolved, list):
@@ -280,7 +278,7 @@ class Notification:
         people = list(self.context.people.values())
         if occupancy == OCCUPANCY_ALL:
             return people
-        elif occupancy == OCCUPANCY_NONE:
+        if occupancy == OCCUPANCY_NONE:
             return []
 
         at_home = []
@@ -293,19 +291,19 @@ class Notification:
                 away.append(person_config)
         if occupancy == OCCUPANCY_ALL_IN:
             return people if len(away) == 0 else []
-        elif occupancy == OCCUPANCY_ALL_OUT:
+        if occupancy == OCCUPANCY_ALL_OUT:
             return people if len(at_home) == 0 else []
-        elif occupancy == OCCUPANCY_ANY_IN:
+        if occupancy == OCCUPANCY_ANY_IN:
             return people if len(at_home) > 0 else []
-        elif occupancy == OCCUPANCY_ANY_OUT:
+        if occupancy == OCCUPANCY_ANY_OUT:
             return people if len(away) > 0 else []
-        elif occupancy == OCCUPANCY_ONLY_IN:
+        if occupancy == OCCUPANCY_ONLY_IN:
             return at_home
-        elif occupancy == OCCUPANCY_ONLY_OUT:
+        if occupancy == OCCUPANCY_ONLY_OUT:
             return away
-        else:
-            _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s" % occupancy)
-            return []
+
+        _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s", occupancy)
+        return []
 
     def generate_recipients(self, delivery_name, delivery_method):
         delivery_config = delivery_method.delivery_config(delivery_name)
@@ -352,18 +350,18 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
         return recipients
 
-    def generate_envelopes(self, delivery_name, method, recipients):
+    def generate_envelopes(self, delivery_name, method, recipients) -> list[Envelope]:
         # now the list of recipients determined, resolve this to target addresses or entities
 
-        delivery_config = method.delivery_config(delivery_name)
-        default_data = delivery_config.get(CONF_DATA)
-        default_targets = []
-        custom_envelopes = []
+        delivery_config: dict = method.delivery_config(delivery_name)
+        default_data: dict = delivery_config.get(CONF_DATA, {})
+        default_targets: list = []
+        custom_envelopes: list = []
 
         for recipient in recipients:
-            recipient_targets = []
-            enabled = True
-            custom_data = default_data or {}
+            recipient_targets: list = []
+            enabled: bool = True
+            custom_data: dict = default_data or {}
             # reuse standard recipient attributes like email or phone
             safe_extend(recipient_targets, method.recipient_target(recipient))
             # use entities or targets set at a method level for recipient
@@ -403,25 +401,28 @@ class Notification:
             filtered_envelopes = [Envelope(delivery_name, self, data=default_data)]
         return filtered_envelopes
 
-    async def grab_image(self, delivery_name):
+    async def grab_image(self, delivery_name: str) -> str | None:
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         delivery_config = self.delivery_data(delivery_name)
         jpeg_args = self.media.get(ATTR_JPEG_FLAGS, delivery_config.get(CONF_OPTIONS, {}).get(ATTR_JPEG_FLAGS))
 
         if not snapshot_url and not camera_entity_id:
-            return
+            return None
 
-        image_path = None
+        image_path: str | None = None
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path
-        elif snapshot_url and self.context.media_path:
+        if snapshot_url and self.context.media_path:
             image_path = await snapshot_from_url(
                 self.context.hass, snapshot_url, self.id, self.context.media_path, self.context.hass_internal_url, jpeg_args
             )
-        elif camera_entity_id and camera_entity_id.startswith("image."):
+        elif camera_entity_id and camera_entity_id.startswith("image.") and self.context.hass and self.context.media_path:
             image_path = await snap_image(self.context.hass, camera_entity_id, self.context.media_path, self.id, jpeg_args)
         elif camera_entity_id:
+            if not self.context.hass or not self.context.media_path:
+                _LOGGER.warning("SUPERNOTIFY No homeassistant ref or media path for camera %s", camera_entity_id)
+                return None
             active_camera_entity_id = await select_avail_camera(self.context.hass, self.context.cameras, camera_entity_id)
             if active_camera_entity_id:
                 camera_config = self.context.cameras.get(active_camera_entity_id, {})
@@ -457,14 +458,15 @@ class Notification:
 
         if image_path is None:
             _LOGGER.warning("SUPERNOTIFY No media available to attach (%s,%s)", snapshot_url, camera_entity_id)
-        else:
-            return image_path
+            return None
+        self.snapshot_image_path = image_path
+        return image_path
 
 
 @dataclass
 class DebugTrace:
-    message: typing.Optional[str] = field(default=None)
-    title: typing.Optional[str] = field(default=None)
-    data: dict = field(default_factory=lambda: {})
-    target: typing.Optional[list] = field(default=None)
+    message: str | None = field(default=None)
+    title: str | None = field(default=None)
+    data: dict | None = field(default_factory=lambda: {})
+    target: list | None = field(default=None)
     resolved: dict = field(init=False, default_factory=lambda: {})

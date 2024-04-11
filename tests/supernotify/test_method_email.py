@@ -1,21 +1,14 @@
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
 
-from custom_components.supernotify import (
-    ATTR_DATA,
-    ATTR_DELIVERY,
-    CONF_PERSON,
-    CONF_TEMPLATE,
-    METHOD_EMAIL,
-)
+from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.envelope import Envelope
 
 
 async def test_deliver(mock_hass) -> None:
     """Test on_notify_email."""
-
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
     await context.initialize()
     uut = EmailDeliveryMethod(

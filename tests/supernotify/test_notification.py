@@ -1,4 +1,9 @@
+from unittest.mock import Mock, patch
+
+from homeassistant.const import CONF_EMAIL, CONF_ENTITIES, CONF_SERVICE
 from homeassistant.core import HomeAssistant
+from pytest_unordered import unordered
+
 from custom_components.supernotify import (
     ATTR_DATA,
     ATTR_MEDIA,
@@ -8,30 +13,22 @@ from custom_components.supernotify import (
     CONF_DELIVERY,
     CONF_DELIVERY_SELECTION,
     CONF_MEDIA,
+    CONF_METHOD,
     CONF_PERSON,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
+    CONF_TARGET,
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_IMPLICIT,
-)
-from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.methods.email import EmailDeliveryMethod
-from custom_components.supernotify.methods.generic import GenericDeliveryMethod
-from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.envelope import Envelope
-from custom_components.supernotify.scenario import Scenario
-from unittest.mock import Mock, patch
-from pytest_unordered import unordered
-
-
-from homeassistant.const import CONF_SERVICE, CONF_EMAIL, CONF_ENTITIES
-
-from custom_components.supernotify import (
-    CONF_METHOD,
-    CONF_TARGET,
     METHOD_EMAIL,
     METHOD_GENERIC,
 )
+from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.methods.email import EmailDeliveryMethod
+from custom_components.supernotify.methods.generic import GenericDeliveryMethod
+from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.scenario import Scenario
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
@@ -101,6 +98,7 @@ async def test_generate_recipients_from_entities(mock_hass, superconfig) -> None
     recipients = uut.generate_recipients("chatty", generic)
     assert recipients == [{"target": "custom.light_1"}, {"target": "custom.switch_2"}]
 
+
 async def test_generate_recipients_from_recipients(mock_hass, superconfig) -> None:
 
     delivery = {
@@ -115,7 +113,8 @@ async def test_generate_recipients_from_recipients(mock_hass, superconfig) -> No
     generic = GenericDeliveryMethod(mock_hass, superconfig, delivery)
     await generic.initialize()
     recipients = uut.generate_recipients("chatty", generic)
-    assert recipients == ["custom.light_1","custom.switch_2"]
+    assert recipients == ["custom.light_1", "custom.switch_2"]
+
 
 async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssistant, superconfig) -> None:
 
@@ -201,7 +200,8 @@ async def test_snapshot_url(hass: HomeAssistant) -> None:
         retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
         # notification caches image for multiple deliveries
-        assert mock_snapshot.assert_not_called
+        mock_snapshot.assert_not_called()
+
 
 async def test_camera_entity(hass: HomeAssistant) -> None:
     context = Mock()
@@ -215,9 +215,7 @@ async def test_camera_entity(hass: HomeAssistant) -> None:
     uut = Notification(context, "testing 123", service_data={CONF_MEDIA: {ATTR_MEDIA_CAMERA_ENTITY_ID: "camera.lobby"}})
     await uut.initialize()
     original_image_path = "/tmp/image_a.jpg"
-    with patch(
-        "custom_components.supernotify.notification.snap_camera", return_value=original_image_path
-    ) as mock_snap_cam:
+    with patch("custom_components.supernotify.notification.snap_camera", return_value=original_image_path) as mock_snap_cam:
         retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
         assert mock_snap_cam.called
@@ -225,8 +223,7 @@ async def test_camera_entity(hass: HomeAssistant) -> None:
         retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
         # notification caches image for multiple deliveries
-        assert mock_snap_cam.assert_not_called
-
+        mock_snap_cam.assert_not_called()
 
 
 async def test_merge(mock_hass):

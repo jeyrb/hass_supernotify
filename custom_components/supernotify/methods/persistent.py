@@ -1,6 +1,5 @@
 import logging
 
-
 from custom_components.supernotify import ATTR_NOTIFICATION_ID, METHOD_PERSISTENT
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope

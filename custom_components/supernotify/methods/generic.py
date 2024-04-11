@@ -2,11 +2,7 @@ import logging
 
 from homeassistant.const import CONF_SERVICE
 
-from custom_components.supernotify import (
-    CONF_DATA,
-    CONF_TARGET,
-    METHOD_GENERIC,
-)
+from custom_components.supernotify import CONF_DATA, CONF_TARGET, METHOD_GENERIC
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -24,9 +20,8 @@ class GenericDeliveryMethod(DeliveryMethod):
     def validate_service(self, service) -> bool:
         if service is not None and "." in service:
             return True
-        else:
-            _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
-            return False
+        _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
+        return False
 
     async def deliver(self, envelope: Envelope) -> bool:
 

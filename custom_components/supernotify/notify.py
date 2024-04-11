@@ -1,14 +1,14 @@
-import logging
-import datetime as dt
-import os.path
-import os
-import typing
+"""Supernotify service, extending BaseNotificationService"""
 
-from cachetools import TTLCache
-from homeassistant.components.notify import (
-    BaseNotificationService,
-)
+import datetime as dt
+import logging
+import os
+import os.path
+from typing import Any
+
 import homeassistant.util.dt as dt_util
+from cachetools import TTLCache
+from homeassistant.components.notify import BaseNotificationService
 from homeassistant.const import CONF_CONDITION, CONF_ENABLED
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition
@@ -73,6 +73,7 @@ async def async_get_service(
     discovery_info: DiscoveryInfoType | None = None,
 ):
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
+    _ = discovery_info
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if delivery and CONF_CONDITION in delivery:
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
@@ -116,16 +117,16 @@ async def async_get_service(
     )
     await service.initialize()
 
-    def supplemental_service_enquire_deliveries_by_scenario(call: ServiceCall) -> dict:
+    def supplemental_service_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict:
         return service.enquire_deliveries_by_scenario()
 
-    def supplemental_service_enquire_last_notification(call: ServiceCall) -> dict:
+    def supplemental_service_enquire_last_notification(_call: ServiceCall) -> dict:
         return service.last_notification.contents() if service.last_notification else {}
 
-    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
+    async def supplemental_service_enquire_active_scenarios(_call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_active_scenarios()}
 
-    async def supplemental_service_purge_archive(call: ServiceCall) -> int:
+    async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
         return {
             "purged": service.cleanup_archive(days=days, force=True),
@@ -178,15 +179,15 @@ class SuperNotificationService(BaseNotificationService):
         mobile_actions=None,
         scenarios=None,
         links=(),
-        method_defaults={},
+        method_defaults=None,
         cameras=None,
-        dupe_check={},
+        dupe_check=None,
     ):
         """Initialize the service."""
-        self.hass = hass
-        self.last_notification: typing.Optional[Notification] = None  # noqa: F821
-        self.failures = 0
-        self.sent = 0
+        self.hass: HomeAssistant = hass
+        self.last_notification: Notification | None = None  # noqa: F821
+        self.failures: int = 0
+        self.sent: int = 0
         self.context = SupernotificationConfiguration(
             hass,
             deliveries,
@@ -197,12 +198,14 @@ class SuperNotificationService(BaseNotificationService):
             media_path,
             archive,
             scenarios,
-            method_defaults,
+            method_defaults or {},
             cameras,
         )
-        self.dupe_check_config = dupe_check
+        self.dupe_check_config: dict[str, Any] = dupe_check or {}
         self.last_purge = None
-        self.notification_cache = TTLCache(maxsize=dupe_check.get(CONF_SIZE, 100), ttl=dupe_check.get(CONF_TTL, 120))
+        self.notification_cache = TTLCache(
+            maxsize=self.dupe_check_config.get(CONF_SIZE, 100), ttl=self.dupe_check_config.get(CONF_TTL, 120)
+        )
 
     async def initialize(self):
         await self.context.initialize()
@@ -214,7 +217,7 @@ class SuperNotificationService(BaseNotificationService):
             return False
         notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority) :]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority):]
         else:
             same_or_higher_priority = [notification.priority]
         dupe = False
@@ -224,7 +227,7 @@ class SuperNotificationService(BaseNotificationService):
         self.notification_cache[(notification_hash, notification.priority)] = notification.id
         return dupe
 
-    async def async_send_message(self, message="", title=None, target=None, **kwargs) -> Notification:
+    async def async_send_message(self, message="", title=None, target=None, **kwargs) -> None:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
         notification = None
@@ -248,30 +251,29 @@ class SuperNotificationService(BaseNotificationService):
                 await notification.deliver()
                 self.sent += 1
                 self.hass.states.async_set("%s.sent" % DOMAIN, self.sent)
+
+            self.last_notification = notification
+            if self.context.archive.get(CONF_ENABLED):
+                notification.archive(self.context.archive.get(CONF_ARCHIVE_PATH))
+                self.cleanup_archive()
+
+            _LOGGER.debug(
+                "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
+                notification.delivered,
+                notification.errored,
+                notification.skipped,
+            )
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, e)
             self.failures += 1
             self.hass.states.async_set("%s.failures" % DOMAIN, self.failures)
 
-        self.last_notification = notification
-        if self.context.archive.get(CONF_ENABLED):
-            notification.archive(self.context.archive.get(CONF_ARCHIVE_PATH))
-            self.cleanup_archive()
-
-        _LOGGER.debug(
-            "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
-            notification.delivered,
-            notification.errored,
-            notification.skipped,
-        )
-        return notification
-
     def archive_size(self):
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
         if path and os.path.exists(path):
             return len(os.listdir(path))
-        else:
-            return 0
+
+        return 0
 
     def cleanup_archive(self, days=None, force=False):
         if (
@@ -295,7 +297,7 @@ class SuperNotificationService(BaseNotificationService):
                             os.remove(entry.path)
                             purged += 1
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=1)
+                _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=True)
             _LOGGER.info("SUPERNOTIFY Purged %s archived notifications for cutoff %s", purged, cutoff)
             self.last_purge = dt.datetime.now(dt.UTC)
         else:
@@ -303,7 +305,7 @@ class SuperNotificationService(BaseNotificationService):
         return purged
 
     def setup_condition_inputs(self, field, value):
-        self.hass.states.async_set("%s.%s" % (DOMAIN, field), value)
+        self.hass.states.async_set(f"{DOMAIN}.{field}", value)
 
     def enquire_deliveries_by_scenario(self):
         return self.context.delivery_by_scenario

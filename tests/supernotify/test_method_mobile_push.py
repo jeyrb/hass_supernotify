@@ -1,3 +1,5 @@
+import pytest
+
 from custom_components.supernotify import (
     ATTR_PRIORITY,
     CONF_PRIORITY,
@@ -7,14 +9,10 @@ from custom_components.supernotify import (
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
 )
-
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.methods.mobile_push import (
-    MobilePushDeliveryMethod,
-)
-from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.envelope import Envelope
-import pytest
+from custom_components.supernotify.methods.mobile_push import MobilePushDeliveryMethod
+from custom_components.supernotify.notification import Notification
 
 
 async def test_on_notify_mobile_push_with_media(mock_hass) -> None:

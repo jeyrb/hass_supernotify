@@ -8,8 +8,8 @@ from homeassistant.const import STATE_HOME, STATE_NOT_HOME
 from homeassistant.core import HomeAssistant
 from PIL import Image, ImageChops
 from pytest_httpserver import BlockingHTTPServer
-from custom_components.supernotify import PTZ_METHOD_FRIGATE
 
+from custom_components.supernotify import PTZ_METHOD_FRIGATE
 from custom_components.supernotify.media_grab import (
     move_camera_to_ptz_preset,
     select_avail_camera,
@@ -30,7 +30,7 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: Blo
     original_image_path = PNG_PATH
     original_binary = io.FileIO(original_image_path, "rb").readall()
     snapshot_url = local_server.url_for("/snapshot_image")
-    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/png")
+    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/png")  # type: ignore
     retrieved_image_path = await snapshot_from_url(hass, snapshot_url, "notify-uuid-1", media_path, None)
 
     assert retrieved_image_path is not None
@@ -48,7 +48,7 @@ async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, local_server: B
     original_image_path = JPEG_PATH
     original_binary = io.FileIO(original_image_path, "rb").readall()
     snapshot_url = local_server.url_for("/snapshot_image")
-    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")
+    local_server.expect_request("/snapshot_image").respond_with_data(original_binary, content_type="image/jpeg")  # type: ignore
     retrieved_image_path = await snapshot_from_url(
         hass,
         snapshot_url,
@@ -89,7 +89,7 @@ async def test_snap_image(mock_hass) -> None:
         snap_image_path = await snap_image(mock_hass, "image.testing", media_path=tmp_path, notification_id="notify_001")
         assert snap_image_path is not None
         retrieved_image = Image.open(snap_image_path)
-        
+
     original_image = Image.open(image_path)
     assert retrieved_image.size == original_image.size
     diff = ImageChops.difference(retrieved_image, original_image)

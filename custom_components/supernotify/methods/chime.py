@@ -1,14 +1,14 @@
 import logging
 import re
+from typing import Any
 
-from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
-from homeassistant.components.script.const import ATTR_VARIABLES
 from homeassistant.components.group import expand_entity_ids
-from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, METHOD_CHIME, CONF_TARGET
+from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
+from homeassistant.const import ATTR_ENTITY_ID, CONF_VARIABLES  # ATTR_VARIABLES from script.const has import issues
+
+from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, CONF_TARGET, METHOD_CHIME
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
-from homeassistant.const import ATTR_ENTITY_ID
-
 from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
@@ -27,7 +27,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def validate_service(self, service) -> bool:
         return service is None
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_CHIME, target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:
@@ -52,23 +52,23 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
 
                 if domain == "script":
-                    self.set_service_data(service_data[ATTR_VARIABLES], ATTR_MESSAGE, envelope.message)
-                    self.set_service_data(service_data[ATTR_VARIABLES], ATTR_TITLE, envelope.title)
-                    self.set_service_data(service_data[ATTR_VARIABLES], "chime_tune", tune)
+                    self.set_service_data(service_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
+                    self.set_service_data(service_data[CONF_VARIABLES], ATTR_TITLE, envelope.title)
+                    self.set_service_data(service_data[CONF_VARIABLES], "chime_tune", tune)
 
                 if domain is not None and service is not None:
-                    if await self.call_service(envelope, "%s.%s" % (domain, service), service_data=service_data):
+                    if await self.call_service(envelope, f"{domain}.{service}", service_data=service_data):
                         chimes += 1
                 else:
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
         return chimes > 0
-                
+
     def analyze_target(self, target: str, chime_tune: str, data: dict):
         domain, name = target.split(".", 1)
-        service_data = {}
-        service = None
+        service_data: dict[str, Any] = {}
+        service: str | None = None
         chime_volume = data.pop("chime_volume", 1)
         chime_duration = data.pop("chime_duration", 10)
 
@@ -86,7 +86,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         elif domain == "script":
             service = name
-            service_data.setdefault(ATTR_VARIABLES, {})
+            service_data.setdefault(CONF_VARIABLES, {})
             if data:
                 service_data.update(data)
         elif domain == "media_player" and chime_tune:
@@ -111,6 +111,6 @@ class ChimeDeliveryMethod(DeliveryMethod):
             if ATTR_ENTITY_ID in alias_config:
                 entities_and_tunes.update({ent: actual_tune for ent in ensure_list(alias_config[ATTR_ENTITY_ID])})
             else:
-                entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith("%s." % domain)})
+                entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith(f"{domain}.")})
 
         return entities_and_tunes

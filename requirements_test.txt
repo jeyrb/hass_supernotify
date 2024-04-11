@@ -5,6 +5,6 @@ pytest-homeassistant-custom-component>=0.13.101
 pytest-asyncio
 pytest-unordered
 pre-commit
-pytest-httpserver>=1.0.9
+pytest-httpserver>=1.0.10
 pylint
-homeassistant-stubs
+flake8-pyproject
