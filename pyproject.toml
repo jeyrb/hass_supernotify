@@ -1,6 +1,14 @@
 [tool.black]
 line-length = 128
 
+[tool.flake8]
+max-line-length = 128
+
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 128
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = [
