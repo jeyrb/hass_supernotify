@@ -195,14 +195,14 @@ async def test_cleanup_archive(mock_hass: HomeAssistant) -> None:
     old_time = Mock(return_value=Mock(st_ctime=time.time() - (8 * 24 * 60 * 60)))
     new_time = Mock(return_value=Mock(st_ctime=time.time() - (5 * 24 * 60 * 60)))
     with patch("os.scandir") as scan:
-        with patch("os.remove") as rmfr:
+        with patch("pathlib.Path.unlink") as rmfr:
             scan.return_value.__enter__.return_value = [
                 Mock(path="abc", stat=new_time),
                 Mock(path="def", stat=new_time),
                 Mock(path="xyz", stat=old_time),
             ]
             uut.cleanup_archive()
-            rmfr.assert_called_once_with("xyz")
+            rmfr.assert_called_once_with()
     # skip cleanup for a few hours
     first_purge = uut.last_purge
     uut.cleanup_archive()

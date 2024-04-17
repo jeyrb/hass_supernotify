@@ -74,7 +74,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             image_path: Path | None = await envelope.grab_image()
             if image_path:
                 service_data.setdefault("data", {})
-                service_data["data"]["images"] = [image_path]
+                service_data["data"]["images"] = [str(image_path)]
             if envelope.message_html:
                 service_data.setdefault("data", {})
                 html = envelope.message_html
