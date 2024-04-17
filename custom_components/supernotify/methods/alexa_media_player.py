@@ -14,8 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
-    """
-    Notify via Amazon Alexa announcements
+    """Notify via Amazon Alexa announcements
 
     options:
         TITLE_ONLY: true
@@ -25,10 +24,10 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     method = METHOD_ALEXA
     DEFAULT_TITLE_ONLY = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_ALEXA, target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:

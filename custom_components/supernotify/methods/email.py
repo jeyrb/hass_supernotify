@@ -1,7 +1,6 @@
 import logging
-import os.path
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
 from homeassistant.const import CONF_EMAIL
@@ -13,6 +12,9 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 RE_VALID_EMAIL = (
     r"^[a-zA-Z0-9.+/=?^_-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
 )
@@ -23,12 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     method = METHOD_EMAIL
 
-    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None):
+    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None) -> None:
         super().__init__(hass, context, deliveries)
-        self.template_path = None
+        self.template_path: Path | None = None
         if self.context.template_path:
-            self.template_path = os.path.join(self.context.template_path, "email")
-            if not os.path.exists(self.template_path):
+            self.template_path = self.context.template_path / "email"
+            if not self.template_path.exists():
                 _LOGGER.warning("SUPERNOTIFY Email templates not available at %s", self.template_path)
                 self.template_path = None
         if self.template_path is None:
@@ -36,10 +38,10 @@ class EmailDeliveryMethod(DeliveryMethod):
         else:
             _LOGGER.debug("SUPERNOTIFY Loading email templates from %s", self.template_path)
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_EMAIL, target) is not None
 
-    def recipient_target(self, recipient) -> list[str]:
+    def recipient_target(self, recipient: dict) -> list[str]:
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
@@ -52,7 +54,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         template = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
         addresses = envelope.targets or []
         snapshot_url = data.get("snapshot_url")
-        # TODO centralize in config
+        # TODO: centralize in config
         footer_template = data.get("footer")
         footer = footer_template.format(e=envelope) if footer_template else None
 
@@ -69,7 +71,7 @@ class EmailDeliveryMethod(DeliveryMethod):
             if footer and service_data.get(ATTR_MESSAGE):
                 service_data[ATTR_MESSAGE] = f"{service_data[ATTR_MESSAGE]}\n\n{footer}"
 
-            image_path: str | None = await envelope.grab_image()
+            image_path: Path | None = await envelope.grab_image()
             if image_path:
                 service_data.setdefault("data", {})
                 service_data["data"]["images"] = [image_path]
@@ -77,7 +79,7 @@ class EmailDeliveryMethod(DeliveryMethod):
                 service_data.setdefault("data", {})
                 html = envelope.message_html
                 if image_path:
-                    image_name = os.path.basename(image_path)
+                    image_name = image_path.name
                     if html and "cid:%s" not in html and not html.endswith("</html"):
                         if snapshot_url:
                             html += '<div><p><a href="%s">' % snapshot_url
@@ -95,7 +97,12 @@ class EmailDeliveryMethod(DeliveryMethod):
         return await self.call_service(envelope, service_data=service_data)
 
     def render_template(
-        self, template: str, envelope: Envelope, service_data: dict[str, Any], snapshot_url, preformatted_html
+        self,
+        template: str,
+        envelope: Envelope,
+        service_data: dict[str, Any],
+        snapshot_url: str | None,
+        preformatted_html: str | None,
     ) -> str | None:
         alert = {}
         try:

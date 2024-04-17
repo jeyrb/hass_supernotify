@@ -91,12 +91,12 @@ class MockGroup:
 
 async def test_deliver_to_group(mock_hass, superconfig) -> None:
     """Test on_notify_chime"""
-    GROUPS = {
+    groups = {
         "group.alexa": MockGroup(["media_player.alexa_1", "media_player.alexa_2"]),
         "group.chime": MockGroup(["switch.bell_1"]),
     }
 
-    mock_hass.states.get.side_effect = lambda v: GROUPS.get(v)
+    mock_hass.states.get.side_effect = lambda v: groups.get(v)
     uut = ChimeDeliveryMethod(
         mock_hass,
         superconfig,

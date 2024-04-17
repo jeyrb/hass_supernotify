@@ -1,10 +1,11 @@
 import asyncio
 import datetime as dt
 import logging
-import os.path
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from traceback import format_exception
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET
@@ -15,6 +16,7 @@ from voluptuous import humanize
 from custom_components.supernotify.common import safe_extend
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.scenario import Scenario
 
 from . import (
     ATTR_ACTIONS,
@@ -73,18 +75,18 @@ class Notification:
         context: SupernotificationConfiguration,
         message: str | None = None,
         title: str | None = None,
-        target: list | None = None,
+        target: list | str | None = None,
         service_data: dict | None = None,
     ) -> None:
-        self.created = dt.datetime.now()
-        self.debug_trace = DebugTrace(message=message, title=title, data=service_data, target=target)
+        self.created: dt.datetime = dt.datetime.now(tz=dt.UTC)
+        self.debug_trace: DebugTrace = DebugTrace(message=message, title=title, data=service_data, target=target)
         self._message: str | None = message
         self.context: SupernotificationConfiguration = context
         service_data = service_data or {}
         self.target: list = ensure_list(target)
         self._title: str | None = title
         self.id = str(uuid.uuid1())
-        self.snapshot_image_path: str | None = None
+        self.snapshot_image_path: Path | None = None
         self.delivered: int = 0
         self.errored: int = 0
         self.skipped: int = 0
@@ -111,11 +113,11 @@ class Notification:
         self.delivery_results: dict = {}
         self.delivery_errors: dict = {}
 
-        self.selected_delivery_names: list = []
-        self.enabled_scenarios: list = []
+        self.selected_delivery_names: list[str] = []
+        self.enabled_scenarios: list[str] = []
         self.people_by_occupancy: list = []
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Async post-construction initialization"""
         if self.delivery_selection is None:
             if self.delivery_overrides_type in ("list", "str"):
@@ -127,9 +129,9 @@ class Notification:
 
         self.enabled_scenarios = self.requested_scenarios or []
         self.enabled_scenarios.extend(await self.select_scenarios())
-        scenario_enable_deliveries = []
-        default_enable_deliveries = []
-        scenario_disable_deliveries = []
+        scenario_enable_deliveries: list[str] = []
+        default_enable_deliveries: list[str] = []
+        scenario_disable_deliveries: list[str] = []
 
         if self.delivery_selection != DELIVERY_SELECTION_FIXED:
             for scenario in self.enabled_scenarios:
@@ -156,15 +158,15 @@ class Notification:
         all_disabled = scenario_disable_deliveries + override_disable_deliveries
         self.selected_delivery_names = [d for d in all_enabled if d not in all_disabled]
 
-    def message(self, delivery_name: str):
+    def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.context.deliveries.get(CONF_MESSAGE, self._message)
+        return self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
 
-    def title(self, delivery_name: str):
+    def title(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.context.deliveries.get(CONF_TITLE, self._title)
+        return self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
 
-    async def deliver(self):
+    async def deliver(self) -> None:
         for delivery in self.selected_delivery_names:
             await self.call_delivery_method(delivery)
 
@@ -213,46 +215,42 @@ class Notification:
             _LOGGER.debug("SUPERNOTIFY %s delivery failure", delivery, exc_info=True)
             self.delivery_errors[delivery] = format_exception(e)
 
-    def hash(self):
+    def hash(self) -> int:
         return hash((self._message, self._title))
 
-    def contents(self, minimal: bool = False):
+    def contents(self, minimal: bool = False) -> dict[str, Any]:
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
         sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
         return sanitized
 
-    def archive(self, path):
+    def archive(self, path: Path) -> None:
         if not path:
             return
-        filename = os.path.join(path, f"{self.created.isoformat()[:16]}_{self.id}.json")
+        filename: Path = path / f"{self.created.isoformat()[:16]}_{self.id}.json"
         try:
-            save_json(filename, self.contents())
+            save_json(str(filename), self.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to archived notification: %s", e)
             try:
-                save_json(filename, self.contents(minimal=True))
+                save_json(str(filename), self.contents(minimal=True))
                 _LOGGER.debug("SUPERNOTIFY Archived pruned notification %s", filename)
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Unable to archived pruned notification: %s", e)
 
-    def delivery_data(self, delivery_name):
+    def delivery_data(self, delivery_name: str) -> dict:
         delivery_override = self.delivery_overrides.get(delivery_name)
         return delivery_override.get(CONF_DATA) if delivery_override else {}
 
-    def delivery_scenarios(self, delivery_name):
+    def delivery_scenarios(self, delivery_name: str) -> dict[str, Scenario]:
         return {
-            k: self.context.scenarios.get(k, {})
+            k: cast(Scenario, self.context.scenarios.get(k))
             for k in self.enabled_scenarios
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
 
     async def select_scenarios(self) -> list[str]:
-        scenarios: list[str] = []
-        for scenario in self.context.scenarios.values():
-            if await scenario.evaluate():
-                scenarios.append(scenario.name)
-        return scenarios
+        return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
 
     def merge(self, attribute: str, delivery_name: str) -> dict:
         delivery: dict = self.delivery_overrides.get(delivery_name, {})
@@ -265,16 +263,16 @@ class Notification:
             base.update(getattr(self, attribute))
         return base
 
-    def record_resolve(self, delivery_config, category, resolved):
+    def record_resolve(self, delivery_name: str, category: str, resolved: str | list | None) -> None:
         """Debug support for recording detailed target resolution in archived notification"""
-        self.debug_trace.resolved.setdefault(delivery_config, {})
-        self.debug_trace.resolved[delivery_config].setdefault(category, [])
+        self.debug_trace.resolved.setdefault(delivery_name, {})
+        self.debug_trace.resolved[delivery_name].setdefault(category, [])
         if isinstance(resolved, list):
-            self.debug_trace.resolved[delivery_config][category].extend(resolved)
+            self.debug_trace.resolved[delivery_name][category].extend(resolved)
         else:
-            self.debug_trace.resolved[delivery_config][category].append(resolved)
+            self.debug_trace.resolved[delivery_name][category].append(resolved)
 
-    def filter_people_by_occupancy(self, occupancy):
+    def filter_people_by_occupancy(self, occupancy: str) -> list[dict]:
         people = list(self.context.people.values())
         if occupancy == OCCUPANCY_ALL:
             return people
@@ -305,8 +303,8 @@ class Notification:
         _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s", occupancy)
         return []
 
-    def generate_recipients(self, delivery_name, delivery_method):
-        delivery_config = delivery_method.delivery_config(delivery_name)
+    def generate_recipients(self, delivery_name: str, delivery_method: DeliveryMethod) -> list[dict]:
+        delivery_config: dict[str, Any] = delivery_method.delivery_config(delivery_name)
 
         recipients = []
         if self.target:
@@ -322,12 +320,12 @@ class Notification:
         else:
             # second priority is explicit entities on delivery
             if delivery_config and CONF_ENTITIES in delivery_config:
-                recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_ENTITIES))
+                recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_ENTITIES, []))
                 self.record_resolve(delivery_name, "2a_delivery_config_entity", delivery_config.get(CONF_ENTITIES))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
             # third priority is explicit target on delivery
             if delivery_config and CONF_TARGET in delivery_config:
-                recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_TARGET))
+                recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_TARGET, []))
                 self.record_resolve(delivery_name, "2b_delivery_config_target", delivery_config.get(CONF_TARGET))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
 
@@ -350,7 +348,7 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
         return recipients
 
-    def generate_envelopes(self, delivery_name, method, recipients) -> list[Envelope]:
+    def generate_envelopes(self, delivery_name: str, method: DeliveryMethod, recipients: list[dict]) -> list[Envelope]:
         # now the list of recipients determined, resolve this to target addresses or entities
 
         delivery_config: dict = method.delivery_config(delivery_name)
@@ -380,7 +378,7 @@ class Notification:
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_envelopes = custom_envelopes + [Envelope(delivery_name, self, default_targets, default_data)]
+        bundled_envelopes = [*custom_envelopes, Envelope(delivery_name, self, default_targets, default_data)]
         filtered_envelopes = []
         for envelope in bundled_envelopes:
             pre_filter_count = len(envelope.targets)
@@ -401,7 +399,7 @@ class Notification:
             filtered_envelopes = [Envelope(delivery_name, self, data=default_data)]
         return filtered_envelopes
 
-    async def grab_image(self, delivery_name: str) -> str | None:
+    async def grab_image(self, delivery_name: str) -> Path | None:
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         delivery_config = self.delivery_data(delivery_name)
@@ -410,10 +408,10 @@ class Notification:
         if not snapshot_url and not camera_entity_id:
             return None
 
-        image_path: str | None = None
+        image_path: Path | None = None
         if self.snapshot_image_path is not None:
             return self.snapshot_image_path
-        if snapshot_url and self.context.media_path:
+        if snapshot_url and self.context.media_path and self.context.hass:
             image_path = await snapshot_from_url(
                 self.context.hass, snapshot_url, self.id, self.context.media_path, self.context.hass_internal_url, jpeg_args
             )
@@ -468,5 +466,5 @@ class DebugTrace:
     message: str | None = field(default=None)
     title: str | None = field(default=None)
     data: dict | None = field(default_factory=lambda: {})
-    target: list | None = field(default=None)
+    target: list | str | None = field(default=None)
     resolved: dict = field(init=False, default_factory=lambda: {})

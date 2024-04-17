@@ -19,12 +19,12 @@ _LOGGER = logging.getLogger(__name__)
 class ChimeDeliveryMethod(DeliveryMethod):
     method = METHOD_CHIME
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
         self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
 
-    def validate_service(self, service) -> bool:
+    def validate_service(self, service: str | None) -> bool:
         return service is None
 
     def select_target(self, target: str) -> bool:
@@ -41,7 +41,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
 
-        expanded_targets = {ent: chime_tune for ent in expand_entity_ids(self.hass, targets)}
+        expanded_targets = dict.fromkeys(expand_entity_ids(self.hass, targets), chime_tune)
         entities_and_tunes = self.resolve_tune(chime_tune)
         expanded_targets.update(entities_and_tunes)  # overwrite and extend
         chimes = 0
@@ -65,7 +65,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
         return chimes > 0
 
-    def analyze_target(self, target: str, chime_tune: str, data: dict):
+    def analyze_target(self, target: str, chime_tune: str, data: dict) -> tuple[str, str | None, dict[str, Any]]:
         domain, name = target.split(".", 1)
         service_data: dict[str, Any] = {}
         service: str | None = None
@@ -101,15 +101,15 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         return domain, service, service_data
 
-    def resolve_tune(self, tune: str):
-        entities_and_tunes = {}
+    def resolve_tune(self, tune: str) -> dict[str, Any]:
+        entities_and_tunes: dict[str, Any] = {}
         for domain, alias_config in self.chime_aliases.get(tune, {}).items():
             if isinstance(alias_config, str):
                 alias_config = {"tune": alias_config}
             domain = alias_config.get("domain", domain)
             actual_tune = alias_config.get("tune", tune)
             if ATTR_ENTITY_ID in alias_config:
-                entities_and_tunes.update({ent: actual_tune for ent in ensure_list(alias_config[ATTR_ENTITY_ID])})
+                entities_and_tunes.update(dict.fromkeys(ensure_list(alias_config[ATTR_ENTITY_ID]), actual_tune))
             else:
                 entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith(f"{domain}.")})
 

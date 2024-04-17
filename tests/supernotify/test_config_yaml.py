@@ -26,11 +26,11 @@ SIMPLE_CONFIG = {
 }
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_notify(hass: HomeAssistant) -> MockService:
-    mockService = MockService()
-    hass.services.async_register(notify.DOMAIN, "mock", mockService, supports_response=False)
-    return mockService
+    mock_service: MockService = MockService()
+    hass.services.async_register(notify.DOMAIN, "mock", mock_service, supports_response=False)
+    return mock_service
 
 
 async def test_schema():
@@ -78,7 +78,6 @@ async def test_reload(hass: HomeAssistant) -> None:
 
 
 async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:
-
     assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
@@ -97,7 +96,6 @@ async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> No
 
 
 async def test_empty_config(hass: HomeAssistant) -> None:
-
     assert await async_setup_component(
         hass,
         notify.DOMAIN,
@@ -115,7 +113,6 @@ async def test_empty_config(hass: HomeAssistant) -> None:
 
 
 async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: MockService) -> None:
-
     assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()

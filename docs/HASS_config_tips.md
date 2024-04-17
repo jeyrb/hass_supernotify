@@ -29,10 +29,10 @@ Here is an example working config for a Heiman HS2WD-E plugin Zigbee siren
         payload_available: online
         payload_not_available: offline
     command_template: >
-      {"warning": 
+      {"warning":
         {"duration": {{int(duration,30)}},
          "level":"{% if volume_level is none or volume_level >= 0.75%}very_high{% elif volume_level >= 0.5%}high{% elif volume_level>=0.25 %}medium{% else %}low{% endif %}",
-         "mode": "{{tone|default("emergency")}}", 
+         "mode": "{{tone|default("emergency")}}",
          "strobe": true,
          "strobe_duty_cycle": 10,
          "strobe_level": "very_high"
@@ -91,5 +91,3 @@ Here is an example working config for a Heiman HS2WD-E plugin Zigbee siren
 
 See the `maximal.yaml` example configuration in the `examples` directory of this repo
 for more ideas of how to use SuperNotify.
-
-

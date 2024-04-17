@@ -1,8 +1,8 @@
 notify:
   - name: maximal
     platform: supernotify
-    template_path: config/templates/supernotify   
-    media_path: config/media/supernotify     
+    template_path: config/templates/supernotify
+    media_path: config/media/supernotify
     archive:
       enabled: true
       archive_days: 4
@@ -24,18 +24,18 @@ notify:
               entity_id: supernotify.delivery_priority
               state:
                 - critical
-                - high     
+                - high
         priority:
           - critical
           - high
           - medium
           - low
-        
+
       backup_mail:
         method: email
-        selection: 
+        selection:
           - fallback
-      text_message:    
+      text_message:
         method: sms
         service: notify.mikrotik_sms
         occupancy: only_out
@@ -75,7 +75,7 @@ notify:
           media_content_type: tts
         priority: critical
         target: group.alexa_devices
- 
+
       doorbell_chime_alexa:
         method: chime
         target:
@@ -97,7 +97,7 @@ notify:
           - media_player.echo_lobby
         data:
           chime_tune: christmas_05
-        condition: 
+        condition:
           condition: template
           alias: Xmas
           value_template: >
@@ -109,7 +109,7 @@ notify:
         email: jrb@jeymail.net
         phone_number: "+447989408889"
         delivery:
-          mobile_push: 
+          mobile_push:
             target:
               - mobile_app.new_iphone
             data:
@@ -138,7 +138,7 @@ notify:
         data:
           footer: Delivered by SuperNotify (MsgId:{e.notification_id})
         options:
-          jpeg_args: 
+          jpeg_args:
             progressive: true
             optimize: true
             quality: 50
@@ -150,7 +150,7 @@ notify:
           - media_player.old_kitchen_flex
           - media_player.studio
         options:
-          title_only: True 
+          title_only: True
       sms:
         service: notify.mikrotik_sms
         targets_required: true
@@ -168,31 +168,31 @@ notify:
           chime_aliases:
             doorbell:
               media_player: amzn_sfx_doorbell_chime_02
-              switch: 
+              switch:
                 entity_id: switch.chime_ding_dong
             red_alert:
               media_player: amzn_sfx_scifi_alarm_04
-              siren: 
+              siren:
                 tune: emergency
             known_vehicle:
               media_player: amzn_sfx_trumpet_bugle_04
-              switch: 
+              switch:
                 entity_id: switch.chime_sax
             unknown_vehicle:
               media_player: amzn_sfx_church_bell_1x_02
-              switch: 
+              switch:
                 entity_id: switch.chime_big_ben
             generic:
               media_player: amzn_sfx_doorbell_01
-              switch: 
+              switch:
                 entity_id: switch.chime_scale
             person:
               media_player: bell_02
-              switch: 
+              switch:
                 entity_id: switch.chime_ding
             xmas_person:
               media_player: christmas_05
-                
+
     scenarios:
       image_tune:
         delivery_selection: implicit
@@ -201,7 +201,7 @@ notify:
         media:
           camera_entity_id: camera.doorbell
         delivery:
-          doorbell_chime_alexa: 
+          doorbell_chime_alexa:
             data:
               amazon_magic_id: a77464
           email:
@@ -230,7 +230,7 @@ notify:
               after: "06:30:00"
               before: "21:30:00"
       bedtime:
-        condition: 
+        condition:
           condition: time
           alias: Usual bedtime
           after: "21:30:00"
@@ -247,7 +247,7 @@ notify:
         alias: Front Garden
         device_tracker: device_tracker.cam_dah_garden
         alt_camera: camera.front_door
-    
+
     actions:
       examples:
         - identifier: action-1
@@ -280,5 +280,3 @@ notify:
         icon: "mdi:camera"
         name: Frigate
         description: Frigate CCTV
-
-

@@ -4,6 +4,7 @@ import datetime as dt
 import logging
 import os
 import os.path
+from pathlib import Path
 from typing import Any
 
 import homeassistant.util.dt as dt_util
@@ -14,6 +15,8 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
+from custom_components.supernotify.scenario import Scenario
 
 from . import (
     ATTR_DATA,
@@ -55,7 +58,7 @@ from .notification import Notification
 
 _LOGGER = logging.getLogger(__name__)
 
-METHODS = {
+METHODS: list[type] = [
     EmailDeliveryMethod,
     SMSDeliveryMethod,
     AlexaMediaPlayerDeliveryMethod,
@@ -64,14 +67,14 @@ METHODS = {
     ChimeDeliveryMethod,
     PersistentDeliveryMethod,
     GenericDeliveryMethod,
-}
+]
 
 
 async def async_get_service(
     hass: HomeAssistant,
     config: ConfigType,
     discovery_info: DiscoveryInfoType | None = None,
-):
+) -> "SuperNotificationService":
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     _ = discovery_info
     for delivery in config.get(CONF_DELIVERY, {}).values():
@@ -170,29 +173,29 @@ class SuperNotificationService(BaseNotificationService):
 
     def __init__(
         self,
-        hass,
-        deliveries=None,
-        template_path=None,
-        media_path=None,
-        archive=None,
-        recipients=(),
-        mobile_actions=None,
-        scenarios=None,
-        links=(),
-        method_defaults=None,
-        cameras=None,
-        dupe_check=None,
-    ):
+        hass: HomeAssistant,
+        deliveries: dict[str, dict] | None = None,
+        template_path: str | None = None,
+        media_path: str | None = None,
+        archive: dict | None = None,
+        recipients: list | None = None,
+        mobile_actions: dict | None = None,
+        scenarios: dict[str, dict] | None = None,
+        links: list | None = None,
+        method_defaults: dict | None = None,
+        cameras: list[dict] | None = None,
+        dupe_check: dict | None = None,
+    ) -> None:
         """Initialize the service."""
         self.hass: HomeAssistant = hass
-        self.last_notification: Notification | None = None  # noqa: F821
+        self.last_notification: Notification | None = None
         self.failures: int = 0
         self.sent: int = 0
         self.context = SupernotificationConfiguration(
             hass,
             deliveries,
-            links,
-            recipients,
+            links or [],
+            recipients or [],
             mobile_actions,
             template_path,
             media_path,
@@ -202,22 +205,22 @@ class SuperNotificationService(BaseNotificationService):
             cameras,
         )
         self.dupe_check_config: dict[str, Any] = dupe_check or {}
-        self.last_purge = None
-        self.notification_cache = TTLCache(
+        self.last_purge: dt.datetime | None = None
+        self.notification_cache: TTLCache = TTLCache(
             maxsize=self.dupe_check_config.get(CONF_SIZE, 100), ttl=self.dupe_check_config.get(CONF_TTL, 120)
         )
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         await self.context.initialize()
-        await self.context.register_delivery_methods(METHODS)
+        await self.context.register_delivery_methods(delivery_method_classes=METHODS)
 
-    def dupe_check(self, notification):
+    def dupe_check(self, notification: Notification) -> bool:
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
         if policy == ATTR_DUPE_POLICY_NONE:
             return False
         notification_hash = notification.hash()
         if notification.priority in PRIORITY_VALUES:
-            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority):]
+            same_or_higher_priority = PRIORITY_VALUES[PRIORITY_VALUES.index(notification.priority) :]
         else:
             same_or_higher_priority = [notification.priority]
         dupe = False
@@ -227,7 +230,9 @@ class SuperNotificationService(BaseNotificationService):
         self.notification_cache[(notification_hash, notification.priority)] = notification.id
         return dupe
 
-    async def async_send_message(self, message="", title=None, target=None, **kwargs) -> None:
+    async def async_send_message(
+        self, message: str = "", title: str | None = None, target: list | str | None = None, **kwargs
+    ) -> None:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
         notification = None
@@ -254,8 +259,10 @@ class SuperNotificationService(BaseNotificationService):
 
             self.last_notification = notification
             if self.context.archive.get(CONF_ENABLED):
-                notification.archive(self.context.archive.get(CONF_ARCHIVE_PATH))
-                self.cleanup_archive()
+                archive_path: str | None = self.context.archive.get(CONF_ARCHIVE_PATH)
+                if archive_path:
+                    notification.archive(Path(archive_path))
+                    self.cleanup_archive()
 
             _LOGGER.debug(
                 "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
@@ -268,14 +275,14 @@ class SuperNotificationService(BaseNotificationService):
             self.failures += 1
             self.hass.states.async_set("%s.failures" % DOMAIN, self.failures)
 
-    def archive_size(self):
+    def archive_size(self) -> int:
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
-        if path and os.path.exists(path):
+        if path and Path(path).exists():
             return len(os.listdir(path))
 
         return 0
 
-    def cleanup_archive(self, days=None, force=False):
+    def cleanup_archive(self, days: int | None = None, force: bool = False) -> int:
         if (
             not force
             and self.last_purge is not None
@@ -288,13 +295,13 @@ class SuperNotificationService(BaseNotificationService):
         cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
         cutoff = cutoff.astimezone(dt.UTC)
         purged = 0
-        if path and os.path.exists(path):
+        if path and Path(path).exists():
             try:
                 with os.scandir(path) as archive:
                     for entry in archive:
                         if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
                             _LOGGER.debug("SUPERNOTIFY Purging %s", entry.path)
-                            os.remove(entry.path)
+                            Path(entry.path).unlink()
                             purged += 1
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=True)
@@ -304,15 +311,11 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.debug("SUPERNOTIFY Skipping archive purge for unknown path %s", path)
         return purged
 
-    def setup_condition_inputs(self, field, value):
+    def setup_condition_inputs(self, field: str, value: Any) -> None:
         self.hass.states.async_set(f"{DOMAIN}.{field}", value)
 
-    def enquire_deliveries_by_scenario(self):
+    def enquire_deliveries_by_scenario(self) -> dict[str, list[Scenario]]:
         return self.context.delivery_by_scenario
 
-    async def enquire_active_scenarios(self):
-        scenarios = []
-        for scenario in self.context.scenarios.values():
-            if await scenario.evaluate():
-                scenarios.append(scenario.name)
-        return scenarios
+    async def enquire_active_scenarios(self) -> list[str]:
+        return [s.name for s in self.context.scenarios.values() if await s.evaluate()]

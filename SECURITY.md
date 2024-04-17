@@ -11,4 +11,3 @@
 ## Reporting a Vulnerability
 
 Report by raising an issue on the Github project, clearly labelled as `security`.
-

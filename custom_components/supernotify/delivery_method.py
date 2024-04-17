@@ -1,7 +1,10 @@
+# mypy: disable-error-code="name-defined"
+
 import logging
 import time
 from abc import abstractmethod
 from traceback import format_exception
+from typing import Any
 
 from homeassistant.components.notify import ATTR_TARGET
 from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
@@ -10,7 +13,6 @@ from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-from custom_components.supernotify.envelope import Envelope
 
 from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES
 
@@ -18,26 +20,26 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class DeliveryMethod:
-    method: str | None = None
+    method: str
     default_service: str | None = None
 
     @abstractmethod
-    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None):
-        self.hass = hass
-        self.context = context
-        self.default_delivery = None
-        self.valid_deliveries: dict[str, dict] | None = None
-        self.method_deliveries = (
+    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None) -> None:
+        self.hass: HomeAssistant = hass
+        self.context: SupernotificationConfiguration = context
+        self.default_delivery: dict | None = None
+        self.valid_deliveries: dict[str, dict] = {}
+        self.method_deliveries: dict[str, dict] = (
             {d: dc for d, dc in deliveries.items() if dc.get(CONF_METHOD) == self.method} if deliveries else {}
         )
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Async post-construction initialization"""
         if self.method is None:
             raise OSError("No delivery method configured")
         self.valid_deliveries = await self.validate_deliveries()
 
-    def validate_service(self, service) -> bool:
+    def validate_service(self, service: str | None) -> bool:
         """Override in subclass if delivery method has fixed service or doesn't require one"""
         return service is not None and service.startswith("notify.")
 
@@ -86,31 +88,33 @@ class DeliveryMethod:
         return valid_deliveries
 
     @abstractmethod
-    async def deliver(self, envelope: Envelope) -> bool:
-        """
-        Delivery implementation
+    async def deliver(self, envelope: "Envelope") -> bool:  # type: ignore # noqa: F821
+        """Delivery implementation
 
         Args:
+        ----
             envelope (Envelope): envelope to be delivered
+
         """
 
-    def select_target(self, target: str) -> bool:
-        """
-        Confirm if target appropriate for this delivery method
+    def select_target(self, target: str) -> bool:  # noqa: ARG002
+        """Confirm if target appropriate for this delivery method
 
         Args:
+        ----
             target (str): Target, typically an entity ID, or an email address, phone number
+
         """
         return True
 
-    def recipient_target(self, recipient: dict) -> list:
+    def recipient_target(self, recipient: dict) -> list:  # noqa: ARG002
         """Pick out delivery appropriate target from a person (recipient) config"""
         return []
 
     def delivery_config(self, delivery_name: str) -> dict:
         return self.context.deliveries.get(delivery_name) or self.default_delivery or {}
 
-    def combined_message(self, envelope, default_title_only=True):
+    def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
         config = self.delivery_config(envelope.delivery_name)
         if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
             return envelope.title
@@ -118,12 +122,12 @@ class DeliveryMethod:
             return f"{envelope.title} {envelope.message}"
         return envelope.message
 
-    def set_service_data(self, service_data, key, data):
+    def set_service_data(self, service_data: dict, key: str, data: Any | None) -> Any:
         if data is not None:
             service_data[key] = data
         return service_data
 
-    async def evaluate_delivery_conditions(self, delivery_config):
+    async def evaluate_delivery_conditions(self, delivery_config: dict) -> bool:
         if CONF_CONDITION not in delivery_config:
             return True
 
@@ -135,7 +139,12 @@ class DeliveryMethod:
             _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
             raise
 
-    async def call_service(self, envelope, qualified_service=None, service_data=None) -> bool:
+    async def call_service(
+        self,
+        envelope: "Envelope",  # noqa: F821
+        qualified_service: str | None = None,
+        service_data: dict | None = None,
+    ) -> bool:
         service_data = service_data or {}
         start_time = time.time()
         domain = service = None
@@ -163,7 +172,7 @@ class DeliveryMethod:
             envelope.delivery_error = format_exception(e)
             return False
 
-    def abs_url(self, fragment, prefer_external=True):
+    def abs_url(self, fragment: str | None, prefer_external: bool = True) -> str | None:
         base_url = self.context.hass_external_url if prefer_external else self.context.hass_internal_url
         if fragment:
             if fragment.startswith("http"):

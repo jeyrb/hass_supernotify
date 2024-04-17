@@ -1,7 +1,7 @@
 {
     "domain":"supernotify",
     "name":"SuperNotifier",
-    "version":"0.3.0",
+    "version":"0.4.0",
     "dependencies":[],
     "requirements":[
     ],
@@ -11,5 +11,5 @@
     "documentation": "https://github.com/jeyrb/hass_supernotify",
     "issue_tracker": "https://github.com/jeyrb/hass_supernotify/issues",
     "codeowners":["@jey"]
-    
+
     }

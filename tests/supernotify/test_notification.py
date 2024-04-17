@@ -1,3 +1,5 @@
+import tempfile
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from homeassistant.const import CONF_EMAIL, CONF_ENTITIES, CONF_SERVICE
@@ -31,10 +33,10 @@ from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
 
 
-async def test_simple_create(hass: HomeAssistant) -> None:
+async def test_simple_create() -> None:
     context = Mock()
     context.scenarios = {}
-    context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
+    context.deliveries = {"plain_email": {}, "mobile": {"title": "mobile notification"}, "chime": {}}
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
     uut = Notification(context, "testing 123")
     await uut.initialize()
@@ -42,6 +44,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert uut.requested_scenarios == []
     assert uut.target == []
     assert uut.message("plain_email") == "testing 123"
+    assert uut.title("mobile") == "mobile notification"
     assert uut.priority == "medium"
     assert uut.delivery_overrides == {}
     assert uut.delivery_selection == DELIVERY_SELECTION_IMPLICIT
@@ -49,7 +52,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert uut.selected_delivery_names == unordered(["plain_email", "mobile"])
 
 
-async def test_explicit_delivery(hass: HomeAssistant) -> None:
+async def test_explicit_delivery() -> None:
     context = Mock()
     context.scenarios = {}
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
@@ -62,7 +65,7 @@ async def test_explicit_delivery(hass: HomeAssistant) -> None:
     assert uut.selected_delivery_names == ["mobile"]
 
 
-async def test_scenario_delivery(hass: HomeAssistant) -> None:
+async def test_scenario_delivery() -> None:
     context = Mock()
     context.scenarios = {}
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
@@ -72,7 +75,7 @@ async def test_scenario_delivery(hass: HomeAssistant) -> None:
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
 
 
-async def test_explicit_list_of_deliveries(hass: HomeAssistant) -> None:
+async def test_explicit_list_of_deliveries() -> None:
     context = Mock()
     context.scenarios = {}
     context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
@@ -82,8 +85,7 @@ async def test_explicit_list_of_deliveries(hass: HomeAssistant) -> None:
     assert uut.selected_delivery_names == ["mobile"]
 
 
-async def test_generate_recipients_from_entities(mock_hass, superconfig) -> None:
-
+async def test_generate_recipients_from_entities(mock_hass: HomeAssistant, superconfig: SupernotificationConfiguration) -> None:
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
@@ -99,8 +101,9 @@ async def test_generate_recipients_from_entities(mock_hass, superconfig) -> None
     assert recipients == [{"target": "custom.light_1"}, {"target": "custom.switch_2"}]
 
 
-async def test_generate_recipients_from_recipients(mock_hass, superconfig) -> None:
-
+async def test_generate_recipients_from_recipients(
+    mock_hass: HomeAssistant, superconfig: SupernotificationConfiguration
+) -> None:
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
@@ -116,8 +119,9 @@ async def test_generate_recipients_from_recipients(mock_hass, superconfig) -> No
     assert recipients == ["custom.light_1", "custom.switch_2"]
 
 
-async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssistant, superconfig) -> None:
-
+async def test_explicit_recipients_only_restricts_people_targets(
+    hass: HomeAssistant, superconfig: SupernotificationConfiguration
+) -> None:
     delivery = {
         "chatty": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.slackity", CONF_TARGET: ["chan1", "chan2"]},
         "mail": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
@@ -139,7 +143,7 @@ async def test_explicit_recipients_only_restricts_people_targets(hass: HomeAssis
     assert bundles == [Envelope("mail", uut, targets=["bob@test.com", "jane@test.com"])]
 
 
-async def test_filter_recipients(mock_hass) -> None:
+async def test_filter_recipients(mock_hass: HomeAssistant) -> None:
     hass_states = {"person.new_home_owner": Mock(state="not_home"), "person.bidey_in": Mock(state="home")}
     mock_hass.states.get = hass_states.get
     context = SupernotificationConfiguration(
@@ -159,8 +163,7 @@ async def test_filter_recipients(mock_hass) -> None:
     assert {r["person"] for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
 
 
-async def test_build_targets_for_simple_case(hass: HomeAssistant, superconfig) -> None:
-
+async def test_build_targets_for_simple_case(hass: HomeAssistant, superconfig: SupernotificationConfiguration) -> None:
     method = GenericDeliveryMethod(hass, superconfig, {})
     await method.initialize()
     uut = Notification(superconfig, "testing 123")
@@ -189,7 +192,7 @@ async def test_snapshot_url(hass: HomeAssistant) -> None:
     context.media_path = "/nosuchpath"
     uut = Notification(context, "testing 123", service_data={CONF_MEDIA: {ATTR_MEDIA_SNAPSHOT_URL: "/my_local_image"}})
     await uut.initialize()
-    original_image_path = "/tmp/image_a.jpg"
+    original_image_path: Path = Path(tempfile.gettempdir()) / "image_a.jpg"
     with patch(
         "custom_components.supernotify.notification.snapshot_from_url", return_value=original_image_path
     ) as mock_snapshot:
@@ -214,7 +217,7 @@ async def test_camera_entity(hass: HomeAssistant) -> None:
     context.media_path = "/nosuchpath"
     uut = Notification(context, "testing 123", service_data={CONF_MEDIA: {ATTR_MEDIA_CAMERA_ENTITY_ID: "camera.lobby"}})
     await uut.initialize()
-    original_image_path = "/tmp/image_a.jpg"
+    original_image_path: Path = Path(tempfile.gettempdir()) / "image_b.jpg"
     with patch("custom_components.supernotify.notification.snap_camera", return_value=original_image_path) as mock_snap_cam:
         retrieved_image_path = await uut.grab_image("example")
         assert retrieved_image_path == original_image_path
@@ -226,7 +229,7 @@ async def test_camera_entity(hass: HomeAssistant) -> None:
         mock_snap_cam.assert_not_called()
 
 
-async def test_merge(mock_hass):
+async def test_merge(mock_hass: HomeAssistant):
     context = Mock()
     context.scenarios = {
         "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_hass)

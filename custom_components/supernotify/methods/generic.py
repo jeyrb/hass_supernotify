@@ -14,17 +14,16 @@ class GenericDeliveryMethod(DeliveryMethod):
 
     method = METHOD_GENERIC
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service) -> bool:
+    def validate_service(self, service: str | None) -> bool:
         if service is not None and "." in service:
             return True
         _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
         return False
 
     async def deliver(self, envelope: Envelope) -> bool:
-
         data = envelope.data or {}
         targets = envelope.targets or []
         config = self.delivery_config(envelope.delivery_name)

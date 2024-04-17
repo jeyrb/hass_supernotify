@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components import image
@@ -36,7 +37,7 @@ class DummyDeliveryMethod(DeliveryMethod):
 class BrokenDeliveryMethod(DeliveryMethod):
     method = "broken"
 
-    def validate_service(self, service):
+    def validate_service(self, service) -> bool:
         return True
 
     async def deliver(self, envelope: Envelope) -> bool:
@@ -56,11 +57,10 @@ class MockService(BaseNotificationService):
 
 
 class MockImageEntity(image.ImageEntity):
-
     _attr_name = "Test"
 
     def __init__(self, filename):
-        self.bytes = open(filename, "rb").read()
+        self.bytes = Path(filename).open("rb").read()
 
     async def async_added_to_hass(self):
         self._attr_image_last_updated = dt_util.utcnow()

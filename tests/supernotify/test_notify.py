@@ -1,12 +1,13 @@
 import json
-import os.path
 import tempfile
 import time
+from pathlib import Path
 from typing import cast
 from unittest.mock import Mock, patch
 
+import aiofiles
 from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENABLED, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 
 from custom_components.supernotify import (
     ATTR_DUPE_POLICY_NONE,
@@ -41,7 +42,7 @@ from custom_components.supernotify.notify import SuperNotificationService
 
 from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
-DELIVERY = {
+DELIVERY: dict[str, dict] = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
     "text": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.sms"},
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
@@ -67,14 +68,14 @@ RECIPIENTS: list[dict] = [
     {"person": "person.bidey_in", CONF_PHONE_NUMBER: "+4489393013834", CONF_DELIVERY: {"dummy": {CONF_TARGET: ["abc789"]}}},
 ]
 
-METHOD_DEFAULTS = {
+METHOD_DEFAULTS: dict[str, dict] = {
     METHOD_GENERIC: {CONF_SERVICE: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
     METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_args": {"progressive": True}}},
     "dummy": {CONF_TARGETS_REQUIRED: False},
 }
 
 
-async def test_send_message_with_scenario_mismatch(mock_hass) -> None:
+async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
     uut = SuperNotificationService(
         mock_hass,
         deliveries=DELIVERY,
@@ -116,7 +117,7 @@ async def inject_dummy_delivery_method(
     return dm
 
 
-async def test_recipient_delivery_data_override(mock_hass) -> None:
+async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     dummy: DummyDeliveryMethod = cast(
@@ -136,7 +137,7 @@ async def test_recipient_delivery_data_override(mock_hass) -> None:
     ]
 
 
-async def test_broken_delivery(mock_hass) -> None:
+async def test_broken_delivery(mock_hass: HomeAssistant) -> None:
     delivery_config = {"broken": {CONF_METHOD: "broken"}}
     uut = SuperNotificationService(
         mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS
@@ -157,14 +158,14 @@ async def test_broken_delivery(mock_hass) -> None:
     assert notification.undelivered_envelopes[0].delivery_error[3] == "OSError: a self-inflicted error has occurred\n"
 
 
-async def test_null_delivery(mock_hass) -> None:
+async def test_null_delivery(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()
     await uut.async_send_message("just a test")
     mock_hass.services.async_call.assert_not_called()
 
 
-async def test_archive(mock_hass) -> None:
+async def test_archive(mock_hass: HomeAssistant) -> None:
     with tempfile.TemporaryDirectory() as archive:
         uut = SuperNotificationService(
             mock_hass,
@@ -177,16 +178,17 @@ async def test_archive(mock_hass) -> None:
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
         assert uut.last_notification is not None
-        obj_name = os.path.join(archive, f"{uut.last_notification.created.isoformat()[:16]}_{uut.last_notification.id}.json")
-        assert os.path.exists(obj_name)
-        with open(obj_name) as stream:
-            reobj = json.load(stream)
+        obj_path: Path = Path(archive) / f"{uut.last_notification.created.isoformat()[:16]}_{uut.last_notification.id}.json"
+        assert obj_path.exists()
+        async with aiofiles.open(obj_path, mode="r") as stream:
+            blob: str = "".join(await stream.readlines())
+            reobj = json.loads(blob)
         assert reobj["_message"] == "just a test"
         assert reobj["target"] == ["person.bob"]
         assert len(reobj["delivered_envelopes"]) == 5
 
 
-async def test_cleanup_archive(mock_hass) -> None:
+async def test_cleanup_archive(mock_hass: HomeAssistant) -> None:
     archive = "config/archive/test"
     uut = SuperNotificationService(mock_hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_DAYS: 7, CONF_ARCHIVE_PATH: archive})
     await uut.initialize()
@@ -207,19 +209,19 @@ async def test_cleanup_archive(mock_hass) -> None:
     assert first_purge == uut.last_purge
 
 
-async def test_archive_size(mock_hass):
+async def test_archive_size(mock_hass: HomeAssistant):
     with tempfile.TemporaryDirectory() as tmp_path:
         uut = SuperNotificationService(
             mock_hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_DAYS: 7, CONF_ARCHIVE_PATH: tmp_path}
         )
         await uut.initialize()
         assert uut.archive_size() == 0
-        with open(os.path.join(tmp_path, "test.foo"), "w") as f:
-            f.write("{}")
+        async with aiofiles.open(Path(tmp_path) / "test.foo", mode="w") as f:
+            await f.write("{}")
         assert uut.archive_size() == 1
 
 
-async def test_fallback_delivery(mock_hass) -> None:
+async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(
         mock_hass,
         deliveries={
@@ -260,7 +262,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     calls_service_data = []
 
     @callback
-    def mock_service_log(call):
+    def mock_service_log(call: ServiceCall):
         calls_service_data.append(call.data)
 
     hass.services.async_register(
@@ -288,7 +290,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     assert calls_service_data == [{"test": "unit"}]
 
 
-async def test_dupe_check_suppresses_same_priority_and_message(mock_hass) -> None:
+async def test_dupe_check_suppresses_same_priority_and_message(mock_hass: HomeAssistant) -> None:
     context = Mock()
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()
@@ -298,7 +300,7 @@ async def test_dupe_check_suppresses_same_priority_and_message(mock_hass) -> Non
     assert uut.dupe_check(n2) is True
 
 
-async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass) -> None:
+async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass: HomeAssistant) -> None:
     context = Mock()
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()

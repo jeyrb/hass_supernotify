@@ -20,5 +20,14 @@
     "python.analysis.inlayHints.callArgumentNames": "all",
     "python.analysis.inlayHints.functionReturnTypes": true,
     "python.analysis.inlayHints.pytestParameters": true,
-    "python.analysis.inlayHints.variableTypes": true
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.analysis.exclude": [
+        ".git",
+        ".venv",
+        "**/__pycache__"
+    ],
+    "python.analysis.typeCheckingMode": "standard",
+    "pythonautovenv.autoInstallVenv": true,
+    "ruff.showNotifications": "onError",
+    "ruff.ignoreStandardLibrary": false
 }

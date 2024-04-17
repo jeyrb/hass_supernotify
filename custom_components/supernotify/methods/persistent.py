@@ -11,10 +11,10 @@ class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
     default_service = "notify.persistent_notification"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service) -> bool:
+    def validate_service(self, service: str | None) -> bool:
         return service is None
 
     async def deliver(self, envelope: Envelope) -> bool:

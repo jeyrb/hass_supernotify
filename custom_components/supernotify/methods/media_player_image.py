@@ -15,17 +15,16 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
     default_service = "media_player.play_media"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target) is not None
 
-    def validate_service(self, service):
+    def validate_service(self, service: str | None) -> bool:
         return service is None or service == "media_player.play_media"
 
     async def deliver(self, envelope: Envelope) -> bool:
-
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
 
         data = envelope.data or {}

@@ -1,3 +1,6 @@
+from collections.abc import Generator
+from ssl import SSLContext
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -7,7 +10,7 @@ from pytest_httpserver import HTTPServer
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_hass() -> HomeAssistant:
     hass = Mock()
     hass.states = Mock()
@@ -18,16 +21,16 @@ def mock_hass() -> HomeAssistant:
     return hass
 
 
-@pytest.fixture
+@pytest.fixture()
 async def superconfig() -> SupernotificationConfiguration:
     context = SupernotificationConfiguration()
     await context.initialize()
     return context
 
 
-@pytest.fixture
-@pytest.mark.enable_socket
-def local_server(httpserver_ssl_context: None, socket_enabled):
+@pytest.fixture()
+@pytest.mark.enable_socket()
+def local_server(httpserver_ssl_context: SSLContext | None, socket_enabled: Any) -> Generator[HTTPServer, None, None]:
     """pytest-socket will fail at fixture creation time, before test that uses it"""
     server = HTTPServer(host="127.0.0.1", port=0, ssl_context=httpserver_ssl_context)
     server.start()
@@ -38,9 +41,9 @@ def local_server(httpserver_ssl_context: None, socket_enabled):
 
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
+def auto_enable_custom_integrations(enable_custom_integrations: Any) -> None:
     """Enable custom integrations in all tests."""
-    yield
+    return
 
 
 # This fixture is used to prevent HomeAssistant from attempting to create and dismiss persistent
@@ -51,7 +54,8 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 @pytest.fixture(name="skip_notifications", autouse=True)
 def skip_notifications_fixture():
     """Skip notification calls."""
-    with patch("homeassistant.components.persistent_notification.async_create"), patch(
-        "homeassistant.components.persistent_notification.async_dismiss"
+    with (
+        patch("homeassistant.components.persistent_notification.async_create"),
+        patch("homeassistant.components.persistent_notification.async_dismiss"),
     ):
         yield

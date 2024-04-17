@@ -1,4 +1,5 @@
 import pytest
+from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify import (
     ATTR_PRIORITY,
@@ -15,7 +16,7 @@ from custom_components.supernotify.methods.mobile_push import MobilePushDelivery
 from custom_components.supernotify.notification import Notification
 
 
-async def test_on_notify_mobile_push_with_media(mock_hass) -> None:
+async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration()
 
@@ -62,7 +63,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass) -> None:
     )
 
 
-async def test_on_notify_mobile_push_with_explicit_target(mock_hass) -> None:
+async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration()
 
@@ -81,7 +82,7 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass) -> None:
     )
 
 
-async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass) -> None:
+async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration(
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
@@ -95,7 +96,7 @@ async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass) -> N
     assert recipients[0]["mobile_devices"][0]["notify_service"] == "mobile_app_test_user_iphone"
 
 
-async def test_on_notify_mobile_push_with_critical_priority(mock_hass) -> None:
+async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration(
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
@@ -125,7 +126,7 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass) -> None:
 
 
 @pytest.mark.parametrize("priority", PRIORITY_VALUES)
-async def test_priority_interpretation(mock_hass, superconfig, priority):
+async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, priority):
     priority_map = {
         PRIORITY_CRITICAL: "critical",
         PRIORITY_HIGH: "time-sensitive",

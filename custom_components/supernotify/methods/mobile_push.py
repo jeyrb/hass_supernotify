@@ -1,7 +1,7 @@
 import logging
 import re
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from homeassistant.components.notify.const import ATTR_DATA
 
@@ -30,19 +30,19 @@ _LOGGER = logging.getLogger(__name__)
 class MobilePushDeliveryMethod(DeliveryMethod):
     method = METHOD_MOBILE_PUSH
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.action_titles = {}
+        self.action_titles: dict[str, str] = {}
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_MOBILE_APP, target) is not None
 
-    def validate_service(self, service) -> bool:
+    def validate_service(self, service: str | None) -> bool:
         return service is None
 
-    def recipient_target(self, recipient):
+    def recipient_target(self, recipient: dict) -> list[str]:
         if CONF_PERSON in recipient:
-            services = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            services: list[str] = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))
         return []
 
@@ -50,9 +50,10 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         if url in self.action_titles:
             return self.action_titles[url]
         try:
-            resp = requests.get(url, allow_redirects=True, timeout=5)
+            async with httpx.AsyncClient() as client:
+                resp: httpx.Response = await client.get(url, follow_redirects=True, timeout=5)
             html = BeautifulSoup(resp.text)
-            if html.title:
+            if html.title and html.title.string:
                 self.action_titles[url] = html.title.string
                 return html.title.string
         except Exception as e:
@@ -60,9 +61,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         return None
 
     async def deliver(self, envelope: Envelope) -> bool:
-
         data = envelope.data or {}
-        app_url = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
+        app_url: str | None = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
         if app_url:
             app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE) or self.action_title(app_url) or "Click for Action"
         else:
@@ -74,8 +74,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
 
         media = envelope.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
-        clip_url = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
-        snapshot_url = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
+        clip_url: str | None = self.abs_url(media.get(ATTR_MEDIA_CLIP_URL))
+        snapshot_url: str | None = self.abs_url(media.get(ATTR_MEDIA_SNAPSHOT_URL))
         # options = data.get(CONF_OPTIONS, {})
 
         match envelope.priority:
@@ -115,14 +115,12 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["url"] = app_url
             data["actions"].append({"action": "URI", "title": app_url_title, "uri": app_url})
         if camera_entity_id:
-            # TODO generalize and add the actual action
-            data["actions"].append(
-                {
-                    "action": "silence-%s" % camera_entity_id,
-                    "title": "Stop camera notifications for %s" % camera_entity_id,
-                    "destructive": "true",
-                }
-            )
+            # TODO: generalize and add the actual action
+            data["actions"].append({
+                "action": "silence-%s" % camera_entity_id,
+                "title": "Stop camera notifications for %s" % camera_entity_id,
+                "destructive": "true",
+            })
         for group, actions in self.context.mobile_actions.items():
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import inspect
 import logging
-import os.path
 import socket
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_METHOD, CONF_NAME
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
 from homeassistant.util import slugify
@@ -34,6 +32,11 @@ from . import (
 )
 from .scenario import Scenario
 
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+    from custom_components.supernotify.delivery_method import DeliveryMethod
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -41,17 +44,17 @@ class SupernotificationConfiguration:
     def __init__(
         self,
         hass: HomeAssistant | None = None,
-        deliveries=None,
-        links=(),
-        recipients=(),
-        mobile_actions=None,
-        template_path=None,
-        media_path=None,
-        archive=None,
-        scenarios=None,
-        method_defaults=None,
-        cameras=None,
-    ):
+        deliveries: dict | None = None,
+        links: list | None = None,
+        recipients: list | None = None,
+        mobile_actions: dict | None = None,
+        template_path: str | None = None,
+        media_path: str | None = None,
+        archive: dict | None = None,
+        scenarios: dict[str, dict] | None = None,
+        method_defaults: dict | None = None,
+        cameras: list[dict] | None = None,
+    ) -> None:
         self.hass: HomeAssistant | None = None
         if hass:
             self.hass = hass
@@ -89,12 +92,12 @@ class SupernotificationConfiguration:
         self.deliveries: dict = {}
         self._recipients: list = ensure_list(recipients)
         self.mobile_actions: dict = mobile_actions or {}
-        self.template_path: str | None = template_path
-        self.media_path: str | None = media_path
-        self.archive: dict = archive or {}
+        self.template_path: Path | None = Path(template_path) if template_path else None
+        self.media_path: Path | None = Path(media_path) if media_path else None
+        self.archive: dict[str, Any] = archive or {}
         self.archive.setdefault(CONF_ENABLED, False)
         self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
-        self.methods: dict = {}
+        self.methods: dict[str, DeliveryMethod] = {}
         self.method_defaults: dict = method_defaults or {}
         self.scenarios: dict[str, Scenario] = {}
         self.people: dict[str, Any] = {}
@@ -112,25 +115,25 @@ class SupernotificationConfiguration:
                 if await scenario.validate():
                     self.scenarios[scenario_name] = scenario
 
-        if self.template_path and not os.path.exists(self.template_path):
+        if self.template_path and not self.template_path.exists():
             _LOGGER.warning("SUPERNOTIFY template path not found at %s", self.template_path)
             self.template_path = None
 
-        if self.media_path and not os.path.exists(self.media_path):
+        if self.media_path and not self.media_path.exists():
             _LOGGER.info("SUPERNOTIFY media path not found at %s", self.media_path)
             try:
-                os.makedirs(self.media_path)
+                self.media_path.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY media path %s cannot be created: %s", self.media_path, e)
                 self.media_path = None
         if self.media_path is not None:
-            _LOGGER.info("SUPERNOTIFY abs media path: %s", os.path.abspath(self.media_path))
-        if self.archive:
-            archive_path = self.archive.get(CONF_ARCHIVE_PATH)
-            if archive_path and not os.path.exists(archive_path):
+            _LOGGER.info("SUPERNOTIFY abs media path: %s", self.media_path.absolute())
+        if self.archive and self.archive.get(CONF_ARCHIVE_PATH):
+            archive_path: Path = Path(cast(str, self.archive.get(CONF_ARCHIVE_PATH)))
+            if archive_path and not archive_path.exists():
                 _LOGGER.info("SUPERNOTIFY archive path not found at %s", archive_path)
                 try:
-                    os.makedirs(archive_path)
+                    archive_path.mkdir(parents=True, exist_ok=True)
                 except Exception as e:
                     _LOGGER.warning("SUPERNOTIFY archive path %s cannot be created: %s", self.archive.get(CONF_ARCHIVE_PATH), e)
                     self.archive[CONF_ENABLED] = False
@@ -159,11 +162,11 @@ class SupernotificationConfiguration:
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])
             if scenario.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
-                scenario_deliveries = list(default_deliveries.keys())
+                scenario_deliveries: list[str] = list(default_deliveries.keys())
             else:
                 scenario_deliveries = []
             scenario_definition_delivery = scenario.delivery
-            scenario_deliveries.extend(s for s in scenario_definition_delivery.keys() if s not in scenario_deliveries)
+            scenario_deliveries.extend(s for s in scenario_definition_delivery if s not in scenario_deliveries)
 
             for scenario_delivery in scenario_deliveries:
                 if safe_get(scenario_definition_delivery.get(scenario_delivery), CONF_ENABLED, True):
@@ -171,15 +174,23 @@ class SupernotificationConfiguration:
 
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
 
-    async def register_delivery_methods(self, delivery_methods, set_as_default=False):
+    async def register_delivery_methods(
+        self,
+        delivery_methods: list[DeliveryMethod] | None = None,
+        delivery_method_classes: list[type[DeliveryMethod]] | None = None,
+        set_as_default: bool = False,
+    ) -> None:
         """Available directly for test fixtures supplying class or instance"""
-        for delivery_method in delivery_methods:
-            if inspect.isclass(delivery_method):
-                self.methods[delivery_method.method] = delivery_method(self.hass, self, self._deliveries)
-            else:
+        if delivery_methods:
+            for delivery_method in delivery_methods:
                 self.methods[delivery_method.method] = delivery_method
-            await self.methods[delivery_method.method].initialize()
-            self.deliveries.update(self.methods[delivery_method.method].valid_deliveries)
+                await self.methods[delivery_method.method].initialize()
+                self.deliveries.update(self.methods[delivery_method.method].valid_deliveries)
+        if delivery_method_classes and self.hass:
+            for delivery_method_class in delivery_method_classes:
+                self.methods[delivery_method_class.method] = delivery_method_class(self.hass, self, self._deliveries)
+                await self.methods[delivery_method_class.method].initialize()
+                self.deliveries.update(self.methods[delivery_method_class.method].valid_deliveries)
 
         for d, dc in self.deliveries.items():
             if dc.get(CONF_METHOD) not in self.methods:
@@ -189,7 +200,7 @@ class SupernotificationConfiguration:
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
 
-    def set_method_default(self, delivery_config, attr):
+    def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
         if not delivery_config.get(attr):
             method_default = self.method_defaults.get(delivery_config.get(CONF_METHOD), {})
             if method_default.get(attr):
@@ -198,11 +209,12 @@ class SupernotificationConfiguration:
                     "SUPERNOTIFY Defaulting delivery %s to %s %s", delivery_config[CONF_NAME], attr, delivery_config[attr]
                 )
 
-    def delivery_method(self, delivery: str) -> DeliveryMethod:  # type: ignore  # noqa: F821
+    def delivery_method(self, delivery: str) -> DeliveryMethod:
         method_name = self.deliveries.get(delivery, {}).get(CONF_METHOD)
-        if not method_name:
+        method: DeliveryMethod | None = self.methods.get(method_name)
+        if not method:
             raise ValueError("SUPERNOTIFY No method for delivery %s" % delivery)
-        return self.methods.get(method_name)
+        return method
 
     def setup_people(self, recipients: list | tuple) -> dict[str, dict]:
         dev_reg = ent_reg = None
@@ -224,11 +236,11 @@ class SupernotificationConfiguration:
             people[r[CONF_PERSON]] = r
         return people
 
-    def people_state(self):
+    def people_state(self) -> list[dict]:
         results = []
         if self.hass:
             for person, person_config in self.people.items():
-                # TODO possibly rate limit this
+                # TODO: possibly rate limit this
                 try:
                     tracker = self.hass.states.get(person)
                     if tracker is None:
@@ -246,7 +258,6 @@ class SupernotificationConfiguration:
         dev_reg: device_registry.DeviceRegistry | None = None,
         ent_reg: entity_registry.EntityRegistry | None = None,
     ) -> list:
-
         mobile_devices = []
         person_state = self.hass.states.get(person_entity_id) if self.hass else None
         if not person_state or not ent_reg or not dev_reg:
@@ -257,12 +268,10 @@ class SupernotificationConfiguration:
                 if entity and entity.platform == "mobile_app" and entity.device_id:
                     device = dev_reg.async_get(entity.device_id)
                     if device:
-                        mobile_devices.append(
-                            {
-                                CONF_MANUFACTURER: device.manufacturer,
-                                CONF_MODEL: device.model,
-                                CONF_NOTIFY_SERVICE: "mobile_app_%s" % slugify(device.name),
-                                CONF_DEVICE_TRACKER: d_t,
-                            }
-                        )
+                        mobile_devices.append({
+                            CONF_MANUFACTURER: device.manufacturer,
+                            CONF_MODEL: device.model,
+                            CONF_NOTIFY_SERVICE: "mobile_app_%s" % slugify(device.name),
+                            CONF_DEVICE_TRACKER: d_t,
+                        })
         return mobile_devices

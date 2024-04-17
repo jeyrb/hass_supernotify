@@ -11,6 +11,3 @@ purge_archive:
         number:
           min: 0
           unit_of_measurement: days
-
-
-

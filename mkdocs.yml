@@ -11,7 +11,7 @@ theme:
   features:
     - content.code.copy
     - content.code.select
-    - content.code.annotate 
+    - content.code.annotate
 plugins:
   - search
   - mkdocstrings:
@@ -35,5 +35,3 @@ markdown_extensions:
   - sane_lists
   - pymdownx.snippets:
       check_paths: true
-
-

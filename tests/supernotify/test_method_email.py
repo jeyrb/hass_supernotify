@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
 
 from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
@@ -117,7 +119,7 @@ async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:
         },
     )
     await notification.initialize()
-    notification.snapshot_image_path = "/local/picture.jpg"
+    notification.snapshot_image_path = Path("/local/picture.jpg")
     await uut.deliver(Envelope("", notification, targets=notification.target))
     mock_hass.services.async_call.assert_called_with(
         "notify",

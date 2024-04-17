@@ -1,7 +1,10 @@
+# mypy: disable-error-code="name-defined"
+
 import copy
 import logging
 import time
 import typing
+from pathlib import Path
 from typing import Any
 
 from . import ATTR_TIMESTAMP, CONF_MESSAGE, CONF_TITLE, PRIORITY_MEDIUM
@@ -12,8 +15,14 @@ _LOGGER = logging.getLogger(__name__)
 class Envelope:
     """Wrap a notification with a specific set of targets and service data possibly customized for those targets"""
 
-    def __init__(self, delivery_name: str, notification=None, targets=None, data=None):
-        self.targets = targets or []
+    def __init__(
+        self,
+        delivery_name: str,
+        notification: "Notification | None" = None,  # noqa: F821
+        targets: list | None = None,
+        data: dict | None = None,
+    ) -> None:
+        self.targets: list = targets or []
         self.delivery_name: str = delivery_name
         self._notification = notification
         self.actions: dict[str, Any] = {}
@@ -48,7 +57,7 @@ class Envelope:
         self.failed_calls: list = []
         self.delivery_error: list[str] | None = None
 
-    async def grab_image(self) -> str | None:
+    async def grab_image(self) -> Path | None:
         """Grab an image from a camera, snapshot URL, MQTT Image etc"""
         if self._notification:
             return await self._notification.grab_image(self.delivery_name)
@@ -61,10 +70,7 @@ class Envelope:
         data[CONF_MESSAGE] = self.message or ""
         timestamp = self.data.get(ATTR_TIMESTAMP)
         if timestamp:
-            data[CONF_MESSAGE] = "{} [{}]".format(
-                data[CONF_MESSAGE],
-                time.strftime(timestamp, time.localtime()),
-            )
+            data[CONF_MESSAGE] = f"{data[CONF_MESSAGE]} [{time.strftime(timestamp, time.localtime())}]"
         if self.title:
             data[CONF_TITLE] = self.title
         return data
@@ -73,12 +79,11 @@ class Envelope:
         exclude_attrs = ["_notification"]
         if minimal:
             exclude_attrs.extend("resolved")
-        sanitized = {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
-        return sanitized
+        return {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any | None) -> bool:
         """Specialized equality check for subset of attributesfl"""
-        if not isinstance(other, Envelope):
+        if other is None or not isinstance(other, Envelope):
             return False
         return (
             self.targets == other.targets

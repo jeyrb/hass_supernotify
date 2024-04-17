@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 
@@ -16,29 +17,29 @@ class SMSDeliveryMethod(DeliveryMethod):
     method = METHOD_SMS
     DEFAULT_TITLE_ONLY = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def select_target(self, target) -> bool:
+    def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_PHONE, target) is not None
 
-    def recipient_target(self, recipient):
+    def recipient_target(self, recipient: dict) -> list[str]:
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
 
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.debug("SUPERNOTIFY notify_sms: %s", envelope.delivery_name)
 
-        data = envelope.data or {}
+        data: dict[str, Any] = envelope.data or {}
         mobile_numbers = envelope.targets or []
 
-        message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
+        message: str | None = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
+        if not message:
+            _LOGGER.warning("SUPERNOTIFY notify_sms: No message to send")
+            return False
 
-        service_data = {
-            "message": message[:158],
-            ATTR_TARGET: mobile_numbers
-        }
+        service_data = {"message": message[:158], ATTR_TARGET: mobile_numbers}
         if data and data.get("data"):
-            service_data[ATTR_DATA] = data.get("data")
+            service_data[ATTR_DATA] = data.get("data", {})
 
         return await self.call_service(envelope, service_data=service_data)

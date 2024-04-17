@@ -1,10 +1,9 @@
 import asyncio
 import io
 import logging
-import os
-import os.path
 import time
 from http import HTTPStatus
+from pathlib import Path
 
 from aiohttp import ClientTimeout
 from homeassistant.const import STATE_HOME
@@ -23,13 +22,20 @@ from custom_components.supernotify import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def snapshot_from_url(hass, snapshot_url, notification_id, media_path, hass_base_url, timeout=15, jpeg_args=None):
-
-    image_path = None
+async def snapshot_from_url(
+    hass: HomeAssistant,
+    snapshot_url: str,
+    notification_id: str,
+    media_path: Path,
+    hass_base_url: str | None,
+    timeout: int = 15,
+    jpeg_args: dict | None = None,
+) -> Path | None:
     hass_base_url = hass_base_url or ""
     try:
-        media_dir = os.path.join(media_path, "snapshot")
-        os.makedirs(media_dir, exist_ok=True)
+        media_dir: Path = Path(media_path) / "snapshot"
+        media_dir.mkdir(parents=True, exist_ok=True)
+
         if snapshot_url.startswith("http"):
             image_url = snapshot_url
         else:
@@ -49,11 +55,11 @@ async def snapshot_from_url(hass, snapshot_url, notification_id, media_path, has
                 _LOGGER.info("SUPERNOTIFY Unexpected MIME type %s from snap of %s", r.content_type, image_url)
                 media_ext = "img"
 
-            # TODO configure image rewrite
-            image_path = os.path.join(media_dir, f"{notification_id}.{media_ext}")
+            # TODO: configure image rewrite
+            image_path: Path = Path(media_dir) / f"{notification_id}.{media_ext}"
             image = Image.open(io.BytesIO(await r.content.read()))
             # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
-            clean_image = Image.new(image.mode, image.size)
+            clean_image: Image.Image = Image.new(image.mode, image.size)
             clean_image.putdata(image.getdata())
             if media_ext == "jpg" and jpeg_args:
                 clean_image.save(image_path, **jpeg_args)
@@ -63,9 +69,12 @@ async def snapshot_from_url(hass, snapshot_url, notification_id, media_path, has
             return image_path
     except Exception as e:
         _LOGGER.error("SUPERNOTIFY Image snap fail: %s", e)
+    return None
 
 
-async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, method=PTZ_METHOD_ONVIF):
+async def move_camera_to_ptz_preset(
+    hass: HomeAssistant, camera_entity_id: str, preset: str | int, method: str = PTZ_METHOD_ONVIF
+) -> None:
     try:
         _LOGGER.info("SUPERNOTIFY Executing PTZ by %s to %s for %s", method, preset, camera_entity_id)
         if method == PTZ_METHOD_FRIGATE:
@@ -92,18 +101,21 @@ async def move_camera_to_ptz_preset(hass, camera_entity_id, preset, method=PTZ_M
         _LOGGER.warning("SUPERNOTIFY Unable to move %s to ptz preset %s: %s", camera_entity_id, preset, e)
 
 
-async def snap_image(hass: HomeAssistant, entity_id: str, media_path: str, notification_id: str, jpeg_args: dict | None = None):
+async def snap_image(
+    hass: HomeAssistant, entity_id: str, media_path: Path, notification_id: str, jpeg_args: dict | None = None
+) -> Path | None:
     """Use for any image, including MQTT Image"""
-    image_path = None
+    image_path: Path | None = None
 
     image_entity = hass.states.get(entity_id)
     if image_entity:
         image: Image.Image = Image.open(io.BytesIO(await image_entity.async_image()))
-        media_dir = os.path.join(media_path, "image")
-        os.makedirs(media_dir, exist_ok=True)
-        media_ext = image.format.lower() if image.format else "img"
-        timed = str(time.time()).replace(".", "_")
-        image_path = os.path.join(media_dir, f"{notification_id}_{timed}.{media_ext}")
+        media_dir: Path = media_path / "image"
+        media_dir.mkdir(parents=True, exist_ok=True)
+
+        media_ext: str = image.format.lower() if image.format else "img"
+        timed: str = str(time.time()).replace(".", "_")
+        image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
         image.save(image_path)
         if media_ext == "jpg" and jpeg_args:
             image.save(image_path, **jpeg_args)
@@ -113,26 +125,27 @@ async def snap_image(hass: HomeAssistant, entity_id: str, media_path: str, notif
 
 
 async def snap_camera(
-    hass: HomeAssistant, camera_entity_id: str, media_path: str, timeout: int = 20, jpeg_args: dict | None = None
-):
-
-    image_path = None
+    hass: HomeAssistant, camera_entity_id: str, media_path: Path, timeout: int = 20, jpeg_args: dict | None = None
+) -> Path | None:
+    image_path: Path | None = None
     if not camera_entity_id:
         _LOGGER.warning("SUPERNOTIFY Empty camera entity id for snap")
         return image_path
+    if jpeg_args:
+        _LOGGER.warning("jpeg_args not yet supported by snap_camera")
 
     try:
-        media_dir = os.path.join(media_path, "camera")
-        os.makedirs(media_dir, exist_ok=True)
+        media_dir: Path = media_path / "camera"
+        media_dir.mkdir(parents=True, exist_ok=True)
         timed = str(time.time()).replace(".", "_")
-        image_path = os.path.join(media_dir, f"{camera_entity_id}_{timed}.jpg")
+        image_path = Path(media_dir) / f"{camera_entity_id}_{timed}.jpg"
         await hass.services.async_call(
             "camera", "snapshot", service_data={"entity_id": camera_entity_id, "filename": image_path}
         )
 
         # give async service time
         cutoff_time = time.time() + timeout
-        while time.time() < cutoff_time and not os.path.exists(image_path):
+        while time.time() < cutoff_time and not image_path.exists():
             _LOGGER.info("Image file not available yet at %s, pausing", image_path)
             await asyncio.sleep(1)
 
@@ -143,8 +156,8 @@ async def snap_camera(
     return image_path
 
 
-async def select_avail_camera(hass, cameras, camera_entity_id):
-    avail_camera_entity_id = None
+async def select_avail_camera(hass: HomeAssistant, cameras: dict[str, dict], camera_entity_id: str) -> str | None:
+    avail_camera_entity_id: str | None = None
 
     try:
         preferred_cam = cameras.get(camera_entity_id)

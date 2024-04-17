@@ -18,4 +18,3 @@
 ::: custom_components.supernotify.scenario.Scenario
     handler: python
     heading_level: 2
-
