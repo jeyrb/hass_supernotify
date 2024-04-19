@@ -7,9 +7,10 @@ from unittest.mock import Mock, patch
 
 import aiofiles
 from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENABLED, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 
 from custom_components.supernotify import (
+    ATTR_ACTION,
     ATTR_DUPE_POLICY_NONE,
     ATTR_PRIORITY,
     CONF_ARCHIVE_DAYS,
@@ -38,7 +39,7 @@ from custom_components.supernotify import (
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.notify import SuperNotificationService
+from custom_components.supernotify.notify import Snooze, SuperNotificationService
 
 from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
@@ -308,3 +309,18 @@ async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass: Hom
     assert uut.dupe_check(n1) is False
     n2 = Notification(context, "message here", "title here", service_data={ATTR_PRIORITY: "high"})
     assert uut.dupe_check(n2) is False
+
+
+def test_snoozing(mock_hass: HomeAssistant) -> None:
+    uut = SuperNotificationService(mock_hass)
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo"}))
+    assert uut.enquire_snoozes() == [Snooze("DELIVERY", "foo")]
+    assert all(s.snooze_until is not None and s.snooze_until > s.snoozed_at for s in uut.enquire_snoozes())
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_DELIVERY_foo"}))
+    assert uut.enquire_snoozes() == [Snooze("DELIVERY", "foo")]
+    assert all(s.snooze_until is None for s in uut.enquire_snoozes())
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_DELIVERY_foo"}))
+    assert uut.enquire_snoozes() == []

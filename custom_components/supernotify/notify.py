@@ -4,6 +4,7 @@ import datetime as dt
 import logging
 import os
 import os.path
+import time
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,7 @@ import homeassistant.util.dt as dt_util
 from cachetools import TTLCache
 from homeassistant.components.notify import BaseNotificationService
 from homeassistant.const import CONF_CONDITION, CONF_ENABLED
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -19,6 +20,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from custom_components.supernotify.scenario import Scenario
 
 from . import (
+    ATTR_ACTION,
     ATTR_DATA,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_SCENARIOS,
@@ -57,6 +59,8 @@ from .methods.sms import SMSDeliveryMethod
 from .notification import Notification
 
 _LOGGER = logging.getLogger(__name__)
+
+SNOOZE_TIME = 60 * 60  # TODO: move to configuration
 
 METHODS: list[type] = [
     EmailDeliveryMethod,
@@ -129,6 +133,9 @@ async def async_get_service(
     async def supplemental_service_enquire_active_scenarios(_call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_active_scenarios()}
 
+    async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
+        return {"scenarios": service.enquire_snoozes()}
+
     async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
         return {
@@ -158,12 +165,41 @@ async def async_get_service(
     )
     hass.services.async_register(
         DOMAIN,
+        "enquire_snoozes",
+        supplemental_service_enquire_snoozes,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
         "purge_archive",
         supplemental_service_purge_archive,
         supports_response=SupportsResponse.ONLY,
     )
 
     return service
+
+
+class Snooze:
+    target: str
+    target_type: str
+    snoozed_at: float
+    snooze_until: float | None = None
+
+    def __init__(self, target_type: str, target: str, snooze_for: int | None = None) -> None:
+        self.snoozed_at = time.time()
+        self.target = target
+        self.target_type = target_type
+        if snooze_for:
+            self.snooze_until = self.snoozed_at + snooze_for
+
+    def short_key(self) -> str:
+        return f"{self.target_type}_{self.target}"
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two snoozes for the same thing"""
+        if not isinstance(other, Snooze):
+            return False
+        return self.short_key() == other.short_key()
 
 
 class SuperNotificationService(BaseNotificationService):
@@ -204,15 +240,38 @@ class SuperNotificationService(BaseNotificationService):
             method_defaults or {},
             cameras,
         )
+        self.unsubscribes: list = []
+        self.snoozes: dict[str, Snooze] = {}
         self.dupe_check_config: dict[str, Any] = dupe_check or {}
         self.last_purge: dt.datetime | None = None
         self.notification_cache: TTLCache = TTLCache(
             maxsize=self.dupe_check_config.get(CONF_SIZE, 100), ttl=self.dupe_check_config.get(CONF_TTL, 120)
         )
+        self.expose_entities()
+        self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))
 
     async def initialize(self) -> None:
         await self.context.initialize()
         await self.context.register_delivery_methods(delivery_method_classes=METHODS)
+
+    async def async_shutdown(self, event: Event) -> None:
+        _LOGGER.info("SUPERNOTIFY shutting down, %s", event)
+        self.shutdown()
+
+    def shutdown(self) -> None:
+        for unsub in self.unsubscribes:
+            unsub()
+        _LOGGER.info("SUPERNOTIFY shut down")
+
+    def expose_entities(self) -> None:
+        for scenario in self.context.scenarios.values():
+            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", None, scenario.attributes())
+        for method in self.context.methods.values():
+            self.hass.states.async_set(
+                f"{DOMAIN}.method_{method.method}", len(method.valid_deliveries) > 0, method.attributes()
+            )
+        for delivery_name, delivery in self.context._deliveries.items():
+            self.hass.states.async_set(f"{DOMAIN}.delivery_{delivery_name}", delivery_name in self.context.deliveries, delivery)
 
     def dupe_check(self, notification: Notification) -> bool:
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
@@ -319,3 +378,33 @@ class SuperNotificationService(BaseNotificationService):
 
     async def enquire_active_scenarios(self) -> list[str]:
         return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
+
+    def enquire_snoozes(self) -> list[Snooze]:
+        return list(self.snoozes.values())
+
+    @callback
+    def on_mobile_action(self, event: Event) -> None:
+        event_name = event.data.get(ATTR_ACTION)
+        try:
+            if event_name.startswith("SUPERNOTIFY_"):
+                _LOGGER.debug("SUPERNOTIFY Mobile Action: %s", event)
+                _, cmd, target_type, target = event_name.split("_")
+                if target_type not in ("METHOD", "DELIVERY", "PERSON", "CAMERA"):
+                    _LOGGER.warning("SUPERNOTIFY Invalid mobile target type %s (event: %s)", target_type, event)
+                    return
+
+                if cmd == "SNOOZE":
+                    snooze = Snooze(target_type, target, SNOOZE_TIME)
+                    self.snoozes[snooze.short_key()] = snooze
+                elif cmd == "SILENCE":
+                    snooze = Snooze(target_type, target)
+                    self.snoozes[snooze.short_key()] = snooze
+                elif cmd == "ENABLE":
+                    to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]
+                    for k in to_del:
+                        del self.snoozes[k]
+                else:
+                    _LOGGER.warning("SUPERNOTIFY Invalid mobile cmd %s (event: %s)", cmd, event)
+
+        except Exception as e:
+            _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)

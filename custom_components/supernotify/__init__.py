@@ -87,6 +87,7 @@ OCCUPANCY_ONLY_IN = "only_in"
 OCCUPANCY_ONLY_OUT = "only_out"
 
 ATTR_PRIORITY = "priority"
+ATTR_ACTION = "action"
 ATTR_SCENARIOS = "scenarios"
 ATTR_DELIVERY = "delivery"
 ATTR_DEFAULT = "default"
