@@ -201,6 +201,10 @@ class Snooze:
             return False
         return self.short_key() == other.short_key()
 
+    def __repr__(self) -> str:
+        """Return a string representation of the object."""
+        return f"Snooze({self.target_type}, {self.target}, {self.snoozed_at})"
+
 
 class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
@@ -385,16 +389,35 @@ class SuperNotificationService(BaseNotificationService):
     @callback
     def on_mobile_action(self, event: Event) -> None:
         event_name = event.data.get(ATTR_ACTION)
+        global_types = ["NONCRITICAL", "EVERYTHING"]
+        qualified_types = ("METHOD", "DELIVERY", "PERSON", "CAMERA", "LABEL", "PRIORITY")
         try:
             if event_name.startswith("SUPERNOTIFY_"):
+                cmd: str | None = None
+                target_type: str | None = None
+                target: str | None = None
+                snooze_for: int = SNOOZE_TIME
+
                 _LOGGER.debug("SUPERNOTIFY Mobile Action: %s", event)
-                _, cmd, target_type, target = event_name.split("_")
-                if target_type not in ("METHOD", "DELIVERY", "PERSON", "CAMERA"):
-                    _LOGGER.warning("SUPERNOTIFY Invalid mobile target type %s (event: %s)", target_type, event)
+                event_parts: list[str] = event_name.split("_")
+                if event_parts[2] in qualified_types and len(event_parts) >= 4:
+                    cmd = event_parts[1]
+                    target_type = event_parts[2]
+                    target = event_parts[3]
+                    snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
+
+                if event_parts[2] in global_types and len(event_parts) >= 3:
+                    cmd = event_parts[1]
+                    target_type = event_parts[2]
+                    target = "ALL"
+                    snooze_for = int(event_parts[-1]) if len(event_parts) == 4 else SNOOZE_TIME
+
+                if cmd is None or target_type is None or target is None:
+                    _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                     return
 
                 if cmd == "SNOOZE":
-                    snooze = Snooze(target_type, target, SNOOZE_TIME)
+                    snooze = Snooze(target_type, target, snooze_for)
                     self.snoozes[snooze.short_key()] = snooze
                 elif cmd == "SILENCE":
                     snooze = Snooze(target_type, target)

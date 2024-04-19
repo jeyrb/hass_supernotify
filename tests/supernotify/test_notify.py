@@ -316,11 +316,31 @@ def test_snoozing(mock_hass: HomeAssistant) -> None:
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo"}))
     assert uut.enquire_snoozes() == [Snooze("DELIVERY", "foo")]
-    assert all(s.snooze_until is not None and s.snooze_until > s.snoozed_at for s in uut.enquire_snoozes())
+    assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600 for s in uut.enquire_snoozes())
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_DELIVERY_foo"}))
     assert uut.enquire_snoozes() == [Snooze("DELIVERY", "foo")]
     assert all(s.snooze_until is None for s in uut.enquire_snoozes())
 
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo_33"}))
+    assert uut.enquire_snoozes() == [Snooze("DELIVERY", "foo")]
+    assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 33 for s in uut.enquire_snoozes())
+
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_DELIVERY_foo"}))
     assert uut.enquire_snoozes() == []
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING"}))
+    assert uut.enquire_snoozes() == [Snooze("EVERYTHING", target="ALL")]
+    assert all(
+        s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600
+        for s in uut.enquire_snoozes()
+    )
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_EVERYTHING"}))
+    assert uut.enquire_snoozes() == []
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING_99"}))
+    assert uut.enquire_snoozes() == [Snooze("EVERYTHING", "ALL")]
+    assert all(
+        s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 99 for s in uut.enquire_snoozes()
+    )
