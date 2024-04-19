@@ -179,6 +179,10 @@ async def async_get_service(
     return service
 
 
+def format_timestamp(v: float | None) -> str | None:
+    return time.strftime("%H:%M:%S", time.localtime(v)) if v else None
+
+
 class Snooze:
     target: str
     target_type: str
@@ -204,6 +208,14 @@ class Snooze:
     def __repr__(self) -> str:
         """Return a string representation of the object."""
         return f"Snooze({self.target_type}, {self.target}, {self.snoozed_at})"
+
+    def export(self) -> dict:
+        return {
+            "target_type": self.target_type,
+            "target": self.target,
+            "snoozed_at": format_timestamp(self.snoozed_at),
+            "snooze_until": format_timestamp(self.snooze_until),
+        }
 
 
 class SuperNotificationService(BaseNotificationService):
@@ -383,8 +395,8 @@ class SuperNotificationService(BaseNotificationService):
     async def enquire_active_scenarios(self) -> list[str]:
         return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
 
-    def enquire_snoozes(self) -> list[Snooze]:
-        return list(self.snoozes.values())
+    def enquire_snoozes(self) -> list[dict[str, Any]]:
+        return [s.export() for s in self.snoozes.values()]
 
     @callback
     def on_mobile_action(self, event: Event) -> None:
