@@ -7,13 +7,6 @@
     "python.testing.pytestArgs": [
         "tests"
     ],
-    "flake8.args": [
-        "--max-line-length=128"
-    ],
-"cSpell.words": [
-    "hass",
-    "homeassistant"
-],
     "python.analysis.include": [
         "custom_components/supernotify/**",
         "tests/**",
