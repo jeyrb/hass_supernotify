@@ -33,6 +33,17 @@ class Scenario:
                 return False
         return True
 
+    def attributes(self) -> dict[str, str | None | dict | bool]:
+        """Return scenario attributes"""
+        return {
+            "name": self.name,
+            "alias": self.alias,
+            "media": self.media,
+            "delivery_selection": self.delivery_selection,
+            "delivery": self.delivery,
+            "default": self.default,
+        }
+
     async def evaluate(self) -> bool:
         """Evaluate scenario conditions"""
         if self.condition:

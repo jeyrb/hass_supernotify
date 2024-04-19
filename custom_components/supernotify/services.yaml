@@ -11,3 +11,21 @@ purge_archive:
         number:
           min: 0
           unit_of_measurement: days
+
+snooze:
+  fields:
+    minutes:
+      required: false
+      example: 60
+      selector:
+        number:
+          min: 0
+          unit_of_measurement: minutes
+    target_type:
+      required: false
+      selector:
+        text:
+    target:
+      required: false
+      selector:
+        text:
