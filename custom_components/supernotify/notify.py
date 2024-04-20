@@ -451,28 +451,34 @@ class SuperNotificationService(BaseNotificationService):
                 if cmd is None or target_type is None or target is None or recipient_type is None:
                     _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                     return
+            else:
+                return  # action meant for another script
+        except Exception as e:
+            _LOGGER.warning("SUPERNOTIFY Unable to analyze event %s: %s", event, e)
+            return
 
-                people = [
-                    p.get(CONF_PERSON)
-                    for p in self.context.people.values()
-                    if p.get(ATTR_USER_ID) == event.context.get(ATTR_USER_ID) and p.get(CONF_PERSON)
-                ]
-                person: str | None = None
-                if people:
-                    person = people[0]
+        try:
+            people = [
+                p.get(CONF_PERSON)
+                for p in self.context.people.values()
+                if p.get(ATTR_USER_ID) == event.context.user_id and event.context.user_id is not None and p.get(CONF_PERSON)
+            ]
+            person: str | None = None
+            if people:
+                person = people[0]
 
-                if cmd == "SNOOZE":
-                    snooze = Snooze(target_type, target, recipient_type, person, snooze_for)
-                    self.snoozes[snooze.short_key()] = snooze
-                elif cmd == "SILENCE":
-                    snooze = Snooze(target_type, target, recipient_type, person)
-                    self.snoozes[snooze.short_key()] = snooze
-                elif cmd == "ENABLE":
-                    to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]
-                    for k in to_del:
-                        del self.snoozes[k]
-                else:
-                    _LOGGER.warning("SUPERNOTIFY Invalid mobile cmd %s (event: %s)", cmd, event)
+            if cmd == "SNOOZE":
+                snooze = Snooze(target_type, target, recipient_type, person, snooze_for)
+                self.snoozes[snooze.short_key()] = snooze
+            elif cmd == "SILENCE":
+                snooze = Snooze(target_type, target, recipient_type, person)
+                self.snoozes[snooze.short_key()] = snooze
+            elif cmd == "ENABLE":
+                to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]
+                for k in to_del:
+                    del self.snoozes[k]
+            else:
+                _LOGGER.warning("SUPERNOTIFY Invalid mobile cmd %s (event: %s)", cmd, event)
 
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)
