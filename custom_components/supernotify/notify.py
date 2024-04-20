@@ -4,16 +4,16 @@ import datetime as dt
 import logging
 import os
 import os.path
-import time
 from pathlib import Path
 from typing import Any
 
 import homeassistant.util.dt as dt_util
 from cachetools import TTLCache
 from homeassistant.components.notify import BaseNotificationService
-from homeassistant.const import CONF_CONDITION, CONF_ENABLED
+from homeassistant.const import CONF_CONDITION, CONF_ENABLED, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
@@ -34,8 +34,11 @@ from . import (
     CONF_DELIVERY,
     CONF_DUPE_CHECK,
     CONF_DUPE_POLICY,
+    CONF_HOUSEKEEPING,
+    CONF_HOUSEKEEPING_TIME,
     CONF_LINKS,
     CONF_MEDIA_PATH,
+    CONF_METHOD,
     CONF_METHODS,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
@@ -45,7 +48,12 @@ from . import (
     DOMAIN,
     PLATFORM_SCHEMA,
     PLATFORMS,
+    PRIORITY_CRITICAL,
     PRIORITY_VALUES,
+    GlobalTargetType,
+    QualifiedTargetType,
+    Snooze,
+    TargetType,
 )
 from .configuration import SupernotificationConfiguration
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -114,6 +122,7 @@ async def async_get_service(
         template_path=config[CONF_TEMPLATE_PATH],
         media_path=config[CONF_MEDIA_PATH],
         archive=config[CONF_ARCHIVE],
+        housekeeping=config[CONF_HOUSEKEEPING],
         recipients=config[CONF_RECIPIENTS],
         mobile_actions=config[CONF_ACTIONS],
         scenarios=config[CONF_SCENARIOS],
@@ -179,45 +188,6 @@ async def async_get_service(
     return service
 
 
-def format_timestamp(v: float | None) -> str | None:
-    return time.strftime("%H:%M:%S", time.localtime(v)) if v else None
-
-
-class Snooze:
-    target: str
-    target_type: str
-    snoozed_at: float
-    snooze_until: float | None = None
-
-    def __init__(self, target_type: str, target: str, snooze_for: int | None = None) -> None:
-        self.snoozed_at = time.time()
-        self.target = target
-        self.target_type = target_type
-        if snooze_for:
-            self.snooze_until = self.snoozed_at + snooze_for
-
-    def short_key(self) -> str:
-        return f"{self.target_type}_{self.target}"
-
-    def __eq__(self, other: object) -> bool:
-        """Check if two snoozes for the same thing"""
-        if not isinstance(other, Snooze):
-            return False
-        return self.short_key() == other.short_key()
-
-    def __repr__(self) -> str:
-        """Return a string representation of the object."""
-        return f"Snooze({self.target_type}, {self.target}, {self.snoozed_at})"
-
-    def export(self) -> dict:
-        return {
-            "target_type": self.target_type,
-            "target": self.target,
-            "snoozed_at": format_timestamp(self.snoozed_at),
-            "snooze_until": format_timestamp(self.snooze_until),
-        }
-
-
 class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
 
@@ -230,6 +200,7 @@ class SuperNotificationService(BaseNotificationService):
         template_path: str | None = None,
         media_path: str | None = None,
         archive: dict | None = None,
+        housekeeping: dict | None = None,
         recipients: list | None = None,
         mobile_actions: dict | None = None,
         scenarios: dict[str, dict] | None = None,
@@ -242,6 +213,7 @@ class SuperNotificationService(BaseNotificationService):
         self.hass: HomeAssistant = hass
         self.last_notification: Notification | None = None
         self.failures: int = 0
+        self.housekeeping: dict = housekeeping or {}
         self.sent: int = 0
         self.context = SupernotificationConfiguration(
             hass,
@@ -265,6 +237,20 @@ class SuperNotificationService(BaseNotificationService):
         )
         self.expose_entities()
         self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))
+        housekeeping_schedule = self.housekeeping.get(CONF_HOUSEKEEPING_TIME)
+        if housekeeping_schedule:
+            _LOGGER.info("SUPERNOTIFY setting up housekeeping schedule at: %s", housekeeping_schedule)
+            self.unsubscribes.append(
+                async_track_time_change(
+                    self.hass,
+                    self.async_nightly_tasks,
+                    hour=housekeeping_schedule.hour,
+                    minute=housekeeping_schedule.minute,
+                    second=housekeeping_schedule.second,
+                )
+            )
+
+        self.unsubscribes.append(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.async_shutdown))
 
     async def initialize(self) -> None:
         await self.context.initialize()
@@ -276,7 +262,9 @@ class SuperNotificationService(BaseNotificationService):
 
     def shutdown(self) -> None:
         for unsub in self.unsubscribes:
-            unsub()
+            if unsub:
+                _LOGGER.debug("SUPERNOTIFY unsubscribing: %s", unsub)
+                unsub()
         _LOGGER.info("SUPERNOTIFY shut down")
 
     def expose_entities(self) -> None:
@@ -316,8 +304,13 @@ class SuperNotificationService(BaseNotificationService):
         try:
             notification = Notification(self.context, message, title, target, data)
             await notification.initialize()
+            globally_disabled, inscope_snoozes = self.check_notification_for_snooze(notification)
+            notification.inscope_snoozes = inscope_snoozes
             if self.dupe_check(notification):
                 _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
+                notification.skipped += 1
+            elif globally_disabled:
+                _LOGGER.info("SUPERNOTIFY Suppressing globally silenced/snoozed notification (%s)", notification.id)
                 notification.skipped += 1
             else:
                 self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
@@ -337,7 +330,6 @@ class SuperNotificationService(BaseNotificationService):
                 archive_path: str | None = self.context.archive.get(CONF_ARCHIVE_PATH)
                 if archive_path:
                     notification.archive(Path(archive_path))
-                    self.cleanup_archive()
 
             _LOGGER.debug(
                 "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
@@ -365,7 +357,8 @@ class SuperNotificationService(BaseNotificationService):
         ):
             return 0
         if days is None:
-            days = self.context.archive.get(CONF_ARCHIVE_DAYS, 1)
+            days = self.context.archive.get(CONF_ARCHIVE_DAYS)
+        days = 1 if days is None else days
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
         cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
         cutoff = cutoff.astimezone(dt.UTC)
@@ -401,26 +394,24 @@ class SuperNotificationService(BaseNotificationService):
     @callback
     def on_mobile_action(self, event: Event) -> None:
         event_name = event.data.get(ATTR_ACTION)
-        global_types = ["NONCRITICAL", "EVERYTHING"]
-        qualified_types = ("METHOD", "DELIVERY", "PERSON", "CAMERA", "LABEL", "PRIORITY")
         try:
             if event_name.startswith("SUPERNOTIFY_"):
                 cmd: str | None = None
-                target_type: str | None = None
+                target_type: TargetType | None = None
                 target: str | None = None
                 snooze_for: int = SNOOZE_TIME
 
                 _LOGGER.debug("SUPERNOTIFY Mobile Action: %s", event)
                 event_parts: list[str] = event_name.split("_")
-                if event_parts[2] in qualified_types and len(event_parts) >= 4:
+
+                if event_parts[2] in QualifiedTargetType and len(event_parts) >= 4:
                     cmd = event_parts[1]
-                    target_type = event_parts[2]
+                    target_type = QualifiedTargetType[event_parts[2]]
                     target = event_parts[3]
                     snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
-
-                if event_parts[2] in global_types and len(event_parts) >= 3:
+                elif event_parts[2] in GlobalTargetType and len(event_parts) >= 3:
                     cmd = event_parts[1]
-                    target_type = event_parts[2]
+                    target_type = GlobalTargetType[event_parts[2]]
                     target = "ALL"
                     snooze_for = int(event_parts[-1]) if len(event_parts) == 4 else SNOOZE_TIME
 
@@ -443,3 +434,49 @@ class SuperNotificationService(BaseNotificationService):
 
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)
+
+    def purge_snoozes(self) -> None:
+        to_del = [k for k, v in self.snoozes.items() if not v.active()]
+        for k in to_del:
+            del self.snoozes[k]
+
+    def check_notification_for_snooze(self, notification: Notification) -> tuple[bool, list[Snooze]]:
+        inscope_snoozes: list[Snooze] = []
+        if len(self.snoozes) == 0:
+            return (False, inscope_snoozes)
+        for snooze in self.snoozes.values():
+            if snooze.active():
+                match snooze.target_type:
+                    case GlobalTargetType.EVERYTHING:
+                        return (True, inscope_snoozes)
+                    case GlobalTargetType.NONCRITICAL:
+                        if notification.priority != PRIORITY_CRITICAL:
+                            return (True, inscope_snoozes)
+                    case QualifiedTargetType.DELIVERY:
+                        if snooze.target in notification.selected_delivery_names:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.PERSON:
+                        inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.PRIORITY:
+                        if snooze.target == notification.priority:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.METHOD:
+                        if snooze.target in [
+                            self.context.deliveries.get(d, {}).get(CONF_METHOD) for d in notification.selected_delivery_names
+                        ]:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.CAMERA:
+                        inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.LABEL:
+                        inscope_snoozes.append(snooze)
+                    case _:
+                        _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
+
+        return (False, inscope_snoozes)
+
+    @callback
+    def async_nightly_tasks(self, now: dt.datetime) -> None:
+        _LOGGER.info("SUPERNOTIFY Housekeeping starting as scheduled at %s", now)
+        self.cleanup_archive()
+        self.purge_snoozes()
+        _LOGGER.info("SUPERNOTIFY Housekeeping completed")

@@ -45,3 +45,5 @@ async def test_examples(hass: HomeAssistant, config_name: str) -> None:
         {"message": "unit test - %s" % config_name, "data": {"delivery": {"testing": None}, "priority": "low"}},
         blocking=True,
     )
+    await hass.async_stop()
+    await hass.async_block_till_done()

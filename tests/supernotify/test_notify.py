@@ -32,14 +32,18 @@ from custom_components.supernotify import (
     METHOD_GENERIC,
     METHOD_PERSISTENT,
     METHOD_SMS,
+    PRIORITY_CRITICAL,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SELECTION_FALLBACK,
+    GlobalTargetType,
+    QualifiedTargetType,
+    Snooze,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.notify import Snooze, SuperNotificationService
+from custom_components.supernotify.notify import SuperNotificationService
 
 from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
@@ -315,16 +319,16 @@ def test_snoozing(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(mock_hass)
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo"}))
-    assert list(uut.snoozes.values()) == [Snooze("DELIVERY", "foo")]
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
     assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600 for s in uut.snoozes.values())
     assert all(s["target"] == "foo" for s in uut.enquire_snoozes())
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_DELIVERY_foo"}))
-    assert list(uut.snoozes.values()) == [Snooze("DELIVERY", "foo")]
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
     assert all(s.snooze_until is None for s in uut.snoozes.values())
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo_33"}))
-    assert list(uut.snoozes.values()) == [Snooze("DELIVERY", "foo")]
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
     assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 33 for s in uut.snoozes.values())
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_DELIVERY_foo"}))
@@ -332,7 +336,7 @@ def test_snoozing(mock_hass: HomeAssistant) -> None:
     assert list(uut.snoozes.values()) == []
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING"}))
-    assert list(uut.snoozes.values()) == [Snooze("EVERYTHING", target="ALL")]
+    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, target="ALL")]
     assert all(
         s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600 for s in uut.snoozes.values()
     )
@@ -342,7 +346,47 @@ def test_snoozing(mock_hass: HomeAssistant) -> None:
     assert list(uut.snoozes.values()) == []
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING_99"}))
-    assert list(uut.snoozes.values()) == [Snooze("EVERYTHING", "ALL")]
+    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, "ALL")]
     assert all(
         s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 99 for s in uut.snoozes.values()
     )
+
+
+async def test_snooze_check_global(mock_hass: HomeAssistant):
+    uut = SuperNotificationService(mock_hass, deliveries=DELIVERY)
+    await uut.initialize()
+    ctx = uut.context
+
+    assert uut.check_notification_for_snooze(Notification(ctx, "hello")) == (False, [])
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING"}))
+    assert uut.check_notification_for_snooze(Notification(ctx, "hello")) == (True, [])
+
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_NONCRITICAL"}))
+    assert uut.check_notification_for_snooze(Notification(ctx, "hello", service_data={ATTR_PRIORITY: PRIORITY_CRITICAL})) == (
+        False,
+        [],
+    )
+    assert uut.check_notification_for_snooze(Notification(ctx, "hello")) == (True, [])
+    uut.shutdown()
+
+
+async def test_snooze_check_qualified(mock_hass: HomeAssistant):
+    uut = SuperNotificationService(mock_hass, deliveries=DELIVERY)
+    await uut.initialize()
+    ctx = uut.context
+    notification = Notification(ctx, "hello")
+    await notification.initialize()
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_PERSON_bob"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_CAMERA_Yard"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_METHOD_email"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_METHOD_LASER"}))
+    assert uut.check_notification_for_snooze(notification) == (
+        False,
+        [
+            Snooze(QualifiedTargetType.PERSON, "bob"),
+            Snooze(QualifiedTargetType.CAMERA, "Yard"),
+            Snooze(QualifiedTargetType.METHOD, "email"),
+        ],
+    )
+    uut.shutdown()

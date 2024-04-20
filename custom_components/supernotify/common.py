@@ -3,7 +3,12 @@
 No dependencies permitted
 """
 
+import time
 from typing import Any
+
+
+def format_timestamp(v: float | None) -> str | None:
+    return time.strftime("%H:%M:%S", time.localtime(v)) if v else None
 
 
 def safe_get(probably_a_dict: dict | None, key: Any, default: Any = None) -> Any:

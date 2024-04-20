@@ -61,6 +61,7 @@ from . import (
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
+    Snooze,
 )
 from .common import ensure_dict, ensure_list
 from .configuration import SupernotificationConfiguration
@@ -99,19 +100,20 @@ class Notification:
             _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
             raise
 
-        self.priority = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
-        self.message_html = service_data.get(ATTR_MESSAGE_HTML)
+        self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
         self.requested_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS))
-        self.delivery_selection = service_data.get(ATTR_DELIVERY_SELECTION)
-        self.delivery_overrides_type = service_data.get(ATTR_DELIVERY).__class__.__name__
+        self.delivery_selection: str | None = service_data.get(ATTR_DELIVERY_SELECTION)
+        self.delivery_overrides_type: str = service_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
-        self.recipients_override = service_data.get(ATTR_RECIPIENTS)
+        self.recipients_override: list[str] | None = service_data.get(ATTR_RECIPIENTS)
         self.data: dict = service_data.get(ATTR_DATA) or {}
         self.media: dict = service_data.get(ATTR_MEDIA) or {}
         self.debug: bool = service_data.get(ATTR_DEBUG, False)
         self.actions: dict = service_data.get(ATTR_ACTIONS) or {}
         self.delivery_results: dict = {}
         self.delivery_errors: dict = {}
+        self.inscope_snoozes: list[Snooze] = []
 
         self.selected_delivery_names: list[str] = []
         self.enabled_scenarios: list[str] = []

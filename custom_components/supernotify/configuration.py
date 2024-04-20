@@ -56,6 +56,8 @@ class SupernotificationConfiguration:
         cameras: list[dict] | None = None,
     ) -> None:
         self.hass: HomeAssistant | None = None
+        self.hass_internal_url: str
+        self.hass_external_url: str
         if hass:
             self.hass = hass
             self.hass_name = hass.config.location_name

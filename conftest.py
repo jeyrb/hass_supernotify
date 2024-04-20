@@ -14,6 +14,8 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 def mock_hass() -> HomeAssistant:
     hass = Mock()
     hass.states = Mock()
+    hass.config.internal_url = "http://127.0.0.1:28123"
+    hass.config.external_url = "https://my.home"
     hass.services.async_call = AsyncMock()
     hass.data = {}
     hass.data["device_registry"] = Mock()
