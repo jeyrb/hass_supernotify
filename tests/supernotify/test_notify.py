@@ -38,6 +38,7 @@ from custom_components.supernotify import (
     SELECTION_FALLBACK,
     GlobalTargetType,
     QualifiedTargetType,
+    RecipientType,
     Snooze,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -318,35 +319,35 @@ async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass: Hom
 def test_snoozing(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(mock_hass)
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo"}))
-    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_DELIVERY_foo"}))
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo", RecipientType.EVERYONE)]
     assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600 for s in uut.snoozes.values())
     assert all(s["target"] == "foo" for s in uut.enquire_snoozes())
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_DELIVERY_foo"}))
-    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_EVERYONE_DELIVERY_foo"}))
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo", RecipientType.EVERYONE)]
     assert all(s.snooze_until is None for s in uut.snoozes.values())
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_DELIVERY_foo_33"}))
-    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo")]
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_DELIVERY_foo_33"}))
+    assert list(uut.snoozes.values()) == [Snooze(QualifiedTargetType.DELIVERY, "foo", RecipientType.EVERYONE)]
     assert all(s.snooze_until is not None and s.snooze_until - s.snoozed_at == 33 for s in uut.snoozes.values())
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_DELIVERY_foo"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_EVERYONE_DELIVERY_foo"}))
     assert list(uut.snoozes.values()) == []
     assert list(uut.snoozes.values()) == []
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING"}))
-    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, target="ALL")]
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_EVERYTHING"}))
+    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, "ALL", RecipientType.EVERYONE)]
     assert all(
         s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600 for s in uut.snoozes.values()
     )
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_EVERYTHING"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_ENABLE_EVERYONE_EVERYTHING"}))
     assert list(uut.snoozes.values()) == []
     assert list(uut.snoozes.values()) == []
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING_99"}))
-    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, "ALL")]
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_EVERYTHING_99"}))
+    assert list(uut.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, "ALL", RecipientType.EVERYONE)]
     assert all(
         s.target == "ALL" and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 99 for s in uut.snoozes.values()
     )
@@ -359,10 +360,10 @@ async def test_snooze_check_global(mock_hass: HomeAssistant):
 
     assert uut.check_notification_for_snooze(Notification(ctx, "hello")) == (False, [])
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYTHING"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_EVERYTHING"}))
     assert uut.check_notification_for_snooze(Notification(ctx, "hello")) == (True, [])
 
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_NONCRITICAL"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_NONCRITICAL"}))
     assert uut.check_notification_for_snooze(Notification(ctx, "hello", service_data={ATTR_PRIORITY: PRIORITY_CRITICAL})) == (
         False,
         [],
@@ -377,16 +378,16 @@ async def test_snooze_check_qualified(mock_hass: HomeAssistant):
     ctx = uut.context
     notification = Notification(ctx, "hello")
     await notification.initialize()
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_PERSON_bob"}))
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_CAMERA_Yard"}))
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_METHOD_email"}))
-    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_METHOD_LASER"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_DELIVERY_chime"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SILENCE_EVERYONE_CAMERA_Yard"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_METHOD_email"}))
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_METHOD_LASER"}))
     assert uut.check_notification_for_snooze(notification) == (
         False,
         [
-            Snooze(QualifiedTargetType.PERSON, "bob"),
-            Snooze(QualifiedTargetType.CAMERA, "Yard"),
-            Snooze(QualifiedTargetType.METHOD, "email"),
+            Snooze(QualifiedTargetType.DELIVERY, "chime", RecipientType.EVERYONE),
+            Snooze(QualifiedTargetType.CAMERA, "Yard", RecipientType.EVERYONE),
+            Snooze(QualifiedTargetType.METHOD, "email", RecipientType.EVERYONE),
         ],
     )
     uut.shutdown()

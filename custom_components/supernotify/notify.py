@@ -52,6 +52,7 @@ from . import (
     PRIORITY_VALUES,
     GlobalTargetType,
     QualifiedTargetType,
+    RecipientType,
     Snooze,
     TargetType,
 )
@@ -145,6 +146,9 @@ async def async_get_service(
     async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
         return {"scenarios": service.enquire_snoozes()}
 
+    async def supplemental_service_enquire_people(_call: ServiceCall) -> dict:
+        return {"scenarios": service.enquire_people()}
+
     async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
         return {
@@ -170,6 +174,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_active_scenarios",
         supplemental_service_enquire_active_scenarios,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "enquire_people",
+        supplemental_service_enquire_people,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
@@ -391,8 +401,24 @@ class SuperNotificationService(BaseNotificationService):
     def enquire_snoozes(self) -> list[dict[str, Any]]:
         return [s.export() for s in self.snoozes.values()]
 
+    def enquire_people(self) -> list[dict]:
+        return list(self.context.people.values())
+
     @callback
     def on_mobile_action(self, event: Event) -> None:
+        """Listen for mobile actions relevant to snooze and silence notifications
+
+        Example Action:
+        event_type: mobile_app_notification_action
+        data:
+            foo: a
+        origin: REMOTE
+        time_fired: "2024-04-20T13:14:09.360708+00:00"
+        context:
+            id: 01HVXT93JGWEDW0KE57Z0X6Z1K
+            parent_id: null
+            user_id: e9dbae1a5abf44dbbad52ff85501bb17
+        """
         event_name = event.data.get(ATTR_ACTION)
         try:
             if event_name.startswith("SUPERNOTIFY_"):
@@ -400,30 +426,35 @@ class SuperNotificationService(BaseNotificationService):
                 target_type: TargetType | None = None
                 target: str | None = None
                 snooze_for: int = SNOOZE_TIME
+                recipient_type: RecipientType | None = None
 
-                _LOGGER.debug("SUPERNOTIFY Mobile Action: %s", event)
+                _LOGGER.debug(
+                    "SUPERNOTIFY Mobile Action: %s, %s, %s, %s", event.origin, event.time_fired, event.data, event.context
+                )
                 event_parts: list[str] = event_name.split("_")
 
-                if event_parts[2] in QualifiedTargetType and len(event_parts) >= 4:
+                if event_parts[3] in QualifiedTargetType and len(event_parts) >= 4:
                     cmd = event_parts[1]
-                    target_type = QualifiedTargetType[event_parts[2]]
-                    target = event_parts[3]
-                    snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
-                elif event_parts[2] in GlobalTargetType and len(event_parts) >= 3:
+                    recipient_type = RecipientType[event_parts[2]]
+                    target_type = QualifiedTargetType[event_parts[3]]
+                    target = event_parts[4]
+                    snooze_for = int(event_parts[-1]) if len(event_parts) == 6 else SNOOZE_TIME
+                elif event_parts[3] in GlobalTargetType and len(event_parts) >= 4:
                     cmd = event_parts[1]
-                    target_type = GlobalTargetType[event_parts[2]]
+                    recipient_type = RecipientType[event_parts[2]]
+                    target_type = GlobalTargetType[event_parts[3]]
                     target = "ALL"
-                    snooze_for = int(event_parts[-1]) if len(event_parts) == 4 else SNOOZE_TIME
+                    snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
 
-                if cmd is None or target_type is None or target is None:
+                if cmd is None or target_type is None or target is None or recipient_type is None:
                     _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                     return
 
                 if cmd == "SNOOZE":
-                    snooze = Snooze(target_type, target, snooze_for)
+                    snooze = Snooze(target_type, target, recipient_type, snooze_for)
                     self.snoozes[snooze.short_key()] = snooze
                 elif cmd == "SILENCE":
-                    snooze = Snooze(target_type, target)
+                    snooze = Snooze(target_type, target, recipient_type)
                     self.snoozes[snooze.short_key()] = snooze
                 elif cmd == "ENABLE":
                     to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]
@@ -455,8 +486,6 @@ class SuperNotificationService(BaseNotificationService):
                     case QualifiedTargetType.DELIVERY:
                         if snooze.target in notification.selected_delivery_names:
                             inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.PERSON:
-                        inscope_snoozes.append(snooze)
                     case QualifiedTargetType.PRIORITY:
                         if snooze.target == notification.priority:
                             inscope_snoozes.append(snooze)

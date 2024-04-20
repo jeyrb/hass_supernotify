@@ -351,29 +351,37 @@ class GlobalTargetType(TargetType):
 class QualifiedTargetType(TargetType):
     METHOD = "METHOD"
     DELIVERY = "DELIVERY"
-    PERSON = "PERSON"
     CAMERA = "CAMERA"
     LABEL = "LABEL"
     PRIORITY = "PRIORITY"
+
+
+class RecipientType(StrEnum):
+    EVERYONE = "EVERYONE"
+    USER = "USER"
 
 
 class Snooze:
     target: str
     target_type: TargetType
     snoozed_at: float
+    recipient_type: RecipientType
     snooze_until: float | None = None
 
-    def __init__(self, target_type: TargetType, target: str, snooze_for: int | None = None) -> None:
+    def __init__(
+        self, target_type: TargetType, target: str, recipient_type: RecipientType, snooze_for: int | None = None
+    ) -> None:
         self.snoozed_at = time.time()
         self.target = target
         self.target_type = target_type
+        self.recipient_type = recipient_type
         if snooze_for:
             self.snooze_until = self.snoozed_at + snooze_for
 
     def short_key(self) -> str:
         if self.target_type in GlobalTargetType:
-            return "GLOBAL"
-        return f"{self.target_type}_{self.target}"
+            return f"{self.recipient_type}_GLOBAL"
+        return f"{self.recipient_type}_{self.target_type}_{self.target}"
 
     def __eq__(self, other: object) -> bool:
         """Check if two snoozes for the same thing"""
