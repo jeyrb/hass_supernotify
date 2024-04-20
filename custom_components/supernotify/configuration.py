@@ -34,7 +34,7 @@ from . import (
 from .scenario import Scenario
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import HomeAssistant, State
 
     from custom_components.supernotify.delivery_method import DeliveryMethod
 
@@ -237,9 +237,9 @@ class SupernotificationConfiguration:
                 else:
                     _LOGGER.warning("SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
             if self.hass:
-                state: dict | None = self.hass.states.get(r[CONF_PERSON])
+                state: State | None = self.hass.states.get(r[CONF_PERSON])
                 if state is not None:
-                    r[ATTR_USER_ID] = state.get(ATTR_USER_ID)
+                    r[ATTR_USER_ID] = state.attributes.get(ATTR_USER_ID)
             people[r[CONF_PERSON]] = r
         return people
 
