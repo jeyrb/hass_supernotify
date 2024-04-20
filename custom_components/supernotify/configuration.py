@@ -13,6 +13,7 @@ from homeassistant.util import slugify
 from custom_components.supernotify.common import ensure_list, safe_get
 
 from . import (
+    ATTR_USER_ID,
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
     CONF_DEVICE_TRACKER,
@@ -235,6 +236,10 @@ class SupernotificationConfiguration:
                     _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s", r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
                 else:
                     _LOGGER.warning("SUPERNOTIFY Unable to find mobile devices for %s", r[CONF_PERSON])
+            if self.hass:
+                state: dict | None = self.hass.states.get(r[CONF_PERSON])
+                if state is not None:
+                    r[ATTR_USER_ID] = state.get(ATTR_USER_ID)
             people[r[CONF_PERSON]] = r
         return people
 

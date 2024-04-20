@@ -26,6 +26,7 @@ from . import (
     ATTR_DELIVERY_SCENARIOS,
     ATTR_DUPE_POLICY_MTSLP,
     ATTR_DUPE_POLICY_NONE,
+    ATTR_USER_ID,
     CONF_ACTIONS,
     CONF_ARCHIVE,
     CONF_ARCHIVE_DAYS,
@@ -40,6 +41,7 @@ from . import (
     CONF_MEDIA_PATH,
     CONF_METHOD,
     CONF_METHODS,
+    CONF_PERSON,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
     CONF_SIZE,
@@ -144,10 +146,10 @@ async def async_get_service(
         return {"scenarios": await service.enquire_active_scenarios()}
 
     async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
-        return {"scenarios": service.enquire_snoozes()}
+        return {"snoozes": service.enquire_snoozes()}
 
     async def supplemental_service_enquire_people(_call: ServiceCall) -> dict:
-        return {"scenarios": service.enquire_people()}
+        return {"people": service.enquire_people()}
 
     async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
@@ -450,11 +452,20 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                     return
 
+                people = [
+                    p.get(CONF_PERSON)
+                    for p in self.context.people.values()
+                    if p.get(ATTR_USER_ID) == event.context.get(ATTR_USER_ID) and p.get(CONF_PERSON)
+                ]
+                person: str | None = None
+                if people:
+                    person = people[0]
+
                 if cmd == "SNOOZE":
-                    snooze = Snooze(target_type, target, recipient_type, snooze_for)
+                    snooze = Snooze(target_type, target, recipient_type, person, snooze_for)
                     self.snoozes[snooze.short_key()] = snooze
                 elif cmd == "SILENCE":
-                    snooze = Snooze(target_type, target, recipient_type)
+                    snooze = Snooze(target_type, target, recipient_type, person)
                     self.snoozes[snooze.short_key()] = snooze
                 elif cmd == "ENABLE":
                     to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]

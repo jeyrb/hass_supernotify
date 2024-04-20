@@ -117,6 +117,7 @@ ATTR_JPEG_FLAGS = "jpeg_flags"
 ATTR_TIMESTAMP = "timestamp"
 ATTR_DEBUG = "debug"
 ATTR_ACTIONS = "actions"
+ATTR_USER_ID = "user_id"
 
 DELIVERY_SELECTION_IMPLICIT = "implicit"
 DELIVERY_SELECTION_EXPLICIT = "explicit"
@@ -366,22 +367,37 @@ class Snooze:
     target_type: TargetType
     snoozed_at: float
     recipient_type: RecipientType
+    recipient: str | None = None
     snooze_until: float | None = None
 
     def __init__(
-        self, target_type: TargetType, target: str, recipient_type: RecipientType, snooze_for: int | None = None
+        self,
+        target_type: TargetType,
+        target: str,
+        recipient_type: RecipientType,
+        recipient: str | None = None,
+        snooze_for: int | None = None,
     ) -> None:
         self.snoozed_at = time.time()
         self.target = target
         self.target_type = target_type
+        self.recipient = recipient
         self.recipient_type = recipient_type
         if snooze_for:
             self.snooze_until = self.snoozed_at + snooze_for
 
     def short_key(self) -> str:
-        if self.target_type in GlobalTargetType:
-            return f"{self.recipient_type}_GLOBAL"
-        return f"{self.recipient_type}_{self.target_type}_{self.target}"
+        if self.recipient_type == RecipientType.EVERYONE:
+            recipient = f"{RecipientType.EVERYONE}"
+        elif self.recipient is not None:
+            recipient = f"{self.recipient_type}_{self.recipient}"
+        else:
+            recipient = "UNKNOWN"
+        if self.target_type in QualifiedTargetType:
+            target = f"{self.target_type}_{self.target}"
+        else:
+            target = "GLOBAL"  # can only be one of these active at a time
+        return f"{recipient}_{target}"
 
     def __eq__(self, other: object) -> bool:
         """Check if two snoozes for the same thing"""
