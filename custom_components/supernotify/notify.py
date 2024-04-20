@@ -458,14 +458,15 @@ class SuperNotificationService(BaseNotificationService):
             return
 
         try:
-            people = [
-                p.get(CONF_PERSON)
-                for p in self.context.people.values()
-                if p.get(ATTR_USER_ID) == event.context.user_id and event.context.user_id is not None and p.get(CONF_PERSON)
-            ]
             person: str | None = None
-            if people:
-                person = people[0]
+            if recipient_type == RecipientType.USER:
+                people = [
+                    p.get(CONF_PERSON)
+                    for p in self.context.people.values()
+                    if p.get(ATTR_USER_ID) == event.context.user_id and event.context.user_id is not None and p.get(CONF_PERSON)
+                ]
+                if people:
+                    person = people[0]
 
             if cmd == "SNOOZE":
                 snooze = Snooze(target_type, target, recipient_type, person, snooze_for)

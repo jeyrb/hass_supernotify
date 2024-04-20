@@ -420,4 +420,6 @@ class Snooze:
             "target": self.target,
             "snoozed_at": format_timestamp(self.snoozed_at),
             "snooze_until": format_timestamp(self.snooze_until),
+            "recipient_type": self.recipient_type,
+            "recipient": self.recipient,
         }
