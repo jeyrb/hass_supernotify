@@ -66,7 +66,7 @@ class SupernotificationConfiguration:
                 self.hass_internal_url = get_url(hass, prefer_external=False)
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY could not get internal hass url: %s", e)
-                self.hass_internal_url = "http://%s" % socket.gethostname()
+                self.hass_internal_url = f"http://{socket.gethostname()}"
             try:
                 self.hass_external_url = get_url(hass, prefer_external=True)
             except Exception as e:
@@ -216,7 +216,7 @@ class SupernotificationConfiguration:
         method_name = self.deliveries.get(delivery, {}).get(CONF_METHOD)
         method: DeliveryMethod | None = self.methods.get(method_name)
         if not method:
-            raise ValueError("SUPERNOTIFY No method for delivery %s" % delivery)
+            raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
         return method
 
     def setup_people(self, recipients: list | tuple) -> dict[str, dict]:
@@ -278,7 +278,7 @@ class SupernotificationConfiguration:
                         mobile_devices.append({
                             CONF_MANUFACTURER: device.manufacturer,
                             CONF_MODEL: device.model,
-                            CONF_NOTIFY_SERVICE: "mobile_app_%s" % slugify(device.name),
+                            CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
                             CONF_DEVICE_TRACKER: d_t,
                         })
         return mobile_devices

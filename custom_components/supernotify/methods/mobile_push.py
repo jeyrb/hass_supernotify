@@ -117,8 +117,8 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         if camera_entity_id:
             # TODO: generalize and add the actual action
             data["actions"].append({
-                "action": "silence-%s" % camera_entity_id,
-                "title": "Stop camera notifications for %s" % camera_entity_id,
+                "action": f"silence-{camera_entity_id}",
+                "title": f"Stop camera notifications for {camera_entity_id}",
                 "destructive": "true",
             })
         for group, actions in self.context.mobile_actions.items():
@@ -128,6 +128,6 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         service_data[ATTR_DATA] = data
         hits = 0
         for mobile_target in envelope.targets:
-            if await self.call_service(envelope, "notify.%s" % mobile_target, service_data=service_data):
+            if await self.call_service(envelope, f"notify.{mobile_target}", service_data=service_data):
                 hits += 1
         return hits > 0

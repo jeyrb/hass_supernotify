@@ -29,6 +29,6 @@ def register_mobile_app(
         config_entry_id=config_entry.entry_id,
         manufacturer=manufacturer,
         model=model,
-        identifiers={(domain, "device-id_%s" % device_name)},
+        identifiers={(domain, f"device-id_{device_name}")},
     )
     entity_registry.async_get_or_create("device_tracker", "mobile_app", device_name, device_id=device_entry.id)

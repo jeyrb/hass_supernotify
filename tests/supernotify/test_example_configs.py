@@ -42,7 +42,7 @@ async def test_examples(hass: HomeAssistant, config_name: str) -> None:
     await hass.services.async_call(
         notify.DOMAIN,
         service_name,
-        {"message": "unit test - %s" % config_name, "data": {"delivery": {"testing": None}, "priority": "low"}},
+        {"message": f"unit test - {config_name}", "data": {"delivery": {"testing": None}, "priority": "low"}},
         blocking=True,
     )
     await hass.async_stop()
