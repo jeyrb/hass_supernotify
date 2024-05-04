@@ -363,6 +363,12 @@ class QualifiedTargetType(TargetType):
     PERSON = "PERSON"
 
 
+class CommandType(StrEnum):
+    SNOOZE = "SNOOZE"
+    SILENCE = "SILENCE"
+    NORMAL = "NORMAL"
+
+
 class Snooze:
     target: str
     target_type: TargetType

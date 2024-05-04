@@ -52,6 +52,7 @@ from . import (
     PLATFORMS,
     PRIORITY_CRITICAL,
     PRIORITY_VALUES,
+    CommandType,
     GlobalTargetType,
     QualifiedTargetType,
     RecipientType,
@@ -468,13 +469,13 @@ class SuperNotificationService(BaseNotificationService):
                 if people:
                     recipient = people[0]
 
-            if cmd == "SNOOZE":
+            if cmd == CommandType.SNOOZE:
                 snooze = Snooze(target_type, target, recipient_type, recipient, snooze_for)
                 self.snoozes[snooze.short_key()] = snooze
-            elif cmd == "SILENCE":
+            elif cmd == CommandType.SILENCE:
                 snooze = Snooze(target_type, target, recipient_type, recipient)
                 self.snoozes[snooze.short_key()] = snooze
-            elif cmd == "ENABLE":
+            elif cmd == CommandType.NORMAL:
                 anti_snooze = Snooze(target_type, target, recipient_type, recipient)
                 to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
                 for k in to_del:
