@@ -6,5 +6,5 @@ pytest-asyncio
 pytest-unordered
 pre-commit
 pytest-httpserver>=1.0.10
-pylint
-flake8-pyproject
+ruff
+mypy

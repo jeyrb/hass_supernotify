@@ -18,7 +18,7 @@ class Envelope:
     def __init__(
         self,
         delivery_name: str,
-        notification: "Notification | None" = None,  # noqa: F821
+        notification: "Notification | None" = None,  # noqa: F821 # type: ignore
         targets: list | None = None,
         data: dict | None = None,
     ) -> None:

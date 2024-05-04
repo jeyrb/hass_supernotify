@@ -37,7 +37,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         targets = envelope.targets or []
 
         # chime_repeat = data.pop("chime_repeat", 1)
-        chime_tune = data.pop("chime_tune", None)
+        chime_tune: str | None = data.pop("chime_tune", None)
 
         _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
 
@@ -65,7 +65,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
         return chimes > 0
 
-    def analyze_target(self, target: str, chime_tune: str, data: dict) -> tuple[str, str | None, dict[str, Any]]:
+    def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
         domain, name = target.split(".", 1)
         service_data: dict[str, Any] = {}
         service: str | None = None
@@ -101,16 +101,17 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
         return domain, service, service_data
 
-    def resolve_tune(self, tune: str) -> dict[str, Any]:
+    def resolve_tune(self, tune: str | None) -> dict[str, Any]:
         entities_and_tunes: dict[str, Any] = {}
-        for domain, alias_config in self.chime_aliases.get(tune, {}).items():
-            if isinstance(alias_config, str):
-                alias_config = {"tune": alias_config}
-            domain = alias_config.get("domain", domain)
-            actual_tune = alias_config.get("tune", tune)
-            if ATTR_ENTITY_ID in alias_config:
-                entities_and_tunes.update(dict.fromkeys(ensure_list(alias_config[ATTR_ENTITY_ID]), actual_tune))
-            else:
-                entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith(f"{domain}.")})
+        if tune is not None:
+            for domain, alias_config in self.chime_aliases.get(tune, {}).items():
+                if isinstance(alias_config, str):
+                    alias_config = {"tune": alias_config}
+                domain = alias_config.get("domain", domain)
+                actual_tune = alias_config.get("tune", tune)
+                if ATTR_ENTITY_ID in alias_config:
+                    entities_and_tunes.update(dict.fromkeys(ensure_list(alias_config[ATTR_ENTITY_ID]), actual_tune))
+                else:
+                    entities_and_tunes.update({ent: actual_tune for ent in self.chime_entities if ent.startswith(f"{domain}.")})
 
         return entities_and_tunes

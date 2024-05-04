@@ -349,26 +349,27 @@ class GlobalTargetType(TargetType):
     EVERYTHING = "EVERYTHING"
 
 
+class RecipientType(StrEnum):
+    USER = "USER"
+    EVERYONE = "EVERYONE"
+
+
 class QualifiedTargetType(TargetType):
     METHOD = "METHOD"
     DELIVERY = "DELIVERY"
     CAMERA = "CAMERA"
     LABEL = "LABEL"
     PRIORITY = "PRIORITY"
-
-
-class RecipientType(StrEnum):
-    EVERYONE = "EVERYONE"
-    USER = "USER"
+    PERSON = "PERSON"
 
 
 class Snooze:
     target: str
     target_type: TargetType
     snoozed_at: float
-    recipient_type: RecipientType
-    recipient: str | None = None
     snooze_until: float | None = None
+    recipient_type: RecipientType
+    recipient: str | None
 
     def __init__(
         self,
@@ -381,23 +382,16 @@ class Snooze:
         self.snoozed_at = time.time()
         self.target = target
         self.target_type = target_type
-        self.recipient = recipient
         self.recipient_type = recipient_type
+        self.recipient = recipient
         if snooze_for:
             self.snooze_until = self.snoozed_at + snooze_for
 
     def short_key(self) -> str:
-        if self.recipient_type == RecipientType.EVERYONE:
-            recipient = f"{RecipientType.EVERYONE}"
-        elif self.recipient is not None:
-            recipient = f"{self.recipient_type}_{self.recipient}"
-        else:
-            recipient = "UNKNOWN"
+        recipient = self.recipient if self.recipient_type == RecipientType.USER else RecipientType.EVERYONE
         if self.target_type in QualifiedTargetType:
-            target = f"{self.target_type}_{self.target}"
-        else:
-            target = "GLOBAL"  # can only be one of these active at a time
-        return f"{recipient}_{target}"
+            return f"{self.target_type}_{self.target}_{recipient}"
+        return "GLOBAL"  # can only be one of these active at a time
 
     def __eq__(self, other: object) -> bool:
         """Check if two snoozes for the same thing"""
@@ -420,6 +414,4 @@ class Snooze:
             "target": self.target,
             "snoozed_at": format_timestamp(self.snoozed_at),
             "snooze_until": format_timestamp(self.snooze_until),
-            "recipient_type": self.recipient_type,
-            "recipient": self.recipient,
         }

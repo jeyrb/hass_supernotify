@@ -97,7 +97,7 @@ async def async_get_service(
             await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
 
     hass.states.async_set(
-        "%s.configured" % DOMAIN,
+        f"{DOMAIN}.configured",
         True,
         {
             CONF_DELIVERY: config.get(CONF_DELIVERY, {}),
@@ -113,8 +113,8 @@ async def async_get_service(
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
         },
     )
-    hass.states.async_set("%s.failures" % DOMAIN, 0)
-    hass.states.async_set("%s.sent" % DOMAIN, 0)
+    hass.states.async_set(f"{DOMAIN}.failures", 0)
+    hass.states.async_set(f"{DOMAIN}.sent", 0)
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), [], {})
 
@@ -335,7 +335,7 @@ class SuperNotificationService(BaseNotificationService):
                 )
                 await notification.deliver()
                 self.sent += 1
-                self.hass.states.async_set("%s.sent" % DOMAIN, self.sent)
+                self.hass.states.async_set(f"{DOMAIN}.sent", self.sent)
 
             self.last_notification = notification
             if self.context.archive.get(CONF_ENABLED):
@@ -352,7 +352,7 @@ class SuperNotificationService(BaseNotificationService):
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, e)
             self.failures += 1
-            self.hass.states.async_set("%s.failures" % DOMAIN, self.failures)
+            self.hass.states.async_set(f"{DOMAIN}.failures", self.failures)
 
     def archive_size(self) -> int:
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
@@ -422,43 +422,43 @@ class SuperNotificationService(BaseNotificationService):
             user_id: e9dbae1a5abf44dbbad52ff85501bb17
         """
         event_name = event.data.get(ATTR_ACTION)
+        if not event_name.startswith("SUPERNOTIFY_"):
+            return  # event not intended for here
         try:
-            if event_name.startswith("SUPERNOTIFY_"):
-                cmd: str | None = None
-                target_type: TargetType | None = None
-                target: str | None = None
-                snooze_for: int = SNOOZE_TIME
-                recipient_type: RecipientType | None = None
+            cmd: str | None = None
+            target_type: TargetType | None = None
+            target: str | None = None
+            snooze_for: int = SNOOZE_TIME
+            recipient_type: RecipientType | None = None
 
-                _LOGGER.debug(
-                    "SUPERNOTIFY Mobile Action: %s, %s, %s, %s", event.origin, event.time_fired, event.data, event.context
-                )
-                event_parts: list[str] = event_name.split("_")
+            _LOGGER.debug(
+                "SUPERNOTIFY Mobile Action: %s, %s, %s, %s", event.origin, event.time_fired, event.data, event.context
+            )
+            event_parts: list[str] = event_name.split("_")
+            if len(event_parts) < 4:
+                _LOGGER.warning("SUPERNOTIFY Malformed mobile event action %s", event_name)
+                return
+            cmd = event_parts[1]
+            if event_parts[2] in RecipientType:
+                recipient_type = RecipientType[event_parts[2]]
+            if event_parts[3] in QualifiedTargetType and len(event_parts) > 4:
+                target_type = QualifiedTargetType[event_parts[3]]
+                target = event_parts[4]
+                snooze_for = int(event_parts[-1]) if len(event_parts) == 6 else SNOOZE_TIME
+            elif event_parts[3] in GlobalTargetType and len(event_parts) >= 4:
+                target_type = GlobalTargetType[event_parts[3]]
+                target = "ALL"
+                snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
 
-                if event_parts[3] in QualifiedTargetType and len(event_parts) >= 4:
-                    cmd = event_parts[1]
-                    recipient_type = RecipientType[event_parts[2]]
-                    target_type = QualifiedTargetType[event_parts[3]]
-                    target = event_parts[4]
-                    snooze_for = int(event_parts[-1]) if len(event_parts) == 6 else SNOOZE_TIME
-                elif event_parts[3] in GlobalTargetType and len(event_parts) >= 4:
-                    cmd = event_parts[1]
-                    recipient_type = RecipientType[event_parts[2]]
-                    target_type = GlobalTargetType[event_parts[3]]
-                    target = "ALL"
-                    snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
-
-                if cmd is None or target_type is None or target is None or recipient_type is None:
-                    _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
-                    return
-            else:
-                return  # action meant for another script
+            if cmd is None or target_type is None or target is None or recipient_type is None:
+                _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
+                return
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to analyze event %s: %s", event, e)
             return
 
         try:
-            person: str | None = None
+            recipient: str | None = None
             if recipient_type == RecipientType.USER:
                 people = [
                     p.get(CONF_PERSON)
@@ -466,16 +466,17 @@ class SuperNotificationService(BaseNotificationService):
                     if p.get(ATTR_USER_ID) == event.context.user_id and event.context.user_id is not None and p.get(CONF_PERSON)
                 ]
                 if people:
-                    person = people[0]
+                    recipient = people[0]
 
             if cmd == "SNOOZE":
-                snooze = Snooze(target_type, target, recipient_type, person, snooze_for)
+                snooze = Snooze(target_type, target, recipient_type, recipient, snooze_for)
                 self.snoozes[snooze.short_key()] = snooze
             elif cmd == "SILENCE":
-                snooze = Snooze(target_type, target, recipient_type, person)
+                snooze = Snooze(target_type, target, recipient_type, recipient)
                 self.snoozes[snooze.short_key()] = snooze
             elif cmd == "ENABLE":
-                to_del = [k for k, v in self.snoozes.items() if v.target == target and v.target_type == target_type]
+                anti_snooze = Snooze(target_type, target, recipient_type, recipient)
+                to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
                 for k in to_del:
                     del self.snoozes[k]
             else:

@@ -149,7 +149,7 @@ class DeliveryMethod:
 
     async def call_service(
         self,
-        envelope: "Envelope",  # noqa: F821
+        envelope: "Envelope",  # noqa: F821 # type: ignore
         qualified_service: str | None = None,
         service_data: dict | None = None,
     ) -> bool:
