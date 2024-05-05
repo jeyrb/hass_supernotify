@@ -67,6 +67,7 @@ from . import (
     STRICT_SERVICE_DATA_SCHEMA,
     GlobalTargetType,
     QualifiedTargetType,
+    RecipientType,
     Snooze,
 )
 from .common import ensure_dict, ensure_list
@@ -380,7 +381,27 @@ class Notification:
                 )
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
 
-        # snoozes = self.context.snoozes
+        for snooze in self.inscope_snoozes:
+            if snooze.recipient_type == RecipientType.USER:
+                # assume the everyone checks are made before notification gets this far
+                if (
+                    (snooze.target_type == QualifiedTargetType.DELIVERY and snooze.target == delivery_name)
+                    or (snooze.target_type == QualifiedTargetType.METHOD and snooze.target == delivery_method.method)
+                    or (
+                        snooze.target_type == QualifiedTargetType.PRIORITY
+                        and (
+                            snooze.target == self.priority
+                            or (isinstance(snooze.target, list) and self.priority in snooze.target)
+                        )
+                    )
+                    or snooze.target_type == GlobalTargetType.EVERYTHING
+                    or (snooze.target_type == GlobalTargetType.NONCRITICAL and self.priority != PRIORITY_CRITICAL)
+                ):
+                    for recipient in recipients:
+                        if recipient.get(CONF_PERSON) == snooze.recipient:
+                            recipients.remove(recipient)
+                            _LOGGER.info("SUPERNOTIFY Snoozing %s for notification %s", snooze.recipient, self.id)
+
         return recipients
 
     def generate_envelopes(self, delivery_name: str, method: DeliveryMethod, recipients: list[dict]) -> list[Envelope]:
@@ -511,9 +532,11 @@ class Notification:
             if snooze.active():
                 match snooze.target_type:
                     case GlobalTargetType.EVERYTHING:
+                        inscope_snoozes.append(snooze)
                         return (True, inscope_snoozes)
                     case GlobalTargetType.NONCRITICAL:
                         if self.priority != PRIORITY_CRITICAL:
+                            inscope_snoozes.append(snooze)
                             return (True, inscope_snoozes)
                     case QualifiedTargetType.DELIVERY:
                         if snooze.target in self.selected_delivery_names:
@@ -527,8 +550,6 @@ class Notification:
                         ]:
                             inscope_snoozes.append(snooze)
                     case QualifiedTargetType.CAMERA:
-                        inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.LABEL:
                         inscope_snoozes.append(snooze)
                     case _:
                         _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)

@@ -11,6 +11,7 @@ def register_mobile_app(
     hass,
     device_registry,
     entity_registry,
+    person="person.test_user",
     manufacturer="xUnit",
     model="PyTest001",
     device_name="phone01",
@@ -24,7 +25,9 @@ def register_mobile_app(
         hass.config_entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)
     except Exception as e:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking: %s", e)
-
+    hass.states.async_set(
+        person, "home", attributes={"device_trackers": [f"device_tracker.mobile_app_{device_name}", "dev002"]}
+    )
     device_entry = device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
         manufacturer=manufacturer,

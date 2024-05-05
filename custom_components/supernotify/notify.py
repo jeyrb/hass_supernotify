@@ -482,6 +482,7 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.debug("SUPERNOTIFY mobile action from %s mapped to %s", event.context.user_id, recipient)
                 else:
                     _LOGGER.warning("SUPERNOTIFY Unable to find person for action from %s", event.context.user_id)
+                    return
 
             self.context.register_snooze(cmd, target_type, target, recipient_type, recipient, snooze_for)
 

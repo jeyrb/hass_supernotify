@@ -369,9 +369,7 @@ class QualifiedTargetType(TargetType):
     METHOD = "METHOD"
     DELIVERY = "DELIVERY"
     CAMERA = "CAMERA"
-    LABEL = "LABEL"
     PRIORITY = "PRIORITY"
-    PERSON = "PERSON"
 
 
 class CommandType(StrEnum):
@@ -404,11 +402,13 @@ class Snooze:
         if snooze_for:
             self.snooze_until = self.snoozed_at + snooze_for
 
+    def std_recipient(self) -> str | None:
+        return self.recipient if self.recipient_type == RecipientType.USER else RecipientType.EVERYONE
+
     def short_key(self) -> str:
-        recipient = self.recipient if self.recipient_type == RecipientType.USER else RecipientType.EVERYONE
         #  only one GLOBAL can be active at a time
         target = "GLOBAL" if self.target_type in GlobalTargetType else f"{self.target_type}_{self.target}"
-        return f"{target}_{recipient}"
+        return f"{target}_{self.std_recipient()}"
 
     def __eq__(self, other: object) -> bool:
         """Check if two snoozes for the same thing"""
@@ -418,7 +418,7 @@ class Snooze:
 
     def __repr__(self) -> str:
         """Return a string representation of the object."""
-        return f"Snooze({self.target_type}, {self.target}, {self.snoozed_at})"
+        return f"Snooze({self.target_type}, {self.target}, {self.std_recipient()})"
 
     def active(self) -> bool:
         if self.snooze_until is not None and self.snooze_until < time.time():

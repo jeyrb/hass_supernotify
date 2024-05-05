@@ -1,10 +1,13 @@
 from homeassistant.const import CONF_SERVICE
-from homeassistant.core import Event, HomeAssistant
+from homeassistant.core import Context, Event, HomeAssistant
+from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.supernotify import (
     ATTR_ACTION,
     ATTR_PRIORITY,
+    ATTR_USER_ID,
     CONF_METHOD,
+    CONF_PERSON,
     CONF_SELECTION,
     METHOD_ALEXA,
     METHOD_CHIME,
@@ -21,6 +24,7 @@ from custom_components.supernotify import (
 )
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.notify import SuperNotificationService
+from tests.supernotify.hass_setup_lib import register_mobile_app
 
 DELIVERY: dict[str, dict] = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
@@ -78,21 +82,20 @@ def test_snooze_everything(mock_hass: HomeAssistant) -> None:
 async def test_check_notification_for_snooze_global(mock_hass: HomeAssistant):
     uut = SuperNotificationService(mock_hass, deliveries=DELIVERY)
     await uut.initialize()
-    ctx = uut.context
 
-    plain_notify = Notification(ctx, "hello")
+    plain_notify = Notification(uut.context, "hello")
     assert plain_notify.check_for_snoozes() == (False, [])
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_EVERYTHING"}))
-    assert plain_notify.check_for_snoozes() == (True, [])
+    assert plain_notify.check_for_snoozes() == (True, [(Snooze(GlobalTargetType.EVERYTHING, RecipientType.EVERYONE))])
 
     uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_NONCRITICAL"}))
-    crit_notify = Notification(ctx, "hello", service_data={ATTR_PRIORITY: PRIORITY_CRITICAL})
+    crit_notify = Notification(uut.context, "hello", service_data={ATTR_PRIORITY: PRIORITY_CRITICAL})
     assert crit_notify.check_for_snoozes() == (
         False,
         [],
     )
-    assert plain_notify.check_for_snoozes() == (True, [])
+    assert plain_notify.check_for_snoozes() == (True, [Snooze(GlobalTargetType.EVERYTHING, RecipientType.EVERYONE)])
     uut.shutdown()
 
 
@@ -114,4 +117,46 @@ async def test_check_notification_for_snooze_qualified(mock_hass: HomeAssistant)
             Snooze(QualifiedTargetType.METHOD, RecipientType.EVERYONE, "email"),
         ],
     )
+    uut.shutdown()
+
+
+async def test_snooze_everything_for_person(
+    hass: HomeAssistant, device_registry: device_registry.DeviceRegistry, entity_registry: entity_registry.EntityRegistry
+) -> None:
+    uut = SuperNotificationService(
+        hass,
+        recipients=[
+            {CONF_PERSON: "person.bob_mctest", ATTR_USER_ID: "eee999111"},
+            {CONF_PERSON: "person.jane_macunit", ATTR_USER_ID: "fff444222"},
+        ],
+        deliveries=DELIVERY,
+    )
+    await uut.initialize()
+    register_mobile_app(hass, device_registry, entity_registry, person="person.bob_mctest")
+    plain_notify = Notification(uut.context, "hello")
+    await plain_notify.initialize()
+    assert ["person.bob_mctest", "person.jane_macunit"] == [
+        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    ]
+
+    uut.on_mobile_action(
+        Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_USER_EVERYTHING"}, context=Context(user_id="eee999111"))
+    )
+    assert list(uut.context.snoozes.values()) == [
+        Snooze(GlobalTargetType.EVERYTHING, recipient_type=RecipientType.USER, recipient="person.bob_mctest")
+    ]
+    await plain_notify.initialize()
+    assert ["person.jane_macunit"] == [
+        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    ]
+
+    uut.on_mobile_action(
+        Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_NORMAL_USER_EVERYTHING"}, context=Context(user_id="eee999111"))
+    )
+    assert list(uut.context.snoozes.values()) == []
+    await plain_notify.initialize()
+    assert ["person.bob_mctest", "person.jane_macunit"] == [
+        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    ]
+
     uut.shutdown()
