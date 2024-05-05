@@ -442,10 +442,9 @@ class SuperNotificationService(BaseNotificationService):
                 snooze_for = int(event_parts[-1]) if len(event_parts) == 6 else SNOOZE_TIME
             elif event_parts[3] in GlobalTargetType and len(event_parts) >= 4:
                 target_type = GlobalTargetType[event_parts[3]]
-                target = "ALL"
                 snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
 
-            if cmd is None or target_type is None or target is None or recipient_type is None:
+            if cmd is None or target_type is None or recipient_type is None:
                 _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                 return
 

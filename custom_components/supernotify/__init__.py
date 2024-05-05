@@ -381,7 +381,7 @@ class CommandType(StrEnum):
 
 
 class Snooze:
-    target: str
+    target: str | None
     target_type: TargetType
     snoozed_at: float
     snooze_until: float | None = None
@@ -391,8 +391,8 @@ class Snooze:
     def __init__(
         self,
         target_type: TargetType,
-        target: str,
         recipient_type: RecipientType,
+        target: str | None = None,
         recipient: str | None = None,
         snooze_for: int | None = None,
     ) -> None:
@@ -406,9 +406,9 @@ class Snooze:
 
     def short_key(self) -> str:
         recipient = self.recipient if self.recipient_type == RecipientType.USER else RecipientType.EVERYONE
-        if self.target_type in QualifiedTargetType:
-            return f"{self.target_type}_{self.target}_{recipient}"
-        return "GLOBAL"  # can only be one of these active at a time
+        #  only one GLOBAL can be active at a time
+        target = "GLOBAL" if self.target_type in GlobalTargetType else f"{self.target_type}_{self.target}"
+        return f"{target}_{recipient}"
 
     def __eq__(self, other: object) -> bool:
         """Check if two snoozes for the same thing"""

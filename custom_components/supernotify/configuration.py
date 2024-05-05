@@ -292,19 +292,19 @@ class SupernotificationConfiguration:
         self,
         cmd: CommandType,
         target_type: TargetType,
-        target: str,
+        target: str | None,
         recipient_type: RecipientType,
         recipient: str | None,
         snooze_for: int | None,
     ) -> None:
         if cmd == CommandType.SNOOZE:
-            snooze = Snooze(target_type, target, recipient_type, recipient, snooze_for)
+            snooze = Snooze(target_type, recipient_type, target, recipient, snooze_for)
             self.snoozes[snooze.short_key()] = snooze
         elif cmd == CommandType.SILENCE:
-            snooze = Snooze(target_type, target, recipient_type, recipient)
+            snooze = Snooze(target_type, recipient_type, target, recipient)
             self.snoozes[snooze.short_key()] = snooze
         elif cmd == CommandType.NORMAL:
-            anti_snooze = Snooze(target_type, target, recipient_type, recipient)
+            anti_snooze = Snooze(target_type, recipient_type, target, recipient)
             to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
             for k in to_del:
                 del self.snoozes[k]
