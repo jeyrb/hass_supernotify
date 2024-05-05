@@ -65,11 +65,6 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY No targets provided for mobile_push")
             return False
         data = envelope.data or {}
-        app_url: str | None = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
-        if app_url:
-            app_url_title = envelope.actions.get(ATTR_ACTION_URL_TITLE) or self.action_title(app_url) or "Click for Action"
-        else:
-            app_url_title = "Action Link"
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = data.get(ATTR_ACTION_GROUPS)
 
@@ -114,9 +109,14 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["video"] = clip_url
         if snapshot_url:
             data["image"] = snapshot_url
-        if app_url:
-            data["url"] = app_url
-            data["actions"].append({"action": "URI", "title": app_url_title, "uri": app_url})
+
+        data.setdefault("actions", [])
+        for action in envelope.actions:
+            app_url: str | None = self.abs_url(action.get(ATTR_ACTION_URL))
+            if app_url:
+                app_url_title = action.get(ATTR_ACTION_URL_TITLE) or self.action_title(app_url) or "Click for Action"
+                action[ATTR_ACTION_URL_TITLE] = app_url_title
+            data["actions"].append(action)
         if camera_entity_id:
             data["actions"].append({
                 "action": f"SUPERNOTIFY_SNOOZE_EVERYONE_CAMERA_{camera_entity_id}",

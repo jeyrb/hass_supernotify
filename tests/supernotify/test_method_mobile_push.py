@@ -39,7 +39,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
                         "camera_ptz_preset": "front-door",
                         "clip_url": "http://my.home/clip.mp4",
                     },
-                    "actions": {"action_url": "http://my.home/app1", "action_url_title": "My Camera App"},
+                    "actions": [{"action": "URI", "title": "My Camera App", "url": "http://my.home/app1"}],
                 },
             ),
             targets=["mobile_app_new_iphone"],
@@ -52,7 +52,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
             "message": "hello there",
             "data": {
                 "actions": [
-                    {"action": "URI", "title": "My Camera App", "uri": "http://my.home/app1"},
+                    {"action": "URI", "title": "My Camera App", "url": "http://my.home/app1"},
                     {
                         "action": "SUPERNOTIFY_SNOOZE_EVERYONE_CAMERA_camera.porch",
                         "title": "Snooze camera notifications for camera.porch",
@@ -65,7 +65,6 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
                 "group": "general",
                 "entity_id": "camera.porch",
                 "video": "http://my.home/clip.mp4",
-                "url": "http://my.home/app1",
             },
         },
     )

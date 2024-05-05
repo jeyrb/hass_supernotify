@@ -18,3 +18,7 @@
 ::: custom_components.supernotify.scenario.Scenario
     handler: python
     heading_level: 2
+
+::: custom_components.supernotify.Snooze
+    handler: python
+    heading_level: 2

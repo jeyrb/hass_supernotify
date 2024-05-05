@@ -25,7 +25,6 @@ class Envelope:
         self.targets: list = targets or []
         self.delivery_name: str = delivery_name
         self._notification = notification
-        self.actions: dict[str, Any] = {}
         self.notification_id = None
         self.media = None
         self.priority = PRIORITY_MEDIUM
@@ -33,6 +32,7 @@ class Envelope:
         self.title: str | None = None
         self.message_html: str | None = None
         self.data: dict = {}
+        self.actions: list = []
         delivery_config_data: dict = {}
         if notification:
             self.notification_id = notification.id
