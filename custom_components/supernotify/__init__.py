@@ -71,6 +71,7 @@ CONF_TARGETS_REQUIRED: str = "targets_required"
 CONF_MOBILE_DEVICES: str = "mobile_devices"
 CONF_MOBILE_DISCOVERY: str = "mobile_discovery"
 CONF_ACTION_TEMPLATE: str = "action_template"
+CONF_ACTION_GROUPS: str = "action_groups"
 CONF_TITLE_TEMPLATE: str = "title_template"
 CONF_DELIVERY_SELECTION: str = "delivery_selection"
 CONF_MEDIA: str = "media"
@@ -103,6 +104,7 @@ ATTR_DELIVERY_SELECTION = "delivery_selection"
 ATTR_RECIPIENTS = "recipients"
 ATTR_DATA = "data"
 ATTR_MEDIA = "media"
+ATTR_TITLE = "title"
 ATTR_MEDIA_SNAPSHOT_URL = "snapshot_url"
 ATTR_MEDIA_CAMERA_ENTITY_ID = "camera_entity_id"
 ATTR_MEDIA_CAMERA_DELAY = "camera_delay"
@@ -283,8 +285,17 @@ SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(CONF_DELIVERY, default=dict): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)},  # type: ignore
 })
-
-PUSH_ACTION_SCHEMA = vol.Schema(
+ACTION_CALL_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ACTION): cv.string,
+        vol.Optional(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
+        vol.Optional(ATTR_ACTION_URL): cv.url,
+        vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+ACTION_SCHEMA = vol.Schema(
     {
         vol.Exclusive(CONF_ACTION, CONF_ACTION_TEMPLATE): cv.string,
         vol.Exclusive(CONF_TITLE, CONF_TITLE_TEMPLATE): cv.string,
@@ -312,7 +323,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_HOUSEKEEPING, default=dict): HOUSEKEEPING_SCHEMA,  # type: ignore
     vol.Optional(CONF_DUPE_CHECK, default=dict): NOTIFICATION_DUPE_SCHEMA,  # type: ignore
     vol.Optional(CONF_DELIVERY, default=dict): {cv.string: DELIVERY_SCHEMA},  # type: ignore
-    vol.Optional(CONF_ACTIONS, default=dict): {cv.string: [PUSH_ACTION_SCHEMA]},  # type: ignore
+    vol.Optional(CONF_ACTION_GROUPS, default=dict): {cv.string: [ACTION_SCHEMA]},  # type: ignore
     vol.Optional(CONF_RECIPIENTS, default=list): vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),  # type: ignore # type: ignore
     vol.Optional(CONF_LINKS, default=list): vol.All(cv.ensure_list, [LINK_SCHEMA]),  # type: ignore
     vol.Optional(CONF_SCENARIOS, default=dict): {cv.string: SCENARIO_SCHEMA},  # type: ignore
@@ -320,12 +331,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_CAMERAS, default=list): vol.All(cv.ensure_list, [CAMERA_SCHEMA]),  # type: ignore
 })
 
-ACTION_SCHEMA = vol.Schema({
-    vol.Optional(ATTR_ACTION_GROUPS): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(ATTR_ACTION_CATEGORY): cv.string,
-    vol.Optional(ATTR_ACTION_URL): cv.url,
-    vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
-})
 SERVICE_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
@@ -335,7 +340,8 @@ SERVICE_DATA_SCHEMA = vol.Schema(
         vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
         vol.Optional(ATTR_MESSAGE_HTML): cv.string,
-        vol.Optional(ATTR_ACTIONS): ACTION_SCHEMA,
+        vol.Optional(ATTR_ACTION_GROUPS, default=[]): vol.All(cv.ensure_list, [cv.string]),  # type: ignore
+        vol.Optional(ATTR_ACTIONS, default=[]): vol.All(cv.ensure_list, [ACTION_CALL_SCHEMA]),  # type: ignore
         vol.Optional(ATTR_DEBUG, default=False): cv.boolean,  # type: ignore
         vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA),
     },

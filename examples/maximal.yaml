@@ -248,7 +248,7 @@ notify:
         device_tracker: device_tracker.cam_dah_garden
         alt_camera: camera.front_door
 
-    actions:
+    action_groups:
       examples:
         - identifier: action-1
           title: Example Mobile Action
