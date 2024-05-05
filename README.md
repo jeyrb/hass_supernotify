@@ -316,6 +316,16 @@ All of these set by passing an `options` block in delivery config or method defa
 
 `jpeg_flags` can also be set per runtime call by passing in the `media` block.
 
+## Snoozing
+
+Snoozing can be done for a set time, or notifications can be silenced until further notice ( or currently until reboot ).
+
+### Mobile Actions
+
+Mobile actions will be handled according to scheme:
+
+SUPERNOTIFY_<COMMAND>_<TargetType>_
+
 ## Tips
 
 ### Message formatting

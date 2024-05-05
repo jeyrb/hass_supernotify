@@ -429,6 +429,8 @@ class Snooze:
         return {
             "target_type": self.target_type,
             "target": self.target,
+            "recipient_type": self.recipient_type,
+            "recipient": self.recipient,
             "snoozed_at": format_timestamp(self.snoozed_at),
             "snooze_until": format_timestamp(self.snooze_until),
         }
