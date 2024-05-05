@@ -147,6 +147,9 @@ async def async_get_service(
     async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
         return {"snoozes": service.enquire_snoozes()}
 
+    async def supplemental_service_clear_snoozes(_call: ServiceCall) -> dict:
+        return {"cleared": service.clear_snoozes()}
+
     async def supplemental_service_enquire_people(_call: ServiceCall) -> dict:
         return {"people": service.enquire_people()}
 
@@ -187,6 +190,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_snoozes",
         supplemental_service_enquire_snoozes,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "clear_snoozes",
+        supplemental_service_clear_snoozes,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
@@ -398,6 +407,11 @@ class SuperNotificationService(BaseNotificationService):
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
         return [s.export() for s in self.context.snoozes.values()]
+
+    def clear_snoozes(self) -> int:
+        cleared = len(self.context.snoozes)
+        self.context.snoozes.clear()
+        return cleared
 
     def enquire_people(self) -> list[dict]:
         return list(self.context.people.values())
