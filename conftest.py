@@ -3,11 +3,25 @@ from ssl import SSLContext
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
+import homeassistant.components.notify as notify
 import pytest
-from homeassistant.core import HomeAssistant
+from homeassistant.components.notify import BaseNotificationService
+from homeassistant.core import HomeAssistant, callback
 from pytest_httpserver import HTTPServer
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
+
+
+class MockService(BaseNotificationService):
+    """A test class for notification services."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.calls = []
+
+    @callback
+    async def async_send_message(self, message="", title=None, target=None, **kwargs):
+        self.calls.append([message, title, target, kwargs])
 
 
 @pytest.fixture()
@@ -20,7 +34,18 @@ def mock_hass() -> HomeAssistant:
     hass.data = {}
     hass.data["device_registry"] = Mock()
     hass.data["entity_registry"] = Mock()
+    hass.config_entries = Mock()
+    hass.config_entries._entries = {}
+    hass.config_entries._domain_index = {}
+
     return hass
+
+
+@pytest.fixture()
+def mock_notify(hass: HomeAssistant) -> MockService:
+    mock_service: MockService = MockService()
+    hass.services.async_register(notify.DOMAIN, "mock", mock_service, supports_response=False)
+    return mock_service
 
 
 @pytest.fixture()

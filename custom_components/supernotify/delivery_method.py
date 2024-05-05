@@ -159,7 +159,8 @@ class DeliveryMethod:
         config = self.delivery_config(envelope.delivery_name)
         try:
             qualified_service = qualified_service or config.get(CONF_SERVICE) or self.default_service
-            if qualified_service and (service_data.get(ATTR_TARGET) or not config.get(CONF_TARGETS_REQUIRED, False)):
+            targets_required = config.get(CONF_TARGETS_REQUIRED, False)
+            if qualified_service and (service_data.get(ATTR_TARGET) or not targets_required):
                 domain, service = qualified_service.split(".", 1)
                 start_time = time.time()
                 await self.hass.services.async_call(domain, service, service_data=service_data)

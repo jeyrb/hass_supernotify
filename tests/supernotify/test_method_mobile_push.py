@@ -1,9 +1,15 @@
+import homeassistant.components.notify as notify
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.setup import async_setup_component
 
+from conftest import MockService
 from custom_components.supernotify import (
     ATTR_PRIORITY,
+    CONF_METHOD,
     CONF_PRIORITY,
+    DOMAIN,
+    METHOD_MOBILE_PUSH,
     PRIORITY_CRITICAL,
     PRIORITY_HIGH,
     PRIORITY_LOW,
@@ -48,9 +54,11 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
                 "actions": [
                     {"action": "URI", "title": "My Camera App", "uri": "http://my.home/app1"},
                     {
-                        "action": "silence-camera.porch",
-                        "title": "Stop camera notifications for camera.porch",
-                        "destructive": "true",
+                        "action": "SUPERNOTIFY_SNOOZE_EVERYONE_CAMERA_camera.porch",
+                        "title": "Snooze camera notifications for camera.porch",
+                        "behavior": "textInput",
+                        "textInputButtonTitle": "Minutes to snooze",
+                        "textInputPlaceholder": "60",
                     },
                 ],
                 "push": {"interruption-level": "active"},
@@ -77,7 +85,7 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssista
         service_data={
             "title": "testing",
             "message": "hello there",
-            "data": {"actions": [], "push": {"interruption-level": "active"}, "group": "general"},
+            "data": {"push": {"interruption-level": "active"}, "group": "general"},
         },
     )
 
@@ -118,7 +126,6 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
             "title": "testing",
             "message": "hello there",
             "data": {
-                "actions": [],
                 "push": {"interruption-level": "critical", "sound": {"name": "default", "critical": 1, "volume": 1.0}},
             },
         },
@@ -141,3 +148,34 @@ async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, pr
     )
     await uut.deliver(e)
     assert e.calls[0][2]["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")
+
+
+INTEGRATION_CONFIG = {
+    "name": DOMAIN,
+    "platform": DOMAIN,
+    "delivery": {
+        "push": {CONF_METHOD: METHOD_MOBILE_PUSH},
+    },
+    "recipients": [{"person": "person.house_owner", "mobile_devices": {"notify_service": "notify.mobile_app_new_iphone"}}],
+}
+
+
+async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService) -> None:
+    assert await async_setup_component(hass, notify.DOMAIN, config={notify.DOMAIN: [INTEGRATION_CONFIG]})
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        notify.DOMAIN,
+        DOMAIN,
+        {
+            "title": "my title",
+            "message": "integration ttldu",
+            "data": {"priority": "low", "clickAction": "android_something", "transparency": 50},
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    notification = await hass.services.async_call(
+        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
+    )
+    assert notification["delivered_envelopes"][0]["data"]["clickAction"] == "android_something"

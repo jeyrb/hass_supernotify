@@ -2,8 +2,6 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.components import image
-from homeassistant.components.notify import BaseNotificationService
-from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
@@ -42,18 +40,6 @@ class BrokenDeliveryMethod(DeliveryMethod):
 
     async def deliver(self, envelope: Envelope) -> bool:
         raise OSError("a self-inflicted error has occurred")
-
-
-class MockService(BaseNotificationService):
-    """A test class for notification services."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.calls = []
-
-    @callback
-    async def async_send_message(self, message="", title=None, target=None, **kwargs):
-        self.calls.append([message, title, target, kwargs])
 
 
 class MockImageEntity(image.ImageEntity):

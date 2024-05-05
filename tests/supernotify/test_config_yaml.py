@@ -2,16 +2,14 @@ import pathlib
 from unittest.mock import patch
 
 import homeassistant.components.notify as notify
-import pytest
 from homeassistant import config as hass_config
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.service import async_call_from_config
 from homeassistant.setup import async_setup_component
 
+from conftest import MockService
 from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
-
-from .doubles_lib import MockService
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath("..", "..", "examples", "maximal.yaml")
 
@@ -24,13 +22,6 @@ SIMPLE_CONFIG = {
     },
     "recipients": [{"person": "person.house_owner", "email": "test@testing.com", "phone_number": "+4497177848484"}],
 }
-
-
-@pytest.fixture()
-def mock_notify(hass: HomeAssistant) -> MockService:
-    mock_service: MockService = MockService()
-    hass.services.async_register(notify.DOMAIN, "mock", mock_service, supports_response=False)
-    return mock_service
 
 
 async def test_schema():

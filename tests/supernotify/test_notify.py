@@ -30,6 +30,7 @@ from custom_components.supernotify import (
     METHOD_CHIME,
     METHOD_EMAIL,
     METHOD_GENERIC,
+    METHOD_MOBILE_PUSH,
     METHOD_PERSISTENT,
     METHOD_SMS,
     PRIORITY_CRITICAL,
@@ -68,7 +69,7 @@ RECIPIENTS: list[dict] = [
         "person": "person.new_home_owner",
         "email": "me@tester.net",
         CONF_PHONE_NUMBER: "+447989408889",
-        "mobile_devices": ["mobile_app.new_iphone"],
+        "mobile_devices": [{"notify_service": "mobile_app_new_iphone"}],
         CONF_DELIVERY: {"dummy": {CONF_DATA: {"emoji_id": 912393}, CONF_TARGET: ["xyz123"]}},
     },
     {"person": "person.bidey_in", CONF_PHONE_NUMBER: "+4489393013834", CONF_DELIVERY: {"dummy": {CONF_TARGET: ["abc789"]}}},
@@ -232,7 +233,7 @@ async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
         mock_hass,
         deliveries={
             "generic": {CONF_METHOD: METHOD_GENERIC, CONF_SELECTION: SELECTION_FALLBACK, CONF_SERVICE: "notify.dummy"},
-            "push": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.push", CONF_PRIORITY: "critical"},
+            "push": {CONF_METHOD: METHOD_MOBILE_PUSH, CONF_SERVICE: "notify.push", CONF_PRIORITY: "critical"},
         },
         method_defaults=METHOD_DEFAULTS,
     )

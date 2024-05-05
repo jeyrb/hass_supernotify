@@ -61,6 +61,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         return None
 
     async def deliver(self, envelope: Envelope) -> bool:
+        if not envelope.targets:
+            _LOGGER.warning("SUPERNOTIFY No targets provided for mobile_push")
+            return False
         data = envelope.data or {}
         app_url: str | None = self.abs_url(envelope.actions.get(ATTR_ACTION_URL))
         if app_url:
@@ -115,15 +118,18 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             data["url"] = app_url
             data["actions"].append({"action": "URI", "title": app_url_title, "uri": app_url})
         if camera_entity_id:
-            # TODO: generalize and add the actual action
             data["actions"].append({
-                "action": f"silence-{camera_entity_id}",
-                "title": f"Stop camera notifications for {camera_entity_id}",
-                "destructive": "true",
+                "action": f"SUPERNOTIFY_SNOOZE_EVERYONE_CAMERA_{camera_entity_id}",
+                "title": f"Snooze camera notifications for {camera_entity_id}",
+                "behavior": "textInput",
+                "textInputButtonTitle": "Minutes to snooze",
+                "textInputPlaceholder": "60",
             })
         for group, actions in self.context.mobile_actions.items():
             if action_groups is None or group in action_groups:
                 data["actions"].extend(actions)
+        if not data["actions"]:
+            del data["actions"]
         service_data = envelope.core_service_data()
         service_data[ATTR_DATA] = data
         hits = 0

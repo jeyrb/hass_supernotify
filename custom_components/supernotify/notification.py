@@ -61,6 +61,7 @@ from . import (
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
+    STRICT_SERVICE_DATA_SCHEMA,
     Snooze,
 )
 from .common import ensure_dict, ensure_list
@@ -99,6 +100,9 @@ class Notification:
         except vol.Invalid as e:
             _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
             raise
+        # for compatibility with other notify calls, pass thru surplus data to underlying delivery methods
+        self.data = {k: v for k, v in service_data.items() if k not in STRICT_SERVICE_DATA_SCHEMA(service_data)}
+        service_data = {k: v for k, v in service_data.items() if k not in self.data}
 
         self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
@@ -107,7 +111,7 @@ class Notification:
         self.delivery_overrides_type: str = service_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
         self.recipients_override: list[str] | None = service_data.get(ATTR_RECIPIENTS)
-        self.data: dict = service_data.get(ATTR_DATA) or {}
+        self.data.update(service_data.get(ATTR_DATA, {}))
         self.media: dict = service_data.get(ATTR_MEDIA) or {}
         self.debug: bool = service_data.get(ATTR_DEBUG, False)
         self.actions: dict = service_data.get(ATTR_ACTIONS) or {}
@@ -361,7 +365,7 @@ class Notification:
         for recipient in recipients:
             recipient_targets: list = []
             enabled: bool = True
-            custom_data: dict = default_data or {}
+            custom_data: dict = {}
             # reuse standard recipient attributes like email or phone
             safe_extend(recipient_targets, method.recipient_target(recipient))
             # use entities or targets set at a method level for recipient
@@ -376,11 +380,19 @@ class Notification:
                 safe_extend(default_targets, recipient.get(ATTR_TARGET))
             if enabled:
                 if custom_data:
-                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, custom_data))
+                    envelope_data = {}
+                    envelope_data.update(default_data)
+                    envelope_data.update(self.data)
+                    envelope_data.update(custom_data)
+                    custom_envelopes.append(Envelope(delivery_name, self, recipient_targets, envelope_data))
                 else:
                     default_targets.extend(recipient_targets)
 
-        bundled_envelopes = [*custom_envelopes, Envelope(delivery_name, self, default_targets, default_data)]
+        envelope_data = {}
+        envelope_data.update(default_data)
+        envelope_data.update(self.data)
+
+        bundled_envelopes = [*custom_envelopes, Envelope(delivery_name, self, default_targets, envelope_data)]
         filtered_envelopes = []
         for envelope in bundled_envelopes:
             pre_filter_count = len(envelope.targets)
@@ -398,7 +410,7 @@ class Notification:
 
         if not filtered_envelopes:
             # not all delivery methods require explicit targets, or can default them internally
-            filtered_envelopes = [Envelope(delivery_name, self, data=default_data)]
+            filtered_envelopes = [Envelope(delivery_name, self, data=envelope_data)]
         return filtered_envelopes
 
     async def grab_image(self, delivery_name: str) -> Path | None:

@@ -193,7 +193,7 @@ MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_MANUFACTURER): cv.string,
     vol.Optional(CONF_MODEL): cv.string,
     vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
-    vol.Required(CONF_DEVICE_TRACKER): cv.entity_id,
+    vol.Optional(CONF_DEVICE_TRACKER): cv.entity_id,
 })
 NOTIFICATION_DUPE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TTL): cv.positive_int,
@@ -219,7 +219,7 @@ METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_SERVICE): cv.service,
-    vol.Optional(CONF_TARGETS_REQUIRED, default=False): cv.boolean,  # type: ignore
+    vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
     vol.Optional(CONF_OPTIONS, default=dict): dict,  # type: ignore
     vol.Optional(CONF_DATA): DATA_SCHEMA,
 })
@@ -326,18 +326,23 @@ ACTION_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ACTION_URL): cv.url,
     vol.Optional(ATTR_ACTION_URL_TITLE): cv.string,
 })
-SERVICE_DATA_SCHEMA = vol.Schema({
-    vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
-    vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
-    vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
-    vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
-    vol.Optional(ATTR_MESSAGE_HTML): cv.string,
-    vol.Optional(ATTR_ACTIONS): ACTION_SCHEMA,
-    vol.Optional(ATTR_DEBUG, default=False): cv.boolean,  # type: ignore
-    vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA),
-})
+SERVICE_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
+        vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
+        vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
+        vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
+        vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
+        vol.Optional(ATTR_MESSAGE_HTML): cv.string,
+        vol.Optional(ATTR_ACTIONS): ACTION_SCHEMA,
+        vol.Optional(ATTR_DEBUG, default=False): cv.boolean,  # type: ignore
+        vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA),
+    },
+    extra=vol.ALLOW_EXTRA,  # allow other data, e.g. the android/ios mobile push
+)
+
+STRICT_SERVICE_DATA_SCHEMA = SERVICE_DATA_SCHEMA.extend({}, extra=vol.REMOVE_EXTRA)
 
 
 class TargetType(StrEnum):
