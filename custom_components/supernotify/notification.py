@@ -28,6 +28,7 @@ from . import (
     ATTR_MEDIA_CAMERA_DELAY,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_CAMERA_PTZ_PRESET,
+    ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
     ATTR_MESSAGE_HTML,
     ATTR_PRIORITY,
@@ -169,6 +170,26 @@ class Notification:
         self.selected_delivery_names = [d for d in all_enabled if d not in all_disabled]
         self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
         self.inscope_snoozes = inscope_snoozes
+        self.default_media_from_actions()
+
+    def default_media_from_actions(self) -> None:
+        """If no media defined, look for iOS / Android actions that have media defined"""
+        if self.media:
+            return
+        if self.data.get("image"):
+            self.media[ATTR_MEDIA_SNAPSHOT_URL] = self.data.get("image")
+        if self.data.get("video"):
+            self.media[ATTR_MEDIA_CLIP_URL] = self.data.get("video")
+        if self.data.get("attachment", {}).get("url"):
+            url = self.data["attachment"]["url"]
+            if url and url.endswith(".mp4") and not self.media.get(ATTR_MEDIA_CLIP_URL):
+                self.media[ATTR_MEDIA_CLIP_URL] = url
+            elif (
+                url
+                and (url.endswith(".jpg") or url.endswith(".jpeg") or url.endswith(".png"))
+                and not self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
+            ):
+                self.media[ATTR_MEDIA_SNAPSHOT_URL] = url
 
     def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
