@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from pathlib import Path
 from ssl import SSLContext
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
@@ -6,9 +7,11 @@ from unittest.mock import AsyncMock, Mock, patch
 import homeassistant.components.notify as notify
 import pytest
 from homeassistant.components.notify import BaseNotificationService
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import ATTR_STATE
+from homeassistant.core import HomeAssistant, StateMachine, callback
 from pytest_httpserver import HTTPServer
 
+from custom_components.supernotify import CONF_PERSON
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
 
@@ -27,7 +30,7 @@ class MockService(BaseNotificationService):
 @pytest.fixture()
 def mock_hass() -> HomeAssistant:
     hass = Mock()
-    hass.states = Mock()
+    hass.states = Mock(StateMachine)
     hass.config.internal_url = "http://127.0.0.1:28123"
     hass.config.external_url = "https://my.home"
     hass.services.async_call = AsyncMock()
@@ -37,8 +40,32 @@ def mock_hass() -> HomeAssistant:
     hass.config_entries = Mock()
     hass.config_entries._entries = {}
     hass.config_entries._domain_index = {}
-
     return hass
+
+
+@pytest.fixture()
+def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
+    context = Mock()
+    context.hass = mock_hass
+    context.scenarios = {}
+    context.deliveries = {}
+    context.cameras = {}
+    context.snoozes = {}
+    context.delivery_by_scenario = {}
+    context.method_defaults = {}
+    context.hass_internal_url = "http://hass-dev"
+    context.media_path = Path("/nosuchpath")
+    context.template_path = Path("/templates_here")
+    context.people = {
+        "person.new_home_owner": {CONF_PERSON: "person.new_home_owner"},
+        "person.bidey_in": {CONF_PERSON: "person.bidey_in"},
+    }
+    context.people_state.return_value = [
+        {CONF_PERSON: "person.new_home_owner", ATTR_STATE: "not_home"},
+        {CONF_PERSON: "person.bidey_in", ATTR_STATE: "home"},
+    ]
+
+    return context
 
 
 @pytest.fixture()

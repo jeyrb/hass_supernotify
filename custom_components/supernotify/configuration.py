@@ -30,6 +30,10 @@ from . import (
     SELECTION_DEFAULT,
     SELECTION_FALLBACK,
     SELECTION_FALLBACK_ON_ERROR,
+    CommandType,
+    RecipientType,
+    Snooze,
+    TargetType,
 )
 from .scenario import Scenario
 
@@ -108,6 +112,7 @@ class SupernotificationConfiguration:
         self.delivery_by_scenario: dict[str, list] = {SCENARIO_DEFAULT: []}
         self.fallback_on_error: dict = {}
         self.fallback_by_default: dict = {}
+        self.snoozes: dict[str, Snooze] = {}
 
     async def initialize(self) -> None:
         self.people = self.setup_people(self._recipients)
@@ -282,3 +287,37 @@ class SupernotificationConfiguration:
                             CONF_DEVICE_TRACKER: d_t,
                         })
         return mobile_devices
+
+    def register_snooze(
+        self,
+        cmd: CommandType,
+        target_type: TargetType,
+        target: str,
+        recipient_type: RecipientType,
+        recipient: str | None,
+        snooze_for: int | None,
+    ) -> None:
+        if cmd == CommandType.SNOOZE:
+            snooze = Snooze(target_type, target, recipient_type, recipient, snooze_for)
+            self.snoozes[snooze.short_key()] = snooze
+        elif cmd == CommandType.SILENCE:
+            snooze = Snooze(target_type, target, recipient_type, recipient)
+            self.snoozes[snooze.short_key()] = snooze
+        elif cmd == CommandType.NORMAL:
+            anti_snooze = Snooze(target_type, target, recipient_type, recipient)
+            to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
+            for k in to_del:
+                del self.snoozes[k]
+        else:
+            _LOGGER.warning(
+                "SUPERNOTIFY Invalid mobile cmd %s (target_type: %s, target: %s, recipient_type: %s)",
+                cmd,
+                target_type,
+                target,
+                recipient_type,
+            )
+
+    def purge_snoozes(self) -> None:
+        to_del = [k for k, v in self.snoozes.items() if not v.active()]
+        for k in to_del:
+            del self.snoozes[k]

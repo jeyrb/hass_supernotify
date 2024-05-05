@@ -36,6 +36,7 @@ from . import (
     CONF_DATA,
     CONF_DELIVERY,
     CONF_MESSAGE,
+    CONF_METHOD,
     CONF_OCCUPANCY,
     CONF_OPTIONS,
     CONF_PERSON,
@@ -57,11 +58,14 @@ from . import (
     OCCUPANCY_NONE,
     OCCUPANCY_ONLY_IN,
     OCCUPANCY_ONLY_OUT,
+    PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
     STRICT_SERVICE_DATA_SCHEMA,
+    GlobalTargetType,
+    QualifiedTargetType,
     Snooze,
 )
 from .common import ensure_dict, ensure_list
@@ -163,6 +167,8 @@ class Notification:
         all_enabled = list(set(scenario_enable_deliveries + default_enable_deliveries + override_enable_deliveries))
         all_disabled = scenario_disable_deliveries + override_disable_deliveries
         self.selected_delivery_names = [d for d in all_enabled if d not in all_disabled]
+        self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
+        self.inscope_snoozes = inscope_snoozes
 
     def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
@@ -352,6 +358,8 @@ class Notification:
                     delivery_name, "2d_recipient_names_by_occupancy_filtered", [r.get(CONF_PERSON) for r in recipients]
                 )
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
+
+        # snoozes = self.context.snoozes
         return recipients
 
     def generate_envelopes(self, delivery_name: str, method: DeliveryMethod, recipients: list[dict]) -> list[Envelope]:
@@ -473,6 +481,38 @@ class Notification:
             return None
         self.snapshot_image_path = image_path
         return image_path
+
+    def check_for_snoozes(self) -> tuple[bool, list[Snooze]]:
+        inscope_snoozes: list[Snooze] = []
+        if len(self.context.snoozes) == 0:
+            return (False, inscope_snoozes)
+        for snooze in self.context.snoozes.values():
+            if snooze.active():
+                match snooze.target_type:
+                    case GlobalTargetType.EVERYTHING:
+                        return (True, inscope_snoozes)
+                    case GlobalTargetType.NONCRITICAL:
+                        if self.priority != PRIORITY_CRITICAL:
+                            return (True, inscope_snoozes)
+                    case QualifiedTargetType.DELIVERY:
+                        if snooze.target in self.selected_delivery_names:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.PRIORITY:
+                        if snooze.target == self.priority:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.METHOD:
+                        if snooze.target in [
+                            self.context.deliveries.get(d, {}).get(CONF_METHOD) for d in self.selected_delivery_names
+                        ]:
+                            inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.CAMERA:
+                        inscope_snoozes.append(snooze)
+                    case QualifiedTargetType.LABEL:
+                        inscope_snoozes.append(snooze)
+                    case _:
+                        _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
+
+        return (False, inscope_snoozes)
 
 
 @dataclass

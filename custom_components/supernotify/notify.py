@@ -39,7 +39,6 @@ from . import (
     CONF_HOUSEKEEPING_TIME,
     CONF_LINKS,
     CONF_MEDIA_PATH,
-    CONF_METHOD,
     CONF_METHODS,
     CONF_PERSON,
     CONF_RECIPIENTS,
@@ -50,13 +49,11 @@ from . import (
     DOMAIN,
     PLATFORM_SCHEMA,
     PLATFORMS,
-    PRIORITY_CRITICAL,
     PRIORITY_VALUES,
     CommandType,
     GlobalTargetType,
     QualifiedTargetType,
     RecipientType,
-    Snooze,
     TargetType,
 )
 from .configuration import SupernotificationConfiguration
@@ -242,7 +239,6 @@ class SuperNotificationService(BaseNotificationService):
             cameras,
         )
         self.unsubscribes: list = []
-        self.snoozes: dict[str, Snooze] = {}
         self.dupe_check_config: dict[str, Any] = dupe_check or {}
         self.last_purge: dt.datetime | None = None
         self.notification_cache: TTLCache = TTLCache(
@@ -317,12 +313,10 @@ class SuperNotificationService(BaseNotificationService):
         try:
             notification = Notification(self.context, message, title, target, data)
             await notification.initialize()
-            globally_disabled, inscope_snoozes = self.check_notification_for_snooze(notification)
-            notification.inscope_snoozes = inscope_snoozes
             if self.dupe_check(notification):
                 _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
                 notification.skipped += 1
-            elif globally_disabled:
+            elif notification.globally_disabled:
                 _LOGGER.info("SUPERNOTIFY Suppressing globally silenced/snoozed notification (%s)", notification.id)
                 notification.skipped += 1
             else:
@@ -402,7 +396,7 @@ class SuperNotificationService(BaseNotificationService):
         return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
-        return [s.export() for s in self.snoozes.values()]
+        return [s.export() for s in self.context.snoozes.values()]
 
     def enquire_people(self) -> list[dict]:
         return list(self.context.people.values())
@@ -426,7 +420,7 @@ class SuperNotificationService(BaseNotificationService):
         if not event_name.startswith("SUPERNOTIFY_"):
             return  # event not intended for here
         try:
-            cmd: str | None = None
+            cmd: CommandType
             target_type: TargetType | None = None
             target: str | None = None
             snooze_for: int = SNOOZE_TIME
@@ -439,9 +433,8 @@ class SuperNotificationService(BaseNotificationService):
             if len(event_parts) < 4:
                 _LOGGER.warning("SUPERNOTIFY Malformed mobile event action %s", event_name)
                 return
-            cmd = event_parts[1]
-            if event_parts[2] in RecipientType:
-                recipient_type = RecipientType[event_parts[2]]
+            cmd = CommandType[event_parts[1]]
+            recipient_type = RecipientType[event_parts[2]]
             if event_parts[3] in QualifiedTargetType and len(event_parts) > 4:
                 target_type = QualifiedTargetType[event_parts[3]]
                 target = event_parts[4]
@@ -454,6 +447,10 @@ class SuperNotificationService(BaseNotificationService):
             if cmd is None or target_type is None or target is None or recipient_type is None:
                 _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
                 return
+
+        except KeyError as ke:
+            _LOGGER.warning("SUPERNOTIFY Unknown enum in event %s: %s", event, ke)
+            return
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to analyze event %s: %s", event, e)
             return
@@ -472,63 +469,14 @@ class SuperNotificationService(BaseNotificationService):
                 else:
                     _LOGGER.warning("SUPERNOTIFY Unable to find person for action from %s", event.context.user_id)
 
-            if cmd == CommandType.SNOOZE:
-                snooze = Snooze(target_type, target, recipient_type, recipient, snooze_for)
-                self.snoozes[snooze.short_key()] = snooze
-            elif cmd == CommandType.SILENCE:
-                snooze = Snooze(target_type, target, recipient_type, recipient)
-                self.snoozes[snooze.short_key()] = snooze
-            elif cmd == CommandType.NORMAL:
-                anti_snooze = Snooze(target_type, target, recipient_type, recipient)
-                to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
-                for k in to_del:
-                    del self.snoozes[k]
-            else:
-                _LOGGER.warning("SUPERNOTIFY Invalid mobile cmd %s (event: %s)", cmd, event)
+            self.context.register_snooze(cmd, target_type, target, recipient_type, recipient, snooze_for)
 
         except Exception as e:
             _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)
-
-    def purge_snoozes(self) -> None:
-        to_del = [k for k, v in self.snoozes.items() if not v.active()]
-        for k in to_del:
-            del self.snoozes[k]
-
-    def check_notification_for_snooze(self, notification: Notification) -> tuple[bool, list[Snooze]]:
-        inscope_snoozes: list[Snooze] = []
-        if len(self.snoozes) == 0:
-            return (False, inscope_snoozes)
-        for snooze in self.snoozes.values():
-            if snooze.active():
-                match snooze.target_type:
-                    case GlobalTargetType.EVERYTHING:
-                        return (True, inscope_snoozes)
-                    case GlobalTargetType.NONCRITICAL:
-                        if notification.priority != PRIORITY_CRITICAL:
-                            return (True, inscope_snoozes)
-                    case QualifiedTargetType.DELIVERY:
-                        if snooze.target in notification.selected_delivery_names:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.PRIORITY:
-                        if snooze.target == notification.priority:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.METHOD:
-                        if snooze.target in [
-                            self.context.deliveries.get(d, {}).get(CONF_METHOD) for d in notification.selected_delivery_names
-                        ]:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.CAMERA:
-                        inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.LABEL:
-                        inscope_snoozes.append(snooze)
-                    case _:
-                        _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
-
-        return (False, inscope_snoozes)
 
     @callback
     def async_nightly_tasks(self, now: dt.datetime) -> None:
         _LOGGER.info("SUPERNOTIFY Housekeeping starting as scheduled at %s", now)
         self.cleanup_archive()
-        self.purge_snoozes()
+        self.context.purge_snoozes()
         _LOGGER.info("SUPERNOTIFY Housekeeping completed")
