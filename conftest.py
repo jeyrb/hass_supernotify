@@ -7,12 +7,21 @@ from unittest.mock import AsyncMock, Mock, patch
 import homeassistant.components.notify as notify
 import pytest
 from homeassistant.components.notify import BaseNotificationService
+from homeassistant.config_entries import ConfigEntries
 from homeassistant.const import ATTR_STATE
-from homeassistant.core import HomeAssistant, StateMachine, callback
+from homeassistant.core import EventBus, HomeAssistant, ServiceRegistry, StateMachine, callback
+from homeassistant.helpers.device_registry import DeviceRegistry
+from homeassistant.helpers.entity_registry import EntityRegistry
 from pytest_httpserver import HTTPServer
 
 from custom_components.supernotify import CONF_PERSON
 from custom_components.supernotify.configuration import SupernotificationConfiguration
+
+
+class MockableHomeAssistant(HomeAssistant):
+    config: ConfigEntries = Mock(spec=ConfigEntries)
+    services: ServiceRegistry = AsyncMock(spec=ServiceRegistry)
+    bus: EventBus = Mock(spec=EventBus)
 
 
 class MockService(BaseNotificationService):
@@ -29,15 +38,13 @@ class MockService(BaseNotificationService):
 
 @pytest.fixture()
 def mock_hass() -> HomeAssistant:
-    hass = Mock()
+    hass = Mock(spec=MockableHomeAssistant)
     hass.states = Mock(StateMachine)
     hass.config.internal_url = "http://127.0.0.1:28123"
     hass.config.external_url = "https://my.home"
-    hass.services.async_call = AsyncMock()
     hass.data = {}
-    hass.data["device_registry"] = Mock()
-    hass.data["entity_registry"] = Mock()
-    hass.config_entries = Mock()
+    hass.data["device_registry"] = Mock(spec=DeviceRegistry)
+    hass.data["entity_registry"] = Mock(spec=EntityRegistry)
     hass.config_entries._entries = {}
     hass.config_entries._domain_index = {}
     return hass
@@ -45,7 +52,7 @@ def mock_hass() -> HomeAssistant:
 
 @pytest.fixture()
 def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
-    context = Mock()
+    context = Mock(spec=SupernotificationConfiguration)
     context.hass = mock_hass
     context.scenarios = {}
     context.deliveries = {}

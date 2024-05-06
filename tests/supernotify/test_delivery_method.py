@@ -30,7 +30,7 @@ DELIVERY: dict[str, Any] = {
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
-    context = Mock()
+    context = Mock(SupernotificationConfiguration)
     context.method_defaults = {}
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
     await uut.initialize()
@@ -39,7 +39,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
 
 
 async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
-    context = Mock()
+    context = Mock(SupernotificationConfiguration)
     context.method_defaults = {METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
 
     uut = GenericDeliveryMethod(hass, context, DELIVERY)

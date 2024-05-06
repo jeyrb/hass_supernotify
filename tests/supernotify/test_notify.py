@@ -36,6 +36,7 @@ from custom_components.supernotify import (
     SELECTION_BY_SCENARIO,
     SELECTION_FALLBACK,
 )
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
@@ -292,7 +293,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
 
 
 async def test_dupe_check_suppresses_same_priority_and_message(mock_hass: HomeAssistant) -> None:
-    context = Mock()
+    context = Mock(spec=SupernotificationConfiguration)
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()
     n1 = Notification(context, "message here", "title here")
@@ -302,7 +303,7 @@ async def test_dupe_check_suppresses_same_priority_and_message(mock_hass: HomeAs
 
 
 async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass: HomeAssistant) -> None:
-    context = Mock()
+    context = Mock(SupernotificationConfiguration)
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()
     n1 = Notification(context, "message here", "title here")

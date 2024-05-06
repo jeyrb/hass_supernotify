@@ -174,8 +174,7 @@ async def select_avail_camera(hass: HomeAssistant, cameras: dict[str, dict], cam
                 if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)
             ]
             for alt_cam in alt_cams_with_tracker:
-                alt_cam_state = hass.states.get(alt_cam.get(CONF_DEVICE_TRACKER))
-                if alt_cam_state.state == STATE_HOME:
+                if hass.states.is_state(alt_cam.get(CONF_DEVICE_TRACKER), STATE_HOME):
                     avail_camera_entity_id = alt_cam[CONF_CAMERA]
                     _LOGGER.info(
                         "SUPERNOTIFY Selecting available camera %s rather than %s", avail_camera_entity_id, camera_entity_id

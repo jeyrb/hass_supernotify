@@ -1,10 +1,10 @@
 import io
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME
+from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from PIL import Image, ImageChops
 from pytest_httpserver import BlockingHTTPServer
@@ -113,13 +113,15 @@ async def test_move_camera_frigate(mock_hass) -> None:
     )
 
 
-def set_states(hass, at_home=(), not_at_home=()):
-    home_state = Mock(name="At Home")
-    home_state.state = STATE_HOME
-    not_home_state = Mock(name="Not at Home")
-    not_home_state.state = STATE_NOT_HOME
-    hass.states.get = Mock()
-    hass.states.get.side_effect = lambda v: home_state if v in at_home else not_home_state if v in not_at_home else None
+def valid_state(home_entities: list, not_home_entities: list) -> Callable:
+    def checker(entity, state) -> bool:
+        if entity in home_entities and state == STATE_HOME:
+            return True
+        if entity in not_home_entities and state == STATE_HOME:
+            return False
+        raise ValueError("Test values not as expected")
+
+    return checker
 
 
 async def test_select_camera_not_in_config(mock_hass) -> None:
@@ -134,7 +136,7 @@ async def test_select_untracked_primary_camera(mock_hass) -> None:
 
 
 async def test_select_tracked_primary_camera(mock_hass) -> None:
-    set_states(mock_hass, ["device_tracker.cam1"])
+    mock_hass.states.is_state.side_effect = valid_state(["device_tracker.cam1"], [])
     assert (
         await select_avail_camera(mock_hass, {"camera.tracked": {"device_tracker": "device_tracker.cam1"}}, "camera.tracked")
         == "camera.tracked"
@@ -142,7 +144,7 @@ async def test_select_tracked_primary_camera(mock_hass) -> None:
 
 
 async def test_no_select_unavail_primary_camera(mock_hass) -> None:
-    set_states(mock_hass, [], ["device_tracker.cam1"])
+    mock_hass.states.is_state.side_effect = valid_state([], ["device_tracker.cam1"])
     assert (
         await select_avail_camera(
             mock_hass,
@@ -154,7 +156,10 @@ async def test_no_select_unavail_primary_camera(mock_hass) -> None:
 
 
 async def test_select_avail_alt_camera(mock_hass) -> None:
-    set_states(mock_hass, ["device_tracker.altcam2"], ["device_tracker.cam1", "device_tracker.altcam1"])
+    mock_hass.states.is_state.side_effect = valid_state(
+        ["device_tracker.altcam2"], ["device_tracker.cam1", "device_tracker.altcam1"]
+    )
+
     assert (
         await select_avail_camera(
             mock_hass,
@@ -174,7 +179,9 @@ async def test_select_avail_alt_camera(mock_hass) -> None:
 
 
 async def test_select_untracked_alt_camera(mock_hass) -> None:
-    set_states(mock_hass, [], ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"])
+    mock_hass.states.is_state.side_effect = valid_state(
+        [], ["device_tracker.cam1", "device_tracker.altcam1", "device_tracker.altcam2"]
+    )
     assert (
         await select_avail_camera(
             mock_hass,
