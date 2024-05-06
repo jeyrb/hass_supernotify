@@ -165,10 +165,7 @@ async def select_avail_camera(hass: HomeAssistant, cameras: dict[str, dict], cam
         if not preferred_cam or not preferred_cam.get(CONF_DEVICE_TRACKER):
             # assume unconfigured camera, or configured without tracker, available
             avail_camera_entity_id = camera_entity_id
-        elif (
-            hass.states.is_state(preferred_cam[CONF_DEVICE_TRACKER])
-            and hass.states.get(preferred_cam[CONF_DEVICE_TRACKER]).state == STATE_HOME
-        ):
+        elif hass.states.is_state(preferred_cam[CONF_DEVICE_TRACKER], STATE_HOME):
             avail_camera_entity_id = camera_entity_id
         else:
             alt_cams_with_tracker = [
