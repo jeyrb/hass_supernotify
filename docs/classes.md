@@ -1,5 +1,13 @@
 # Core Classes
 
+``` mermaid
+classDiagram
+  Notification "1" *-- "*" Envelope
+  Envelope "1" ..> "1" DeliveryMethod
+  SupernotificationConfiguration "1" o-- "0..*" Scenario
+  SupernotificationConfiguration "1" o-- "0..*" Snooze
+```
+
 ::: custom_components.supernotify.delivery_method.DeliveryMethod
     handler: python
     heading_level: 2
