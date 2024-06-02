@@ -27,6 +27,7 @@ for sending only to people in or out of the property
 * Reloadable configuration
 * Tunable duplicate notification detection
 * Well-behaved `notify` extension, so can use data templating, `notify.group` and other notify features.
+* Refactor out repetitive configuration for ease of maintenance
 * Debugging support,
   * Optional archival of message structures
   * Additional services to pull back live configuration or last known notification details.
@@ -70,6 +71,11 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
                     clickAction: https://my.home.net/dashboard
 
 ```
+Note here that the `clickAction` is defined only on the `mobile_push` delivery. However
+its also possible to define everything at the top level `data` section and let the individual
+deliveries pick out the attributes they need. This is helpful either if you don't care about
+fine tuning delivery configurations, or using existing notification blueprints, such as the popular
+[Frigate Camera Notification Blueprints](https://github.com/SgtBatten/HA_blueprints/tree/main/Frigate%20Camera%20Notifications).
 
 ### Templated
 ```yaml
@@ -325,6 +331,86 @@ Snoozing can be done for a set time, or notifications can be silenced until furt
 Mobile actions will be handled according to scheme:
 
 SUPERNOTIFY_<COMMAND>_<TargetType>_
+
+## Scenarios
+
+Scenarios can be defined both as a set of conditions which switch on the scenario and/or as
+a set of overrides to apply if the scenario is active.
+
+For example, a scenario could be defined by conditions such as alarm panel arm state, occupancy
+and time to indicate when notifications should be minimized, and then different chime sounds
+could be selected or deliveries switched off.
+
+Scenarios can override specific delivery configurations, general media configuration or
+the `delivery_selection` basis.
+
+For more on the conditions, see the [ Home Assistant Conditions documentation](https://www.home-assistant.io/docs/scripts/conditions/) since the conditions are all evaluated at time of
+notification by the standard Home Assistant module.
+
+
+### Example Scenarios
+
+This scenario could be used to select more obtrusive notifications, like email or Alexa announcements,
+from a combination of conditions, hence simplifying separate notification calls, and providing
+one place to tune multiple notifications.
+
+```yaml
+more_attention:
+        alias: time to make more of a fuss
+        condition:
+          condition: and
+          conditions:
+            - not:
+                - condition: state
+                  entity_id: alarm_control_panel.home_alarm_control
+                  state: disarmed
+            - condition: time
+              after: "21:30:00"
+              before: "06:30:00"
+```
+
+In this example, selecting the scenario by name in a notification call switches on
+a set of delivery methods, which saves repetitive declaration in many notification calls. Delivery
+Selection is made `implicit` so not switching off any other deliveries that would have applied.
+
+```yaml
+red_alert:
+      delivery_selection: implicit
+      delivery:
+        chime_red_alert:
+        upstairs_siren:
+        downstairs_siren:
+```
+
+Conditions aren't essential for scenarios, since they can also be switched on by a notification.
+For example in this case, where the `home_security` and `garden` scenarios are explicitly
+triggered, and so any overrides declared in those scenarios will be applied.
+
+```yaml
+  - service: notify.supernotifier
+    data:
+        title: Security Notification
+        message: '{{state_attr(sensor,"friendly_name")}} triggered'
+        priority: high
+        scenarios:
+          - home_security
+          - garden
+```
+
+
+### Additional inputs
+
+Scenario conditions have access to everything that any other Home Assistant conditions can
+access, such as entities, templating etc. In addition, supernotifier makes additional entity values
+automatically available:
+
+|Entity ID                        |Description                                                       |
+|---------------------------------|------------------------------------------------------------------|
+|supernotifier.delivery_priority  |Priority of current notification, explicitly selected or default  |
+|supernotifier.delivery_scenarios |Scenarios explicitly selected in current notification call        |
+
+These entity IDs are available generally in Home Assistant, although outside the context of a notification this is not so useful, since they will reflect the last notification received, which
+may be some time ago.
 
 ## Tips
 
