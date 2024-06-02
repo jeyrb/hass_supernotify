@@ -19,7 +19,9 @@ def register_mobile_app(
     source="unit_test",
     title="Test Device",
 ):
-    config_entry = config_entries.ConfigEntry(domain=domain, data={}, version=1, minor_version=1, title=title, source=source)
+    config_entry = config_entries.ConfigEntry(
+        domain=domain, data={}, version=1, minor_version=1, unique_id=None, options=None, title=title, source=source
+    )
     try:
         hass.config_entries._entries[config_entry.entry_id] = config_entry
         hass.config_entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)

@@ -90,7 +90,6 @@ async def superconfig() -> SupernotificationConfiguration:
 
 
 @pytest.fixture()
-@pytest.mark.enable_socket()
 def local_server(httpserver_ssl_context: SSLContext | None, socket_enabled: Any) -> Generator[HTTPServer, None, None]:
     """pytest-socket will fail at fixture creation time, before test that uses it"""
     server = HTTPServer(host="127.0.0.1", port=0, ssl_context=httpserver_ssl_context)
