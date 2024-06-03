@@ -404,10 +404,10 @@ Scenario conditions have access to everything that any other Home Assistant cond
 access, such as entities, templating etc. In addition, supernotifier makes additional entity values
 automatically available:
 
-|Entity ID                        |Description                                                       |
-|---------------------------------|------------------------------------------------------------------|
-|supernotifier.delivery_priority  |Priority of current notification, explicitly selected or default  |
-|supernotifier.delivery_scenarios |Scenarios explicitly selected in current notification call        |
+|Entity ID                      |Description                                                       |
+|-------------------------------|------------------------------------------------------------------|
+|supernotify.delivery_priority  |Priority of current notification, explicitly selected or default  |
+|supernotify.delivery_scenarios |Scenarios explicitly selected in current notification call        |
 
 These entity IDs are available generally in Home Assistant, although outside the context of a notification this is not so useful, since they will reflect the last notification received, which
 may be some time ago.
