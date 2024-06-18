@@ -254,7 +254,7 @@ class SuperNotificationService(BaseNotificationService):
         self.notification_cache: TTLCache = TTLCache(
             maxsize=self.dupe_check_config.get(CONF_SIZE, 100), ttl=self.dupe_check_config.get(CONF_TTL, 120)
         )
-        self.expose_entities()
+
         self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))
         housekeeping_schedule = self.housekeeping.get(CONF_HOUSEKEEPING_TIME)
         if housekeeping_schedule:
@@ -274,6 +274,7 @@ class SuperNotificationService(BaseNotificationService):
     async def initialize(self) -> None:
         await self.context.initialize()
         await self.context.register_delivery_methods(delivery_method_classes=METHODS)
+        self.expose_entities()
 
     async def async_shutdown(self, event: Event) -> None:
         _LOGGER.info("SUPERNOTIFY shutting down, %s", event)
