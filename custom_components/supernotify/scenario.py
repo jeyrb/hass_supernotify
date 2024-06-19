@@ -42,6 +42,7 @@ class Scenario:
             "delivery_selection": self.delivery_selection,
             "delivery": self.delivery,
             "default": self.default,
+            "condition": self.condition,
         }
 
     async def evaluate(self) -> bool:

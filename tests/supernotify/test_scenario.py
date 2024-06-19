@@ -83,3 +83,32 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     hass.states.async_set("sensor.outside_temperature", 15)
     enabled = await uut.select_scenarios()
     assert enabled == []
+
+
+async def test_attributes(hass: HomeAssistant) -> None:
+    uut = Scenario(
+        "testing",
+        {
+            "delivery_selection": "implicit",
+            "media": {},
+            "camera_entity_id": "camera.doorbell",
+            "delivery": {"doorbell_chime_alexa": {"data": {"amazon_magic_id": "a77464"}}, "email": {}},
+            "condition": {
+                "condition": "and",
+                "conditions": [
+                    {
+                        "condition": "not",
+                        "conditions": [
+                            {"condition": "state", "entity_id": "alarm_control_panel.home_alarm_control", "state": "disarmed"}
+                        ],
+                    },
+                    {"condition": "time", "after": "21:30:00", "before": "06:30:00"},
+                ],
+            },
+        },
+        hass,
+    )
+
+    attrs = uut.attributes()
+    assert attrs["delivery_selection"] == "implicit"
+    assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
