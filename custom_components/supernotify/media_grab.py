@@ -3,8 +3,10 @@ import io
 import logging
 import time
 from http import HTTPStatus
+from io import BytesIO
 from pathlib import Path
 
+import aiofiles
 from aiohttp import ClientTimeout
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
@@ -47,13 +49,17 @@ async def snapshot_from_url(
         else:
             if r.content_type == "image/jpeg":
                 media_ext = "jpg"
+                image_format = "JPEG"
             elif r.content_type == "image/png":
                 media_ext = "png"
+                image_format = "PNG"
             elif r.content_type == "image/gif":
                 media_ext = "gif"
+                image_format = "GIF"
             else:
                 _LOGGER.info("SUPERNOTIFY Unexpected MIME type %s from snap of %s", r.content_type, image_url)
                 media_ext = "img"
+                image_format = None
 
             # TODO: configure image rewrite
             image_path: Path = Path(media_dir) / f"{notification_id}.{media_ext}"
@@ -61,10 +67,13 @@ async def snapshot_from_url(
             # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
             clean_image: Image.Image = Image.new(image.mode, image.size)
             clean_image.putdata(image.getdata())
-            if media_ext == "jpg" and jpeg_args:
-                clean_image.save(image_path, **jpeg_args)
-            else:
-                clean_image.save(image_path)
+            buffer = BytesIO()
+            img_args = {}
+            if image_format == "JPEG" and jpeg_args:
+                img_args.update(jpeg_args)
+            clean_image.save(buffer, image_format, **img_args)
+            async with aiofiles.open(image_path, "wb") as file:
+                await file.write(buffer.getbuffer())
             _LOGGER.debug("SUPERNOTIFY Fetched image from %s to %s", image_url, image_path)
             return image_path
     except Exception as e:

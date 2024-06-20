@@ -4,12 +4,12 @@ from ssl import SSLContext
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
-import homeassistant.components.notify as notify
 import pytest
-from homeassistant.components.notify import BaseNotificationService
+from homeassistant.components.notify.const import DOMAIN
+from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.config_entries import ConfigEntries
 from homeassistant.const import ATTR_STATE
-from homeassistant.core import EventBus, HomeAssistant, ServiceRegistry, StateMachine, callback
+from homeassistant.core import EventBus, HomeAssistant, ServiceRegistry, StateMachine, SupportsResponse, callback
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
 from pytest_httpserver import HTTPServer
@@ -40,6 +40,7 @@ class MockService(BaseNotificationService):
 def mock_hass() -> HomeAssistant:
     hass = Mock(spec=MockableHomeAssistant)
     hass.states = Mock(StateMachine)
+    hass.services = Mock(ServiceRegistry)
     hass.config.internal_url = "http://127.0.0.1:28123"
     hass.config.external_url = "https://my.home"
     hass.data = {}
@@ -78,7 +79,7 @@ def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
 @pytest.fixture()
 def mock_notify(hass: HomeAssistant) -> MockService:
     mock_service: MockService = MockService()
-    hass.services.async_register(notify.DOMAIN, "mock", mock_service, supports_response=False)
+    hass.services.async_register(DOMAIN, "mock", mock_service, supports_response=SupportsResponse.NONE)  # type: ignore
     return mock_service
 
 

@@ -3,8 +3,8 @@ import os.path
 from pathlib import Path
 from typing import Any
 
-import homeassistant.components.notify as notify
 import pytest
+from homeassistant.components.notify.const import DOMAIN
 from homeassistant.config import (
     load_yaml_config_file,
 )
@@ -27,10 +27,10 @@ async def test_examples(hass: HomeAssistant, config_name: str) -> None:
     uut_config = config[CONF_NOTIFY][0]
     service_name = uut_config[CONF_NAME]
     platform = uut_config[CONF_PLATFORM]
-    assert await async_setup_component(hass, notify.DOMAIN, config)
+    assert await async_setup_component(hass, DOMAIN, config)
     await hass.async_block_till_done()
 
-    assert hass.services.has_service(notify.DOMAIN, service_name)
+    assert hass.services.has_service(DOMAIN, service_name)
     services = await hass.services.async_call(platform, "enquire_deliveries_by_scenario", blocking=True, return_response=True)
     expected_defaults = [
         d
@@ -40,7 +40,7 @@ async def test_examples(hass: HomeAssistant, config_name: str) -> None:
     assert services["DEFAULT"] == unordered(expected_defaults)
 
     await hass.services.async_call(
-        notify.DOMAIN,
+        DOMAIN,
         service_name,
         {"message": f"unit test - {config_name}", "data": {"delivery": {"testing": None}, "priority": "low"}},
         blocking=True,

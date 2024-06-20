@@ -72,15 +72,15 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     )
     await context.initialize()
     uut = Notification(context)
-    hass.states.async_set("sensor.outside_temperature", 42)
+    hass.states.async_set("sensor.outside_temperature", "42")
     enabled = await uut.select_scenarios()
     assert enabled == ["hot_day"]
 
-    hass.states.async_set("sensor.outside_temperature", 5)
+    hass.states.async_set("sensor.outside_temperature", "5")
     enabled = await uut.select_scenarios()
     assert enabled == ["cold_day"]
 
-    hass.states.async_set("sensor.outside_temperature", 15)
+    hass.states.async_set("sensor.outside_temperature", "15")
     enabled = await uut.select_scenarios()
     assert enabled == []
 

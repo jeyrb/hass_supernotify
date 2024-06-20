@@ -51,7 +51,7 @@ class Scenario:
             try:
                 conditions = cv.CONDITION_SCHEMA(self.condition)
                 test = await condition.async_from_config(self.hass, conditions)
-                if test(self.hass):
+                if test(self.hass, None):
                     return True
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Scenario condition eval failed: %s", e)

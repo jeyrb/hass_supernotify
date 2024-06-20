@@ -1,17 +1,29 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "Python: Debug Tests",
+            "name": "Python Debugger: Current File (Integrated Terminal)",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "purpose": ["debug-test"],
             "console": "integratedTerminal",
             "env": {
+                "PYTHONPATH": "${workspaceRoot}",
                 "PYTEST_ADDOPTS": "--no-cov"
-            },
-            "justMyCode": false
-        }
+            }
+          },
+          {
+            "name": "Python Debugger: Current File (External Terminal)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "externalTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}",
+                "PYTEST_ADDOPTS": "--no-cov"
+            }
+          }
     ]
 }

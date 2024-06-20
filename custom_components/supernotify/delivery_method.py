@@ -6,7 +6,7 @@ from abc import abstractmethod
 from traceback import format_exception
 from typing import Any
 
-from homeassistant.components.notify import ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_TARGET
 from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
@@ -135,14 +135,14 @@ class DeliveryMethod:
             service_data[key] = data
         return service_data
 
-    async def evaluate_delivery_conditions(self, delivery_config: dict) -> bool:
+    async def evaluate_delivery_conditions(self, delivery_config: dict) -> bool | None:
         if CONF_CONDITION not in delivery_config:
             return True
 
         try:
             conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
             test = await condition.async_from_config(self.hass, conditions)
-            return test(self.hass)
+            return test(self.hass, None)  # TODO: add template vars
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
             raise

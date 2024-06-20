@@ -26,5 +26,7 @@
     "python.analysis.typeCheckingMode": "standard",
     "pythonautovenv.autoInstallVenv": true,
     "ruff.showNotifications": "onError",
-    "ruff.ignoreStandardLibrary": false
+    "ruff.ignoreStandardLibrary": false,
+    "python.experiments.enabled": false,
+    "python.terminal.activateEnvInCurrentTerminal": true
 }

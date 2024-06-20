@@ -8,7 +8,7 @@ from traceback import format_exception
 from typing import Any, cast
 
 import voluptuous as vol
-from homeassistant.components.notify import ATTR_DATA, ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME
 from homeassistant.helpers.json import save_json
 from voluptuous import humanize

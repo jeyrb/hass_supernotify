@@ -9,7 +9,7 @@ from typing import Any
 
 import homeassistant.util.dt as dt_util
 from cachetools import TTLCache
-from homeassistant.components.notify import BaseNotificationService
+from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.const import CONF_CONDITION, CONF_ENABLED, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
@@ -97,7 +97,7 @@ async def async_get_service(
 
     hass.states.async_set(
         f"{DOMAIN}.configured",
-        True,
+        "True",
         {
             CONF_DELIVERY: config.get(CONF_DELIVERY, {}),
             CONF_LINKS: config.get(CONF_LINKS, ()),
@@ -112,10 +112,10 @@ async def async_get_service(
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
         },
     )
-    hass.states.async_set(f"{DOMAIN}.failures", 0)
-    hass.states.async_set(f"{DOMAIN}.sent", 0)
+    hass.states.async_set(f"{DOMAIN}.failures", "0")
+    hass.states.async_set(f"{DOMAIN}.sent", "0")
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), [], {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), "", {})
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     service = SuperNotificationService(
@@ -289,13 +289,15 @@ class SuperNotificationService(BaseNotificationService):
 
     def expose_entities(self) -> None:
         for scenario in self.context.scenarios.values():
-            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", None, scenario.attributes())
+            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes())
         for method in self.context.methods.values():
             self.hass.states.async_set(
-                f"{DOMAIN}.method_{method.method}", len(method.valid_deliveries) > 0, method.attributes()
+                f"{DOMAIN}.method_{method.method}", str(len(method.valid_deliveries) > 0), method.attributes()
             )
         for delivery_name, delivery in self.context._deliveries.items():
-            self.hass.states.async_set(f"{DOMAIN}.delivery_{delivery_name}", delivery_name in self.context.deliveries, delivery)
+            self.hass.states.async_set(
+                f"{DOMAIN}.delivery_{delivery_name}", str(delivery_name in self.context.deliveries), delivery
+            )
 
     def dupe_check(self, notification: Notification) -> bool:
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
@@ -341,7 +343,7 @@ class SuperNotificationService(BaseNotificationService):
                 )
                 await notification.deliver()
                 self.sent += 1
-                self.hass.states.async_set(f"{DOMAIN}.sent", self.sent)
+                self.hass.states.async_set(f"{DOMAIN}.sent", str(self.sent))
 
             self.last_notification = notification
             if self.context.archive.get(CONF_ENABLED):
@@ -358,7 +360,7 @@ class SuperNotificationService(BaseNotificationService):
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, e)
             self.failures += 1
-            self.hass.states.async_set(f"{DOMAIN}.failures", self.failures)
+            self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
 
     def archive_size(self) -> int:
         path = self.context.archive.get(CONF_ARCHIVE_PATH)
@@ -433,7 +435,7 @@ class SuperNotificationService(BaseNotificationService):
             user_id: e9dbae1a5abf44dbbad52ff85501bb17
         """
         event_name = event.data.get(ATTR_ACTION)
-        if not event_name.startswith("SUPERNOTIFY_"):
+        if event_name is None or not event_name.startswith("SUPERNOTIFY_"):
             return  # event not intended for here
         try:
             cmd: CommandType

@@ -1,8 +1,8 @@
 import pathlib
 from unittest.mock import patch
 
-import homeassistant.components.notify as notify
 from homeassistant import config as hass_config
+from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.const import SERVICE_RELOAD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.service import async_call_from_config
@@ -32,11 +32,11 @@ async def test_reload(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", {})
     hass.states.async_set("supernotify.delivery_priority", "high")
 
-    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
-    assert hass.services.has_service(notify.DOMAIN, DOMAIN)
+    assert hass.services.has_service(NOTIFY_DOMAIN, DOMAIN)
 
     with patch.object(hass_config, "YAML_CONFIG_FILE", FIXTURE):
         await hass.services.async_call(
@@ -47,7 +47,7 @@ async def test_reload(hass: HomeAssistant) -> None:
         )
         await hass.async_block_till_done()
 
-    assert not hass.services.has_service(notify.DOMAIN, DOMAIN)
+    assert not hass.services.has_service(NOTIFY_DOMAIN, DOMAIN)
     uut = hass.data["notify_services"][DOMAIN][0]
     assert len(uut.context.people) == 2
 
@@ -69,12 +69,12 @@ async def test_reload(hass: HomeAssistant) -> None:
 
 
 async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:
-    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
     await hass.services.async_call(
-        notify.DOMAIN,
+        NOTIFY_DOMAIN,
         DOMAIN,
         {"title": "my title", "message": "unit test 9484", "data": {"delivery": {"testing": None}}},
         blocking=True,
@@ -89,9 +89,9 @@ async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> No
 async def test_empty_config(hass: HomeAssistant) -> None:
     assert await async_setup_component(
         hass,
-        notify.DOMAIN,
+        NOTIFY_DOMAIN,
         {
-            notify.DOMAIN: [
+            NOTIFY_DOMAIN: [
                 {"name": DOMAIN, "platform": DOMAIN},
             ]
         },
@@ -99,12 +99,12 @@ async def test_empty_config(hass: HomeAssistant) -> None:
 
     await hass.async_block_till_done()
 
-    assert hass.services.has_service(notify.DOMAIN, DOMAIN)
-    await hass.services.async_call(notify.DOMAIN, DOMAIN, {"title": "my title", "message": "unit test"}, blocking=True)
+    assert hass.services.has_service(NOTIFY_DOMAIN, DOMAIN)
+    await hass.services.async_call(NOTIFY_DOMAIN, DOMAIN, {"title": "my title", "message": "unit test"}, blocking=True)
 
 
 async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: MockService) -> None:
-    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
 
@@ -133,7 +133,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
 
 
 async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
-    assert await async_setup_component(hass, notify.DOMAIN, {notify.DOMAIN: [SIMPLE_CONFIG]})
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
     await hass.async_block_till_done()
     await async_call_from_config(
         hass,

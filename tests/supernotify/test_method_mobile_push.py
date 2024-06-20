@@ -1,5 +1,5 @@
-import homeassistant.components.notify as notify
 import pytest
+from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
@@ -160,11 +160,11 @@ INTEGRATION_CONFIG = {
 
 
 async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService) -> None:
-    assert await async_setup_component(hass, notify.DOMAIN, config={notify.DOMAIN: [INTEGRATION_CONFIG]})
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, config={NOTIFY_DOMAIN: [INTEGRATION_CONFIG]})
     await hass.async_block_till_done()
 
     await hass.services.async_call(
-        notify.DOMAIN,
+        NOTIFY_DOMAIN,
         DOMAIN,
         {
             "title": "my title",

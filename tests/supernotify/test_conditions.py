@@ -28,13 +28,13 @@ async def test_and_condition(hass: HomeAssistant) -> None:
 
     hass.states.async_set("supernotifier.delivery_priority", "critical")
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
-    assert not test(hass)
+    assert not test(hass, None)
 
     hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
-    assert test(hass)
+    assert test(hass, None)
 
     hass.states.async_set("supernotifier.delivery_priority", "low")
-    assert not test(hass)
+    assert not test(hass, None)
 
 
 async def test_template_condition(hass: HomeAssistant) -> None:
@@ -50,8 +50,8 @@ async def test_template_condition(hass: HomeAssistant) -> None:
     test = await condition.async_from_config(hass, config)
 
     hass.states.async_set("sensor.bedroom_temperature", 12)
-    assert not test(hass)
+    assert not test(hass, None)
     hass.states.async_set("sensor.bedroom_temperature", 21)
-    assert not test(hass)
+    assert not test(hass, None)
     hass.states.async_set("sensor.bedroom_temperature", 18)
-    assert test(hass)
+    assert test(hass, None)
