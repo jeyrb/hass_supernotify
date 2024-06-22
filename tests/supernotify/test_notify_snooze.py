@@ -132,7 +132,7 @@ async def test_snooze_everything_for_person(
         deliveries=DELIVERY,
     )
     await uut.initialize()
-    register_mobile_app(hass, device_registry, entity_registry, person="person.bob_mctest")
+    register_mobile_app(uut.context, person="person.bob_mctest")
     plain_notify = Notification(uut.context, "hello")
     await plain_notify.initialize()
     assert ["person.bob_mctest", "person.jane_macunit"] == [

@@ -2,6 +2,7 @@ import io
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from homeassistant.const import STATE_HOME
@@ -10,6 +11,7 @@ from PIL import Image, ImageChops
 from pytest_httpserver import BlockingHTTPServer
 
 from custom_components.supernotify import PTZ_METHOD_FRIGATE
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.media_grab import (
     move_camera_to_ptz_preset,
     select_avail_camera,
@@ -83,13 +85,16 @@ async def test_snap_camera(mock_hass) -> None:
     )
 
 
-async def test_snap_image(mock_hass) -> None:
+async def test_snap_image(mock_context: SupernotificationConfiguration) -> None:
     image_path = PNG_PATH
     image_entity = MockImageEntity(image_path)
-    mock_hass.states.get.return_value = image_entity
+    entity_registry = Mock()
+    mock_context.entity_registry = Mock(return_value=entity_registry)  # type: ignore
+    entity_registry.async_get = Mock(return_value=image_entity)
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path: Path = Path(tmp_dir)
-        snap_image_path = await snap_image(mock_hass, "image.testing", media_path=tmp_path, notification_id="notify_001")
+        snap_image_path = await snap_image(mock_context, "image.testing", media_path=tmp_path, notification_id="notify_001")
         assert snap_image_path is not None
         retrieved_image = Image.open(snap_image_path)
 

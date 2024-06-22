@@ -5,12 +5,15 @@ import time
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
+from typing import cast
 
 import aiofiles
 from aiohttp import ClientTimeout
+from homeassistant.components.image import ImageEntity
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntry
 from PIL import Image
 
 from custom_components.supernotify import (
@@ -20,6 +23,7 @@ from custom_components.supernotify import (
     PTZ_METHOD_FRIGATE,
     PTZ_METHOD_ONVIF,
 )
+from custom_components.supernotify.configuration import SupernotificationConfiguration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,25 +115,37 @@ async def move_camera_to_ptz_preset(
 
 
 async def snap_image(
-    hass: HomeAssistant, entity_id: str, media_path: Path, notification_id: str, jpeg_args: dict | None = None
+    context: SupernotificationConfiguration,
+    entity_id: str,
+    media_path: Path,
+    notification_id: str,
+    jpeg_args: dict | None = None,
 ) -> Path | None:
     """Use for any image, including MQTT Image"""
     image_path: Path | None = None
     try:
-        image_entity = hass.states.get(entity_id)
+        image_entity: ImageEntity | RegistryEntry | None = None
+        entity_registry = cast(EntityRegistry, context.entity_registry())
+        if entity_registry:
+            image_entity = entity_registry.async_get(entity_id)
         if image_entity:
-            image: Image.Image = Image.open(io.BytesIO(await image_entity.async_image()))
-            media_dir: Path = media_path / "image"
-            media_dir.mkdir(parents=True, exist_ok=True)
-
-            media_ext: str = image.format.lower() if image.format else "img"
-            timed: str = str(time.time()).replace(".", "_")
-            image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
-            image.save(image_path)
-            if media_ext == "jpg" and jpeg_args:
-                image.save(image_path, **jpeg_args)
+            image_entity = cast(ImageEntity, image_entity)
+            bitmap: bytes | None = await image_entity.async_image()
+            if bitmap is None:
+                _LOGGER.warning("SUPERNOTIFY Empty bitmap from image entity %s", entity_id)
             else:
+                image: Image.Image = Image.open(io.BytesIO(bitmap))
+                media_dir: Path = media_path / "image"
+                media_dir.mkdir(parents=True, exist_ok=True)
+
+                media_ext: str = image.format.lower() if image.format else "img"
+                timed: str = str(time.time()).replace(".", "_")
+                image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
                 image.save(image_path)
+                if media_ext == "jpg" and jpeg_args:
+                    image.save(image_path, **jpeg_args)
+                else:
+                    image.save(image_path)
         else:
             _LOGGER.warning("SUPERNOTIFY Unable to find image entity %s", entity_id)
     except Exception as e:

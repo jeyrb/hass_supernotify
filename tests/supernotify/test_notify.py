@@ -233,7 +233,7 @@ async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
     )
     await uut.initialize()
     await uut.async_send_message("just a test", data={"priority": "low"})
-    mock_hass.services.async_call.assert_called_once_with(
+    mock_hass.services.async_call.assert_called_once_with(  # type: ignore
         "notify", "dummy", service_data={"message": "just a test", "target": [], "data": {}}
     )
 

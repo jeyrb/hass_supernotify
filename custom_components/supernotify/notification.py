@@ -519,7 +519,7 @@ class Notification:
                 self.context.hass, snapshot_url, self.id, self.context.media_path, self.context.hass_internal_url, jpeg_args
             )
         elif camera_entity_id and camera_entity_id.startswith("image.") and self.context.hass and self.context.media_path:
-            image_path = await snap_image(self.context.hass, camera_entity_id, self.context.media_path, self.id, jpeg_args)
+            image_path = await snap_image(self.context, camera_entity_id, self.context.media_path, self.id, jpeg_args)
         elif camera_entity_id:
             if not self.context.hass or not self.context.media_path:
                 _LOGGER.warning("SUPERNOTIFY No homeassistant ref or media path for camera %s", camera_entity_id)

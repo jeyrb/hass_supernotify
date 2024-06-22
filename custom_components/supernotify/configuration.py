@@ -113,6 +113,8 @@ class SupernotificationConfiguration:
         self.fallback_on_error: dict = {}
         self.fallback_by_default: dict = {}
         self.snoozes: dict[str, Snooze] = {}
+        self._entity_registry: entity_registry.EntityRegistry | None = None
+        self._device_registry: device_registry.DeviceRegistry | None = None
 
     async def initialize(self) -> None:
         self.people = self.setup_people(self._recipients)
@@ -225,18 +227,10 @@ class SupernotificationConfiguration:
         return method
 
     def setup_people(self, recipients: list | tuple) -> dict[str, dict]:
-        dev_reg = ent_reg = None
-        if self.hass is not None:
-            try:
-                dev_reg = device_registry.async_get(self.hass)
-                ent_reg = entity_registry.async_get(self.hass)
-            except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY Unable to get device/entity registry, mobile app discovery disabled: %s", e)
-
         people: dict[str, dict] = {}
         for r in recipients:
-            if r.get(CONF_MOBILE_DISCOVERY) and dev_reg and ent_reg:
-                r[CONF_MOBILE_DEVICES].extend(self.mobile_devices_for_person(r[CONF_PERSON], dev_reg, ent_reg))
+            if r.get(CONF_MOBILE_DISCOVERY):
+                r[CONF_MOBILE_DEVICES].extend(self.mobile_devices_for_person(r[CONF_PERSON]))
                 if r.get(CONF_MOBILE_DEVICES):
                     _LOGGER.info("SUPERNOTIFY Auto configured %s for mobile devices %s", r[CONF_PERSON], r[CONF_MOBILE_DEVICES])
                 else:
@@ -264,28 +258,52 @@ class SupernotificationConfiguration:
                 results.append(person_config)
         return results
 
-    def mobile_devices_for_person(
-        self,
-        person_entity_id: str,
-        dev_reg: device_registry.DeviceRegistry | None = None,
-        ent_reg: entity_registry.EntityRegistry | None = None,
-    ) -> list:
+    def entity_registry(self) -> entity_registry.EntityRegistry | None:
+        """Hass entity registry is weird, every component ends up creating its own, with a store, subscribing
+        to all entities, so do it once here
+        """  # noqa: D205
+        if self._entity_registry is not None:
+            return self._entity_registry
+        if self.hass:
+            try:
+                self._entity_registry = entity_registry.async_get(self.hass)
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY Unable to get entity registry: %s", e)
+        return self._entity_registry
+
+    def device_registry(self) -> device_registry.DeviceRegistry | None:
+        """Hass device registry is weird, every component ends up creating its own, with a store, subscribing
+        to all devices, so do it once here
+        """  # noqa: D205
+        if self._device_registry is not None:
+            return self._device_registry
+        if self.hass:
+            try:
+                self._device_registry = device_registry.async_get(self.hass)
+            except Exception as e:
+                _LOGGER.warning("SUPERNOTIFY Unable to get device registry: %s", e)
+        return self._device_registry
+
+    def mobile_devices_for_person(self, person_entity_id: str) -> list:
         mobile_devices = []
         person_state = self.hass.states.get(person_entity_id) if self.hass else None
-        if not person_state or not ent_reg or not dev_reg:
+        if not person_state:
             _LOGGER.warning("SUPERNOTIFY Unable to resolve %s", person_entity_id)
         else:
-            for d_t in person_state.attributes.get("device_trackers", ()):
-                entity = ent_reg.async_get(d_t)
-                if entity and entity.platform == "mobile_app" and entity.device_id:
-                    device = dev_reg.async_get(entity.device_id)
-                    if device:
-                        mobile_devices.append({
-                            CONF_MANUFACTURER: device.manufacturer,
-                            CONF_MODEL: device.model,
-                            CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
-                            CONF_DEVICE_TRACKER: d_t,
-                        })
+            entity_registry = self.entity_registry()
+            device_registry = self.device_registry()
+            if entity_registry and device_registry:
+                for d_t in person_state.attributes.get("device_trackers", ()):
+                    entity = entity_registry.async_get(d_t)
+                    if entity and entity.platform == "mobile_app" and entity.device_id:
+                        device = device_registry.async_get(entity.device_id)
+                        if device:
+                            mobile_devices.append({
+                                CONF_MANUFACTURER: device.manufacturer,
+                                CONF_MODEL: device.model,
+                                CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
+                                CONF_DEVICE_TRACKER: d_t,
+                            })
         return mobile_devices
 
     def register_snooze(

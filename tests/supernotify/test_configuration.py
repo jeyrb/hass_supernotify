@@ -48,11 +48,11 @@ async def test_autoresolve_mobile_devices_for_devices(
     entity_registry: entity_registry.EntityRegistry,
 ) -> None:
     uut = SupernotificationConfiguration(hass)
+    uut._device_registry = device_registry
+    uut._entity_registry = entity_registry
     await uut.initialize()
-    register_mobile_app(
-        hass, device_registry, entity_registry, person="person.test_user", device_name="phone_bob", title="Bobs Phone"
-    )
-    assert uut.mobile_devices_for_person("person.test_user", device_registry, entity_registry) == [
+    register_mobile_app(uut, person="person.test_user", device_name="phone_bob", title="Bobs Phone")
+    assert uut.mobile_devices_for_person("person.test_user") == [
         {
             "device_tracker": "device_tracker.mobile_app_phone_bob",
             "manufacturer": "xUnit",
