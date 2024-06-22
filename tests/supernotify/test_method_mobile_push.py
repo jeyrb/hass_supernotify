@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.core import HomeAssistant
@@ -45,7 +47,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
             targets=["mobile_app_new_iphone"],
         ),
     )
-    mock_hass.services.async_call.assert_called_with(
+    mock_hass.services.async_call.assert_called_with(  # type: ignore
         "notify",
         "mobile_app_new_iphone",
         service_data={
@@ -78,7 +80,7 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssista
     await uut.deliver(
         Envelope("", Notification(context, message="hello there", title="testing"), targets=["mobile_app_new_iphone"])
     )
-    mock_hass.services.async_call.assert_called_with(
+    mock_hass.services.async_call.assert_called_with(  # type: ignore
         "notify",
         "mobile_app_new_iphone",
         service_data={
@@ -118,7 +120,7 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
             targets=["mobile_app_test_user_iphone"],
         )
     )
-    mock_hass.services.async_call.assert_called_with(
+    mock_hass.services.async_call.assert_called_with(  # type: ignore
         "notify",
         "mobile_app_test_user_iphone",
         service_data={
@@ -174,8 +176,9 @@ async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService
         blocking=True,
     )
     await hass.async_block_till_done()
-    notification = await hass.services.async_call(
-        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
+    notification: dict = cast(
+        dict,
+        await hass.services.async_call("supernotify", "enquire_last_notification", None, blocking=True, return_response=True),
     )
     assert notification is not None
     assert notification["delivered_envelopes"][0]["data"]["clickAction"] == "android_something"

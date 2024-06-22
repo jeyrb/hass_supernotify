@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Generator
 from pathlib import Path
 from ssl import SSLContext
@@ -17,10 +16,6 @@ from pytest_httpserver import HTTPServer
 
 from custom_components.supernotify import CONF_PERSON
 from custom_components.supernotify.configuration import SupernotificationConfiguration
-
-loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
-for logger in loggers:
-    logger.setLevel(logging.INFO)
 
 
 class MockableHomeAssistant(HomeAssistant):

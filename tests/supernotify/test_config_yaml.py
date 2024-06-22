@@ -1,10 +1,11 @@
 import pathlib
+from typing import cast
 from unittest.mock import patch
 
 from homeassistant import config as hass_config
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.const import SERVICE_RELOAD
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceResponse
 from homeassistant.helpers.service import async_call_from_config
 from homeassistant.setup import async_setup_component
 
@@ -29,7 +30,7 @@ async def test_schema():
 
 
 async def test_reload(hass: HomeAssistant) -> None:
-    hass.states.async_set("alarm_control_panel.home_alarm_control", {})
+    hass.states.async_set("alarm_control_panel.home_alarm_control", "")
     hass.states.async_set("supernotify.delivery_priority", "high")
 
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
@@ -82,6 +83,7 @@ async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> No
     notification = await hass.services.async_call(
         "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
     )
+    assert notification is not None
     assert notification["_message"] == "unit test 9484"
     assert notification["priority"] == "medium"
 
@@ -108,7 +110,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
 
     await hass.async_block_till_done()
 
-    response = await hass.services.async_call(
+    response: ServiceResponse = await hass.services.async_call(
         "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
     )
     await hass.async_block_till_done()
@@ -128,9 +130,9 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
 
     response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
     await hass.async_block_till_done()
-    assert isinstance(response, dict)
+    assert response is not None
     assert "purged" in response
-    assert response["purged"] >= 0
+    assert cast(int, response["purged"]) >= 0
 
 
 async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:

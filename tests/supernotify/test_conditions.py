@@ -49,9 +49,9 @@ async def test_template_condition(hass: HomeAssistant) -> None:
     config = await condition.async_validate_condition_config(hass, config)
     test = await condition.async_from_config(hass, config)
 
-    hass.states.async_set("sensor.bedroom_temperature", 12)
+    hass.states.async_set("sensor.bedroom_temperature", "12")
     assert not test(hass, None)
-    hass.states.async_set("sensor.bedroom_temperature", 21)
+    hass.states.async_set("sensor.bedroom_temperature", "21")
     assert not test(hass, None)
-    hass.states.async_set("sensor.bedroom_temperature", 18)
+    hass.states.async_set("sensor.bedroom_temperature", "18")
     assert test(hass, None)
