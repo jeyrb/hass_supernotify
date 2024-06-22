@@ -13,15 +13,14 @@ from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NA
 from homeassistant.helpers.json import save_json
 from voluptuous import humanize
 
-from custom_components.supernotify.common import safe_extend
-from custom_components.supernotify.delivery_method import DeliveryMethod
-from custom_components.supernotify.envelope import Envelope
-from custom_components.supernotify.scenario import Scenario
-
-from . import (
+from custom_components.supernotify import (
     ATTR_ACTIONS,
     ATTR_DEBUG,
     ATTR_DELIVERY,
+    ATTR_DELIVERY_APPLIED_SCENARIOS,
+    ATTR_DELIVERY_ENABLED_SCENARIOS,
+    ATTR_DELIVERY_PRIORITY,
+    ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DELIVERY_SELECTION,
     ATTR_JPEG_FLAGS,
     ATTR_MEDIA,
@@ -33,7 +32,8 @@ from . import (
     ATTR_MESSAGE_HTML,
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
-    ATTR_SCENARIOS,
+    ATTR_SCENARIOS_APPLY,
+    ATTR_SCENARIOS_CONSTRAIN,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_MESSAGE,
@@ -51,6 +51,7 @@ from . import (
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_FIXED,
     DELIVERY_SELECTION_IMPLICIT,
+    DOMAIN,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -70,6 +71,11 @@ from . import (
     RecipientType,
     Snooze,
 )
+from custom_components.supernotify.common import safe_extend
+from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.envelope import Envelope
+from custom_components.supernotify.scenario import Scenario
+
 from .common import ensure_dict, ensure_list
 from .configuration import SupernotificationConfiguration
 from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snap_image, snapshot_from_url
@@ -112,7 +118,8 @@ class Notification:
 
         self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
-        self.requested_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS))
+        self.required_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_CONSTRAIN))
+        self.applied_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_APPLY))
         self.delivery_selection: str | None = service_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type: str = service_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
@@ -128,6 +135,7 @@ class Notification:
         self.selected_delivery_names: list[str] = []
         self.enabled_scenarios: list[str] = []
         self.people_by_occupancy: list = []
+        self.globally_disabled: bool = False
 
     async def initialize(self) -> None:
         """Async post-construction initialization"""
@@ -139,8 +147,19 @@ class Notification:
                 # whereas a dict may be used to tune or restrict
                 self.delivery_selection = DELIVERY_SELECTION_IMPLICIT
 
-        self.enabled_scenarios = self.requested_scenarios or []
+        self.enabled_scenarios = list(self.applied_scenarios) or []
         self.enabled_scenarios.extend(await self.select_scenarios())
+        if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
+            _LOGGER.info("SUPERNOTIFY suppressing notification, no required scenarios enabled")
+            self.selected_delivery_names = []
+            self.globally_disabled = True
+        else:
+            self.selected_delivery_names = self.select_deliveries()
+            self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
+            self.inscope_snoozes = inscope_snoozes
+            self.default_media_from_actions()
+
+    def select_deliveries(self) -> list[str]:
         scenario_enable_deliveries: list[str] = []
         default_enable_deliveries: list[str] = []
         scenario_disable_deliveries: list[str] = []
@@ -168,10 +187,7 @@ class Notification:
             ]
         all_enabled = list(set(scenario_enable_deliveries + default_enable_deliveries + override_enable_deliveries))
         all_disabled = scenario_disable_deliveries + override_disable_deliveries
-        self.selected_delivery_names = [d for d in all_enabled if d not in all_disabled]
-        self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
-        self.inscope_snoozes = inscope_snoozes
-        self.default_media_from_actions()
+        return [d for d in all_enabled if d not in all_disabled]
 
     def default_media_from_actions(self) -> None:
         """If no media defined, look for iOS / Android actions that have media defined"""
@@ -200,7 +216,28 @@ class Notification:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         return self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
 
-    async def deliver(self) -> None:
+    def suppress(self) -> None:
+        self.globally_disabled = True
+        _LOGGER.info("SUPERNOTIFY Suppressing notification (%s)", self.id)
+
+    async def deliver(self) -> bool:
+        if self.globally_disabled:
+            _LOGGER.info("SUPERNOTIFY Suppressing globally silenced/snoozed notification (%s)", self.id)
+            self.skipped += 1
+            return False
+
+        _LOGGER.debug(
+            "Message: %s, notification: %s, deliveries: %s",
+            self._message,
+            self.id,
+            self.selected_delivery_names,
+        )
+
+        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, self.priority)
+        self.setup_condition_inputs(ATTR_DELIVERY_APPLIED_SCENARIOS, self.applied_scenarios)
+        self.setup_condition_inputs(ATTR_DELIVERY_REQUIRED_SCENARIOS, self.required_scenarios)
+        self.setup_condition_inputs(ATTR_DELIVERY_ENABLED_SCENARIOS, self.enabled_scenarios)
+
         for delivery in self.selected_delivery_names:
             await self.call_delivery_method(delivery)
 
@@ -213,6 +250,8 @@ class Notification:
             for delivery in self.context.fallback_on_error:
                 if delivery not in self.selected_delivery_names:
                     await self.call_delivery_method(delivery)
+
+        return self.delivered > 0
 
     async def call_delivery_method(self, delivery: str) -> None:
         try:
@@ -555,6 +594,10 @@ class Notification:
                         _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
 
         return (False, inscope_snoozes)
+
+    def setup_condition_inputs(self, field: str, value: Any) -> None:
+        if self.context.hass:
+            self.context.hass.states.async_set(f"{DOMAIN}.{field}", value)
 
 
 @dataclass

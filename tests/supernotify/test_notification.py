@@ -11,11 +11,11 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CAMERA_DELAY,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_SNAPSHOT_URL,
+    ATTR_SCENARIOS_APPLY,
     CONF_DELIVERY,
     CONF_DELIVERY_SELECTION,
     CONF_MEDIA,
     CONF_RECIPIENTS,
-    CONF_SCENARIOS,
     CONF_TARGET,
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_IMPLICIT,
@@ -36,7 +36,7 @@ async def test_simple_create(mock_context: SupernotificationConfiguration) -> No
     uut = Notification(mock_context, "testing 123")
     await uut.initialize()
     assert uut.enabled_scenarios == []
-    assert uut.requested_scenarios == []
+    assert uut.applied_scenarios == []
     assert uut.target == []
     assert uut.message("plain_email") == "testing 123"
     assert uut.title("mobile") == "mobile notification"
@@ -63,7 +63,7 @@ async def test_explicit_delivery(mock_context: SupernotificationConfiguration) -
 async def test_scenario_delivery(mock_context: SupernotificationConfiguration) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
-    uut = Notification(mock_context, "testing 123", service_data={CONF_SCENARIOS: "Alarm"})
+    uut = Notification(mock_context, "testing 123", service_data={ATTR_SCENARIOS_APPLY: "Alarm"})
     await uut.initialize()
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
 
@@ -203,7 +203,10 @@ async def test_merge(mock_context: SupernotificationConfiguration):
     uut = Notification(
         mock_context,
         "testing 123",
-        service_data={CONF_SCENARIOS: "Alarm", ATTR_MEDIA: {ATTR_MEDIA_CAMERA_DELAY: 11, ATTR_MEDIA_SNAPSHOT_URL: "/foo/123"}},
+        service_data={
+            ATTR_SCENARIOS_APPLY: "Alarm",
+            ATTR_MEDIA: {ATTR_MEDIA_CAMERA_DELAY: 11, ATTR_MEDIA_SNAPSHOT_URL: "/foo/123"},
+        },
     )
     await uut.initialize()
     assert uut.merge(ATTR_MEDIA, "plain_email") == {

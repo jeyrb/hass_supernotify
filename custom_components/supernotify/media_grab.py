@@ -115,21 +115,25 @@ async def snap_image(
 ) -> Path | None:
     """Use for any image, including MQTT Image"""
     image_path: Path | None = None
+    try:
+        image_entity = hass.states.get(entity_id)
+        if image_entity:
+            image: Image.Image = Image.open(io.BytesIO(await image_entity.async_image()))
+            media_dir: Path = media_path / "image"
+            media_dir.mkdir(parents=True, exist_ok=True)
 
-    image_entity = hass.states.get(entity_id)
-    if image_entity:
-        image: Image.Image = Image.open(io.BytesIO(await image_entity.async_image()))
-        media_dir: Path = media_path / "image"
-        media_dir.mkdir(parents=True, exist_ok=True)
-
-        media_ext: str = image.format.lower() if image.format else "img"
-        timed: str = str(time.time()).replace(".", "_")
-        image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
-        image.save(image_path)
-        if media_ext == "jpg" and jpeg_args:
-            image.save(image_path, **jpeg_args)
-        else:
+            media_ext: str = image.format.lower() if image.format else "img"
+            timed: str = str(time.time()).replace(".", "_")
+            image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
             image.save(image_path)
+            if media_ext == "jpg" and jpeg_args:
+                image.save(image_path, **jpeg_args)
+            else:
+                image.save(image_path)
+        else:
+            _LOGGER.warning("SUPERNOTIFY Unable to find image entity %s", entity_id)
+    except Exception as e:
+        _LOGGER.warning("SUPERNOTIFY Unable to snap image %s: %s", entity_id, e)
     return image_path
 
 
@@ -183,7 +187,8 @@ async def select_avail_camera(hass: HomeAssistant, cameras: dict[str, dict], cam
                 if c in cameras and cameras[c].get(CONF_DEVICE_TRACKER)
             ]
             for alt_cam in alt_cams_with_tracker:
-                if hass.states.is_state(alt_cam.get(CONF_DEVICE_TRACKER), STATE_HOME):
+                tracker_entity_id = alt_cam.get(CONF_DEVICE_TRACKER)
+                if tracker_entity_id and hass.states.is_state(tracker_entity_id, STATE_HOME):
                     avail_camera_entity_id = alt_cam[CONF_CAMERA]
                     _LOGGER.info(
                         "SUPERNOTIFY Selecting available camera %s rather than %s", avail_camera_entity_id, camera_entity_id

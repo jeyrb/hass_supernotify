@@ -128,6 +128,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
 
     response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
     await hass.async_block_till_done()
+    assert isinstance(response, dict)
     assert "purged" in response
     assert response["purged"] >= 0
 
@@ -152,5 +153,6 @@ async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) 
     notification = await hass.services.async_call(
         "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
     )
+    assert notification is not None
     assert notification["_message"] == "unit test 105"
     assert notification["priority"] == "high"

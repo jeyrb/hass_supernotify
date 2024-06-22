@@ -108,7 +108,7 @@ class SupernotificationConfiguration:
         self.method_defaults: dict = method_defaults or {}
         self.scenarios: dict[str, Scenario] = {}
         self.people: dict[str, Any] = {}
-        self.configured_scenarios: dict = scenarios or {}
+        self.applied_scenarios: dict = scenarios or {}
         self.delivery_by_scenario: dict[str, list] = {SCENARIO_DEFAULT: []}
         self.fallback_on_error: dict = {}
         self.fallback_by_default: dict = {}
@@ -117,8 +117,8 @@ class SupernotificationConfiguration:
     async def initialize(self) -> None:
         self.people = self.setup_people(self._recipients)
 
-        if self.configured_scenarios and self.hass:
-            for scenario_name, scenario_definition in self.configured_scenarios.items():
+        if self.applied_scenarios and self.hass:
+            for scenario_name, scenario_definition in self.applied_scenarios.items():
                 scenario = Scenario(scenario_name, scenario_definition, self.hass)
                 if await scenario.validate():
                     self.scenarios[scenario_name] = scenario

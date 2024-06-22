@@ -41,8 +41,7 @@ from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.notify import SuperNotificationService
-
-from .doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
+from tests.supernotify.doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
 DELIVERY: dict[str, dict] = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
@@ -100,7 +99,7 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
         data={
             "delivery_selection": DELIVERY_SELECTION_EXPLICIT,
             "delivery": {"pigeon": {}, "persistent": {}},
-            "scenarios": ["scenario1"],
+            "apply_scenarios": ["scenario1"],
         },
     )
     mock_hass.services.async_call.assert_called_with(
@@ -164,7 +163,7 @@ async def test_null_delivery(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationService(mock_hass)
     await uut.initialize()
     await uut.async_send_message("just a test")
-    mock_hass.services.async_call.assert_not_called()
+    mock_hass.services.async_call.assert_not_called()  # type: ignore
 
 
 async def test_archive(mock_hass: HomeAssistant) -> None:

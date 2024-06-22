@@ -10,7 +10,7 @@
             "purpose": ["debug-test"],
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceRoot}",
+                "PYTHONPATH": "${workspaceFolder}",
                 "PYTEST_ADDOPTS": "--no-cov"
             }
           },
@@ -21,7 +21,7 @@
             "program": "${file}",
             "console": "externalTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceRoot}",
+                "PYTHONPATH": "${workspaceFolder}",
                 "PYTEST_ADDOPTS": "--no-cov"
             }
           }

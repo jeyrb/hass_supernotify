@@ -96,7 +96,8 @@ OCCUPANCY_ONLY_OUT = "only_out"
 
 ATTR_PRIORITY = "priority"
 ATTR_ACTION = "action"
-ATTR_SCENARIOS = "scenarios"
+ATTR_SCENARIOS_CONSTRAIN = "require_scenarios"
+ATTR_SCENARIOS_APPLY = "apply_scenarios"
 ATTR_DELIVERY = "delivery"
 ATTR_DEFAULT = "default"
 ATTR_NOTIFICATION_ID = "notification_id"
@@ -131,8 +132,9 @@ PTZ_METHOD_FRIGATE = "frigate"
 PTZ_METHOD_VALUES = [PTZ_METHOD_ONVIF, PTZ_METHOD_FRIGATE]
 
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
-ATTR_DELIVERY_SCENARIOS = "delivery_scenarios"
-
+ATTR_DELIVERY_APPLIED_SCENARIOS = "delivery_applied_scenarios"
+ATTR_DELIVERY_REQUIRED_SCENARIOS = "delivery_required_scenarios"
+ATTR_DELIVERY_ENABLED_SCENARIOS = "delivery_enabled_scenarios"
 
 SELECTION_FALLBACK_ON_ERROR = "fallback_on_error"
 SELECTION_FALLBACK = "fallback"
@@ -335,7 +337,8 @@ SERVICE_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
         vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
-        vol.Optional(ATTR_SCENARIOS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_SCENARIOS_CONSTRAIN): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_SCENARIOS_APPLY): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
         vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,

@@ -62,7 +62,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
           - person.jim_bob
           - person.neighbour
         priority: high
-        scenarios:
+        apply_scenarios:
           - home_security
           - garden
         delivery:
@@ -392,7 +392,7 @@ triggered, and so any overrides declared in those scenarios will be applied.
         title: Security Notification
         message: '{{state_attr(sensor,"friendly_name")}} triggered'
         priority: high
-        scenarios:
+        apply_scenarios:
           - home_security
           - garden
 ```
@@ -409,8 +409,7 @@ automatically available:
 |supernotify.delivery_priority  |Priority of current notification, explicitly selected or default  |
 |supernotify.delivery_scenarios |Scenarios explicitly selected in current notification call        |
 
-These entity IDs are available generally in Home Assistant, although outside the context of a notification this is not so useful, since they will reflect the last notification received, which
-may be some time ago.
+These entity IDs are available generally in Home Assistant, although outside the context of a notification this is not so useful, since they will reflect the last notification received, which may be some time ago.
 
 ## Tips
 

@@ -22,8 +22,10 @@ from custom_components.supernotify.scenario import Scenario
 from . import (
     ATTR_ACTION,
     ATTR_DATA,
+    ATTR_DELIVERY_APPLIED_SCENARIOS,
+    ATTR_DELIVERY_ENABLED_SCENARIOS,
     ATTR_DELIVERY_PRIORITY,
-    ATTR_DELIVERY_SCENARIOS,
+    ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DUPE_POLICY_MTSLP,
     ATTR_DUPE_POLICY_NONE,
     ATTR_USER_ID,
@@ -115,7 +117,9 @@ async def async_get_service(
     hass.states.async_set(f"{DOMAIN}.failures", "0")
     hass.states.async_set(f"{DOMAIN}.sent", "0")
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_SCENARIOS)), "", {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_APPLIED_SCENARIOS)), "", {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_REQUIRED_SCENARIOS)), "", {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_ENABLED_SCENARIOS)), "", {})
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     service = SuperNotificationService(
@@ -269,7 +273,7 @@ class SuperNotificationService(BaseNotificationService):
                 )
             )
 
-        self.unsubscribes.append(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.async_shutdown))
+        self.unsubscribes.append(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, self.async_shutdown))
 
     async def initialize(self) -> None:
         await self.context.initialize()
@@ -283,8 +287,11 @@ class SuperNotificationService(BaseNotificationService):
     def shutdown(self) -> None:
         for unsub in self.unsubscribes:
             if unsub:
-                _LOGGER.debug("SUPERNOTIFY unsubscribing: %s", unsub)
-                unsub()
+                try:
+                    _LOGGER.debug("SUPERNOTIFY unsubscribing: %s", unsub)
+                    unsub()
+                except Exception as e:
+                    _LOGGER.error("SUPERNOTIFY failed to unsubscribe: %s", e)
         _LOGGER.info("SUPERNOTIFY shut down")
 
     def expose_entities(self) -> None:
@@ -327,23 +334,13 @@ class SuperNotificationService(BaseNotificationService):
             notification = Notification(self.context, message, title, target, data)
             await notification.initialize()
             if self.dupe_check(notification):
-                _LOGGER.info("SUPERNOTIFY Suppressing dupe notification (%s)", notification.id)
-                notification.skipped += 1
-            elif notification.globally_disabled:
-                _LOGGER.info("SUPERNOTIFY Suppressing globally silenced/snoozed notification (%s)", notification.id)
-                notification.skipped += 1
+                notification.suppress()
             else:
-                self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, notification.priority)
-                self.setup_condition_inputs(ATTR_DELIVERY_SCENARIOS, notification.requested_scenarios)
-                _LOGGER.debug(
-                    "Message: %s, notification: %s, delveries: %s",
-                    message,
-                    notification.id,
-                    notification.selected_delivery_names,
-                )
-                await notification.deliver()
-                self.sent += 1
-                self.hass.states.async_set(f"{DOMAIN}.sent", str(self.sent))
+                if await notification.deliver():
+                    self.sent += 1
+                    self.hass.states.async_set(f"{DOMAIN}.sent", str(self.sent))
+                else:
+                    _LOGGER.warning(f"SUPERNOTIFY Failed to deliver {notification.id}, error count {notification.errored}")
 
             self.last_notification = notification
             if self.context.archive.get(CONF_ENABLED):
@@ -357,8 +354,8 @@ class SuperNotificationService(BaseNotificationService):
                 notification.errored,
                 notification.skipped,
             )
-        except Exception as e:
-            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, e)
+        except Exception as err:
+            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err)
             self.failures += 1
             self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
 
@@ -398,9 +395,6 @@ class SuperNotificationService(BaseNotificationService):
         else:
             _LOGGER.debug("SUPERNOTIFY Skipping archive purge for unknown path %s", path)
         return purged
-
-    def setup_condition_inputs(self, field: str, value: Any) -> None:
-        self.hass.states.async_set(f"{DOMAIN}.{field}", value)
 
     def enquire_deliveries_by_scenario(self) -> dict[str, list[Scenario]]:
         return self.context.delivery_by_scenario

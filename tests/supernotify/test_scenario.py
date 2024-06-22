@@ -112,3 +112,24 @@ async def test_attributes(hass: HomeAssistant) -> None:
     attrs = uut.attributes()
     assert attrs["delivery_selection"] == "implicit"
     assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
+
+
+async def test_secondary_scenario(hass: HomeAssistant) -> None:
+    uut = Scenario(
+        "testing",
+        {
+            CONF_CONDITION: {
+                "condition": "state",
+                "entity_id": "supernotifier.delivery_scenarios",
+                "state": ["scenario-attention", "scenario-possible-danger"],
+            }
+        },
+        hass,
+    )
+    assert not uut.default
+    assert await uut.validate()
+    assert not await uut.evaluate()
+
+    hass.states.async_set("supernotifier.delivery_scenarios", "scenario-possible-danger")
+
+    assert await uut.evaluate()
