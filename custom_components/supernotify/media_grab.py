@@ -5,11 +5,10 @@ import time
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import aiofiles
 from aiohttp import ClientTimeout
-from homeassistant.components.image import ImageEntity
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -24,6 +23,9 @@ from custom_components.supernotify import (
     PTZ_METHOD_ONVIF,
 )
 from custom_components.supernotify.configuration import SupernotificationConfiguration
+
+if TYPE_CHECKING:
+    from homeassistant.components.image import ImageEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,12 +126,13 @@ async def snap_image(
     """Use for any image, including MQTT Image"""
     image_path: Path | None = None
     try:
-        image_entity: ImageEntity | RegistryEntry | None = None
+        image_entity: ImageEntity | None = None
         entity_registry = cast(EntityRegistry, context.entity_registry())
-        if entity_registry:
-            image_entity = entity_registry.async_get(entity_id)
+        if entity_registry and context.hass:
+            image_reg_entity: RegistryEntry | None = entity_registry.async_get(entity_id)
+            if image_reg_entity:
+                image_entity = context.hass.data[image_reg_entity.platform].get_entity(entity_id)
         if image_entity:
-            image_entity = cast(ImageEntity, image_entity)
             bitmap: bytes | None = await image_entity.async_image()
             if bitmap is None:
                 _LOGGER.warning("SUPERNOTIFY Empty bitmap from image entity %s", entity_id)
