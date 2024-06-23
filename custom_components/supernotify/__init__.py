@@ -134,7 +134,7 @@ PTZ_METHOD_VALUES = [PTZ_METHOD_ONVIF, PTZ_METHOD_FRIGATE]
 ATTR_DELIVERY_PRIORITY = "delivery_priority"
 ATTR_DELIVERY_APPLIED_SCENARIOS = "delivery_applied_scenarios"
 ATTR_DELIVERY_REQUIRED_SCENARIOS = "delivery_required_scenarios"
-ATTR_DELIVERY_ENABLED_SCENARIOS = "delivery_enabled_scenarios"
+ATTR_DELIVERY_OCCUPANCY = "delivery_occupancy"
 
 SELECTION_FALLBACK_ON_ERROR = "fallback_on_error"
 SELECTION_FALLBACK = "fallback"

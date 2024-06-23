@@ -34,6 +34,7 @@ def register_mobile_app(
         person, "home", attributes={"device_trackers": [f"device_tracker.mobile_app_{device_name}", "dev002"]}
     )
     device_registry = context.device_registry()
+    device_entry = None
     if device_registry:
         device_entry = device_registry.async_get_or_create(
             config_entry_id=config_entry.entry_id,
@@ -42,5 +43,5 @@ def register_mobile_app(
             identifiers={(domain, f"device-id_{device_name}")},
         )
     entity_registry = context.entity_registry()
-    if entity_registry:
+    if entity_registry and device_entry:
         entity_registry.async_get_or_create("device_tracker", "mobile_app", device_name, device_id=device_entry.id)

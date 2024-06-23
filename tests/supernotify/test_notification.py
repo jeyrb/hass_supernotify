@@ -132,6 +132,7 @@ async def test_explicit_recipients_only_restricts_people_targets(mock_context: S
 
 async def test_filter_recipients(mock_context: SupernotificationConfiguration) -> None:
     uut = Notification(mock_context, "testing 123")
+    await uut.initialize()
 
     assert len(uut.filter_people_by_occupancy("all_in")) == 0
     assert len(uut.filter_people_by_occupancy("all_out")) == 0

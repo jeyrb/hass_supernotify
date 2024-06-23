@@ -172,7 +172,7 @@ async def test_archive(mock_hass: HomeAssistant) -> None:
             mock_hass,
             deliveries=DELIVERY,
             scenarios=SCENARIOS,
-            recipients=RECIPIENTS,
+            recipients=[],  # recipients will generate mock person_config data and break json
             method_defaults=METHOD_DEFAULTS,
             archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive},
         )

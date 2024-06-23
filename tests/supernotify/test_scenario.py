@@ -72,6 +72,7 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     )
     await context.initialize()
     uut = Notification(context)
+    await uut.initialize()
     hass.states.async_set("sensor.outside_temperature", "42")
     enabled = await uut.select_scenarios()
     assert enabled == ["hot_day"]

@@ -23,7 +23,7 @@ from . import (
     ATTR_ACTION,
     ATTR_DATA,
     ATTR_DELIVERY_APPLIED_SCENARIOS,
-    ATTR_DELIVERY_ENABLED_SCENARIOS,
+    ATTR_DELIVERY_OCCUPANCY,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DUPE_POLICY_MTSLP,
@@ -119,7 +119,7 @@ async def async_get_service(
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_APPLIED_SCENARIOS)), "", {})
     hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_REQUIRED_SCENARIOS)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_ENABLED_SCENARIOS)), "", {})
+    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_OCCUPANCY)), "", {})
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     service = SuperNotificationService(
@@ -340,7 +340,7 @@ class SuperNotificationService(BaseNotificationService):
                     self.sent += 1
                     self.hass.states.async_set(f"{DOMAIN}.sent", str(self.sent))
                 else:
-                    _LOGGER.warning(f"SUPERNOTIFY Failed to deliver {notification.id}, error count {notification.errored}")
+                    _LOGGER.warning("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
 
             self.last_notification = notification
             if self.context.archive.get(CONF_ENABLED):

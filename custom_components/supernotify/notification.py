@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME
+from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
 from homeassistant.helpers.json import save_json
 from voluptuous import humanize
 
@@ -18,7 +18,7 @@ from custom_components.supernotify import (
     ATTR_DEBUG,
     ATTR_DELIVERY,
     ATTR_DELIVERY_APPLIED_SCENARIOS,
-    ATTR_DELIVERY_ENABLED_SCENARIOS,
+    ATTR_DELIVERY_OCCUPANCY,
     ATTR_DELIVERY_PRIORITY,
     ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DELIVERY_SELECTION,
@@ -136,6 +136,7 @@ class Notification:
         self.enabled_scenarios: list[str] = []
         self.people_by_occupancy: list = []
         self.globally_disabled: bool = False
+        self.occupancy: dict[str, list] = {}
 
     async def initialize(self) -> None:
         """Async post-construction initialization"""
@@ -147,6 +148,7 @@ class Notification:
                 # whereas a dict may be used to tune or restrict
                 self.delivery_selection = DELIVERY_SELECTION_IMPLICIT
 
+        self.occupancy = self.determine_occupancy()
         self.enabled_scenarios = list(self.applied_scenarios) or []
         self.enabled_scenarios.extend(await self.select_scenarios())
         if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
@@ -233,11 +235,6 @@ class Notification:
             self.selected_delivery_names,
         )
 
-        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, self.priority)
-        self.setup_condition_inputs(ATTR_DELIVERY_APPLIED_SCENARIOS, self.applied_scenarios)
-        self.setup_condition_inputs(ATTR_DELIVERY_REQUIRED_SCENARIOS, self.required_scenarios)
-        self.setup_condition_inputs(ATTR_DELIVERY_ENABLED_SCENARIOS, self.enabled_scenarios)
-
         for delivery in self.selected_delivery_names:
             await self.call_delivery_method(delivery)
 
@@ -308,8 +305,8 @@ class Notification:
             try:
                 save_json(str(filename), self.contents(minimal=True))
                 _LOGGER.debug("SUPERNOTIFY Archived pruned notification %s", filename)
-            except Exception as e:
-                _LOGGER.error("SUPERNOTIFY Unable to archived pruned notification: %s", e)
+            except Exception as e2:
+                _LOGGER.error("SUPERNOTIFY Unable to archived pruned notification: %s", e2)
 
     def delivery_data(self, delivery_name: str) -> dict:
         delivery_override = self.delivery_overrides.get(delivery_name)
@@ -322,7 +319,24 @@ class Notification:
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
 
+    def initialize_context(self) -> None:
+        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, self.priority)
+        self.setup_condition_inputs(ATTR_DELIVERY_APPLIED_SCENARIOS, self.applied_scenarios)
+        self.setup_condition_inputs(ATTR_DELIVERY_REQUIRED_SCENARIOS, self.required_scenarios)
+        occupancy_states = []
+        if not self.occupancy[STATE_NOT_HOME] and self.occupancy[STATE_HOME]:
+            occupancy_states.append("ALL_HOME")
+        elif self.occupancy[STATE_NOT_HOME] and not self.occupancy[STATE_HOME]:
+            occupancy_states.append("ALL_AWAY")
+        if len(self.occupancy[STATE_HOME]) == 1:
+            occupancy_states.append("LONE_HOME")
+        elif len(self.occupancy[STATE_HOME]) > 1 and self.occupancy[STATE_NOT_HOME]:
+            occupancy_states.append("SOME_HOME")
+
+        self.setup_condition_inputs(ATTR_DELIVERY_OCCUPANCY, occupancy_states)
+
     async def select_scenarios(self) -> list[str]:
+        self.initialize_context()
         return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
 
     def merge(self, attribute: str, delivery_name: str) -> dict:
@@ -345,6 +359,16 @@ class Notification:
         else:
             self.debug_trace.resolved[delivery_name][category].append(resolved)
 
+    def determine_occupancy(self) -> dict[str, list[dict]]:
+        results: dict[str, list[dict]] = {STATE_HOME: [], STATE_NOT_HOME: []}
+        for person_config in self.context.people_state():
+            if person_config.get(ATTR_STATE) in (None, STATE_HOME):
+                # default to at home if unknown tracker
+                results[STATE_HOME].append(person_config)
+            else:
+                results[STATE_NOT_HOME].append(person_config)
+        return results
+
     def filter_people_by_occupancy(self, occupancy: str) -> list[dict]:
         people = list(self.context.people.values())
         if occupancy == OCCUPANCY_ALL:
@@ -352,14 +376,8 @@ class Notification:
         if occupancy == OCCUPANCY_NONE:
             return []
 
-        at_home = []
-        away = []
-        for person_config in self.context.people_state():
-            if person_config.get(ATTR_STATE) in (None, STATE_HOME):
-                # default to at home if unknown tracker
-                at_home.append(person_config)
-            else:
-                away.append(person_config)
+        away = self.occupancy[STATE_NOT_HOME]
+        at_home = self.occupancy[STATE_HOME]
         if occupancy == OCCUPANCY_ALL_IN:
             return people if len(away) == 0 else []
         if occupancy == OCCUPANCY_ALL_OUT:
@@ -595,9 +613,9 @@ class Notification:
 
         return (False, inscope_snoozes)
 
-    def setup_condition_inputs(self, field: str, value: Any) -> None:
+    def setup_condition_inputs(self, field_name: str, value: Any) -> None:
         if self.context.hass:
-            self.context.hass.states.async_set(f"{DOMAIN}.{field}", value)
+            self.context.hass.states.async_set(f"{DOMAIN}.{field_name}", value)
 
 
 @dataclass
