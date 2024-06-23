@@ -13,7 +13,6 @@ from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from PIL import Image
-from urllib3 import encode_multipart_formdata
 
 from custom_components.supernotify import (
     CONF_ALT_CAMERA,
@@ -143,7 +142,7 @@ async def snap_image(
                 image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
                 buffer = BytesIO()
                 img_args = {}
-                if media_ext in ('jpg','jpeg') and jpeg_args:
+                if media_ext in ("jpg", "jpeg") and jpeg_args:
                     img_args.update(jpeg_args)
                     image_format = "JPEG"
                 elif media_ext == "png":
