@@ -13,6 +13,7 @@ from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from PIL import Image
+from urllib3 import encode_multipart_formdata
 
 from custom_components.supernotify import (
     CONF_ALT_CAMERA,
@@ -140,11 +141,20 @@ async def snap_image(
                 media_ext: str = image.format.lower() if image.format else "img"
                 timed: str = str(time.time()).replace(".", "_")
                 image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
-                image.save(image_path)
-                if media_ext == "jpg" and jpeg_args:
-                    image.save(image_path, **jpeg_args)
+                buffer = BytesIO()
+                img_args = {}
+                if media_ext in ('jpg','jpeg') and jpeg_args:
+                    img_args.update(jpeg_args)
+                    image_format = "JPEG"
+                elif media_ext == "png":
+                    image_format = "PNG"
+                elif media_ext == "gif":
+                    image_format = "GIF"
                 else:
-                    image.save(image_path)
+                    image_format = None
+                image.save(buffer, image_format, **img_args)
+                async with aiofiles.open(image_path, "wb") as file:
+                    await file.write(buffer.getbuffer())
         else:
             _LOGGER.warning("SUPERNOTIFY Unable to find image entity %s", entity_id)
     except Exception as e:
