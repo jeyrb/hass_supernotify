@@ -5,14 +5,13 @@ import time
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import aiofiles
 from aiohttp import ClientTimeout
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntry
 from PIL import Image
 
 from custom_components.supernotify import (
@@ -127,11 +126,8 @@ async def snap_image(
     image_path: Path | None = None
     try:
         image_entity: ImageEntity | None = None
-        entity_registry = cast(EntityRegistry, context.entity_registry())
-        if entity_registry and context.hass:
-            image_reg_entity: RegistryEntry | None = entity_registry.async_get(entity_id)
-            if image_reg_entity:
-                image_entity = context.hass.data[image_reg_entity.platform].get_entity(entity_id)
+        if context.hass:
+            image_entity = context.hass.data["image"].get_entity(entity_id)
         if image_entity:
             bitmap: bytes | None = await image_entity.async_image()
             if bitmap is None:

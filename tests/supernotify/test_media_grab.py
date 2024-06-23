@@ -8,7 +8,6 @@ import pytest
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_component import EntityComponent
-from homeassistant.helpers.entity_registry import RegistryEntry
 from PIL import Image, ImageChops
 from pytest_httpserver import BlockingHTTPServer
 
@@ -90,14 +89,9 @@ async def test_snap_camera(mock_hass) -> None:
 async def test_snap_image(mock_context: SupernotificationConfiguration) -> None:
     image_path = PNG_PATH
     image_entity = MockImageEntity(image_path)
-    image_reg_entity = Mock(spec=RegistryEntry)
-    image_reg_entity.platform = "IMAGE_TEST"
-    entity_registry = Mock()
-    mock_context.entity_registry = Mock(return_value=entity_registry)  # type: ignore
-    entity_registry.async_get = Mock(return_value=image_reg_entity)
     if mock_context.hass:
-        mock_context.hass.data["IMAGE_TEST"] = Mock(spec=EntityComponent)
-        mock_context.hass.data["IMAGE_TEST"].get_entity = Mock(return_value=image_entity)
+        mock_context.hass.data["image"] = Mock(spec=EntityComponent)
+        mock_context.hass.data["image"].get_entity = Mock(return_value=image_entity)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path: Path = Path(tmp_dir)
