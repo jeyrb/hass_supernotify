@@ -3,6 +3,7 @@
 import logging
 import time
 from abc import abstractmethod
+from dataclasses import asdict
 from traceback import format_exception
 from typing import Any
 
@@ -14,7 +15,7 @@ from homeassistant.helpers import config_validation as cv
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
-from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES
+from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -135,14 +136,16 @@ class DeliveryMethod:
             service_data[key] = data
         return service_data
 
-    async def evaluate_delivery_conditions(self, delivery_config: dict) -> bool | None:
+    async def evaluate_delivery_conditions(
+        self, delivery_config: dict, condition_variables: ConditionVariables | None
+    ) -> bool | None:
         if CONF_CONDITION not in delivery_config:
             return True
 
         try:
             conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
             test = await condition.async_from_config(self.hass, conditions)
-            return test(self.hass, None)  # TODO: add template vars
+            return test(self.hass, asdict(condition_variables) if condition_variables else None)
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)
             raise

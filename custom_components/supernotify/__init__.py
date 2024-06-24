@@ -1,6 +1,7 @@
 """The SuperNotification integration"""
 
 import time
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 import voluptuous as vol
@@ -130,11 +131,6 @@ DELIVERY_SELECTION_VALUES = [DELIVERY_SELECTION_EXPLICIT, DELIVERY_SELECTION_FIX
 PTZ_METHOD_ONVIF = "onvif"
 PTZ_METHOD_FRIGATE = "frigate"
 PTZ_METHOD_VALUES = [PTZ_METHOD_ONVIF, PTZ_METHOD_FRIGATE]
-
-ATTR_DELIVERY_PRIORITY = "delivery_priority"
-ATTR_DELIVERY_APPLIED_SCENARIOS = "delivery_applied_scenarios"
-ATTR_DELIVERY_REQUIRED_SCENARIOS = "delivery_required_scenarios"
-ATTR_DELIVERY_OCCUPANCY = "delivery_occupancy"
 
 SELECTION_FALLBACK_ON_ERROR = "fallback_on_error"
 SELECTION_FALLBACK = "fallback"
@@ -437,3 +433,22 @@ class Snooze:
             "snoozed_at": format_timestamp(self.snoozed_at),
             "snooze_until": format_timestamp(self.snooze_until),
         }
+
+
+@dataclass
+class ConditionVariables:
+    """Variables presented to all condition evaluations
+
+    Attributes
+    ----------
+        applied_scenarios (list[str]): Scenarios that have been applied
+        required_scenarios (list[str]): Scenarios that must be applied
+        notification_priority (str): Priority of the notification
+        occupancy (list[str]): List of occupancy scenarios
+
+    """
+
+    applied_scenarios: list[str] = field(default_factory=list)
+    required_scenarios: list[str] = field(default_factory=list)
+    notification_priority: str = PRIORITY_MEDIUM
+    occupancy: list[str] = field(default_factory=list)

@@ -1,9 +1,14 @@
+import logging
+
 from homeassistant.const import CONF_CONDITION
 from homeassistant.core import HomeAssistant
 
+from custom_components.supernotify import PRIORITY_CRITICAL, PRIORITY_MEDIUM, ConditionVariables
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
@@ -11,6 +16,13 @@ async def test_simple_create(hass: HomeAssistant) -> None:
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate()
+
+
+async def test_simple_trace(hass: HomeAssistant) -> None:
+    uut = Scenario("testing", {}, hass)
+    assert not uut.default
+    assert await uut.validate()
+    assert not await uut.trace()
 
 
 async def test_conditional_create(hass: HomeAssistant) -> None:
@@ -26,9 +38,8 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
                         "state": ["armed_home", "armed_away"],
                     },
                     {
-                        "condition": "state",
-                        "entity_id": "supernotifier.delivery_priority",
-                        "state": "critical",
+                        "condition": "template",
+                        "value_template": "{{notification_priority in ['critical']}}",
                     },
                 ],
             }
@@ -37,12 +48,11 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
     )
     assert not uut.default
     assert await uut.validate()
-    assert not await uut.evaluate()
+    assert not await uut.evaluate(ConditionVariables([], [], PRIORITY_MEDIUM, []))
 
-    hass.states.async_set("supernotifier.delivery_priority", "critical")
     hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
 
-    assert await uut.evaluate()
+    assert await uut.evaluate(ConditionVariables([], [], PRIORITY_CRITICAL, []))
 
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
@@ -118,19 +128,25 @@ async def test_attributes(hass: HomeAssistant) -> None:
 async def test_secondary_scenario(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
-        {
-            CONF_CONDITION: {
-                "condition": "state",
-                "entity_id": "supernotifier.delivery_scenarios",
-                "state": ["scenario-attention", "scenario-possible-danger"],
-            }
-        },
+        {CONF_CONDITION: {"condition": "template", "value_template": '{{"scenario-possible-danger" in applied_scenarios}}'}},
         hass,
     )
+    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_MEDIUM, [])
     assert not uut.default
     assert await uut.validate()
-    assert not await uut.evaluate()
+    assert not await uut.evaluate(cvars)
+    cvars.applied_scenarios.append("scenario-possible-danger")
+    assert await uut.evaluate(cvars)
 
-    hass.states.async_set("supernotifier.delivery_scenarios", "scenario-possible-danger")
 
-    assert await uut.evaluate()
+async def test_state_attributes(hass: HomeAssistant) -> None:
+    uut = Scenario(
+        "testing",
+        {CONF_CONDITION: {"condition": "template", "value_template": "{{'scenario-alert' in applied_scenarios}}"}},
+        hass,
+    )
+
+    assert not uut.default
+    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, []))
+    assert uut.last_trace is not None
+    _LOGGER.info("trace: %s", uut.last_trace.as_dict())

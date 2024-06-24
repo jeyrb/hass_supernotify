@@ -31,7 +31,6 @@ async def test_schema():
 
 async def test_reload(hass: HomeAssistant) -> None:
     hass.states.async_set("alarm_control_panel.home_alarm_control", "")
-    hass.states.async_set("supernotify.delivery_priority", "high")
 
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 

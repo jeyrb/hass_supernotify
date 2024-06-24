@@ -20,11 +20,8 @@ notify:
                 - armed_away
                 - armed_home
                 - armed_night
-            - condition: state
-              entity_id: supernotify.delivery_priority
-              state:
-                - critical
-                - high
+            - condition: template
+              value_template: "{{ notification_priority in ['critical','high'] }}"
         priority:
           - critical
           - high
@@ -70,7 +67,7 @@ notify:
         method: generic
         service: notify.alexa
         selection: scenario
-        message: <audio src="soundbank://soundlibrary/home/scifi/amzn_sfx_scifi_alarm_04"/>
+        message: '<audio src="soundbank://soundlibrary/home/scifi/amzn_sfx_scifi_alarm_04"/>'
         data:
           media_content_type: tts
         priority: critical

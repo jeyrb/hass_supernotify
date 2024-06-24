@@ -398,18 +398,19 @@ triggered, and so any overrides declared in those scenarios will be applied.
 ```
 
 
-### Additional inputs
+### Additional variables for conditions
 
-Scenario conditions have access to everything that any other Home Assistant conditions can
-access, such as entities, templating etc. In addition, supernotifier makes additional entity values
+Scenario and DeliveryMethod conditions have access to everything that any other Home Assistant conditions can
+access, such as entities, templating etc. In addition, supernotifier makes additional variables
 automatically available:
 
-|Entity ID                      |Description                                                       |
+|Template Variable              |Description                                                       |
 |-------------------------------|------------------------------------------------------------------|
-|supernotify.delivery_priority  |Priority of current notification, explicitly selected or default  |
-|supernotify.delivery_scenarios |Scenarios explicitly selected in current notification call        |
+|notification_priority          |Priority of current notification, explicitly selected or default  |
+|applied_scenarios              |Scenarios explicitly selected in current notification call        |
+|required_scenarios             |Scenarios a notification mandates to be enabled or else suppressed|
+|occupancy                      |One or more occupancy states, e.g. ALL_HOME, LONE_HOME            |
 
-These entity IDs are available generally in Home Assistant, although outside the context of a notification this is not so useful, since they will reflect the last notification received, which may be some time ago.
 
 ## Tips
 

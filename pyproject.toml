@@ -66,6 +66,7 @@ homeassistant-stubs = "2024.2.2"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+log_cli = 1
 testpaths = [
     "tests",
 ]

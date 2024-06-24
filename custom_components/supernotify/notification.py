@@ -17,10 +17,6 @@ from custom_components.supernotify import (
     ATTR_ACTIONS,
     ATTR_DEBUG,
     ATTR_DELIVERY,
-    ATTR_DELIVERY_APPLIED_SCENARIOS,
-    ATTR_DELIVERY_OCCUPANCY,
-    ATTR_DELIVERY_PRIORITY,
-    ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DELIVERY_SELECTION,
     ATTR_JPEG_FLAGS,
     ATTR_MEDIA,
@@ -51,7 +47,6 @@ from custom_components.supernotify import (
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_FIXED,
     DELIVERY_SELECTION_IMPLICIT,
-    DOMAIN,
     OCCUPANCY_ALL,
     OCCUPANCY_ALL_IN,
     OCCUPANCY_ALL_OUT,
@@ -66,6 +61,7 @@ from custom_components.supernotify import (
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
     STRICT_SERVICE_DATA_SCHEMA,
+    ConditionVariables,
     GlobalTargetType,
     QualifiedTargetType,
     RecipientType,
@@ -137,6 +133,7 @@ class Notification:
         self.people_by_occupancy: list = []
         self.globally_disabled: bool = False
         self.occupancy: dict[str, list] = {}
+        self.condition_variables: ConditionVariables | None = None
 
     async def initialize(self) -> None:
         """Async post-construction initialization"""
@@ -149,6 +146,8 @@ class Notification:
                 self.delivery_selection = DELIVERY_SELECTION_IMPLICIT
 
         self.occupancy = self.determine_occupancy()
+        self.initialize_condition_variables()  # requires occupancy first
+
         self.enabled_scenarios = list(self.applied_scenarios) or []
         self.enabled_scenarios.extend(await self.select_scenarios())
         if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
@@ -260,7 +259,7 @@ class Notification:
                 _LOGGER.debug("SUPERNOTIFY Skipping delivery %s based on priority (%s)", delivery, self.priority)
                 self.skipped += 1
                 return
-            if not await delivery_method.evaluate_delivery_conditions(delivery_config):
+            if not await delivery_method.evaluate_delivery_conditions(delivery_config, self.condition_variables):
                 _LOGGER.debug("SUPERNOTIFY Skipping delivery %s based on conditions", delivery)
                 self.skipped += 1
                 return
@@ -319,10 +318,7 @@ class Notification:
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
 
-    def initialize_context(self) -> None:
-        self.setup_condition_inputs(ATTR_DELIVERY_PRIORITY, self.priority)
-        self.setup_condition_inputs(ATTR_DELIVERY_APPLIED_SCENARIOS, self.applied_scenarios)
-        self.setup_condition_inputs(ATTR_DELIVERY_REQUIRED_SCENARIOS, self.required_scenarios)
+    def initialize_condition_variables(self) -> None:
         occupancy_states = []
         if not self.occupancy[STATE_NOT_HOME] and self.occupancy[STATE_HOME]:
             occupancy_states.append("ALL_HOME")
@@ -333,11 +329,12 @@ class Notification:
         elif len(self.occupancy[STATE_HOME]) > 1 and self.occupancy[STATE_NOT_HOME]:
             occupancy_states.append("SOME_HOME")
 
-        self.setup_condition_inputs(ATTR_DELIVERY_OCCUPANCY, occupancy_states)
+        self.condition_variables = ConditionVariables(
+            self.applied_scenarios, self.required_scenarios, self.priority, occupancy_states
+        )
 
     async def select_scenarios(self) -> list[str]:
-        self.initialize_context()
-        return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
+        return [s.name for s in self.context.scenarios.values() if await s.evaluate(self.condition_variables)]
 
     def merge(self, attribute: str, delivery_name: str) -> dict:
         delivery: dict = self.delivery_overrides.get(delivery_name, {})
@@ -612,10 +609,6 @@ class Notification:
                         _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
 
         return (False, inscope_snoozes)
-
-    def setup_condition_inputs(self, field_name: str, value: Any) -> None:
-        if self.context.hass:
-            self.context.hass.states.async_set(f"{DOMAIN}.{field_name}", value)
 
 
 @dataclass

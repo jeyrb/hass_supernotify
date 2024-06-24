@@ -251,11 +251,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
                         CONF_ENTITY_ID: "alarm_control_panel.home_alarm_control",
                         CONF_STATE: ["armed_away", "armed_night"],
                     },
-                    {
-                        CONF_CONDITION: "state",
-                        CONF_ENTITY_ID: "supernotify.delivery_priority",
-                        CONF_STATE: ["critical", "high"],
-                    },
+                    {CONF_CONDITION: "template", "value_template": '{{priority in ["critical", "high"]}}'},
                 ],
             },
         }
@@ -275,7 +271,6 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     uut = SuperNotificationService(hass, deliveries=delivery, recipients=RECIPIENTS)
     await uut.initialize()
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
-    hass.states.async_set("supernotify.delivery_priority", "medium")
 
     await uut.async_send_message(title="test_title", message="testing 123")
     await hass.async_block_till_done()

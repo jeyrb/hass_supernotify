@@ -22,10 +22,6 @@ from custom_components.supernotify.scenario import Scenario
 from . import (
     ATTR_ACTION,
     ATTR_DATA,
-    ATTR_DELIVERY_APPLIED_SCENARIOS,
-    ATTR_DELIVERY_OCCUPANCY,
-    ATTR_DELIVERY_PRIORITY,
-    ATTR_DELIVERY_REQUIRED_SCENARIOS,
     ATTR_DUPE_POLICY_MTSLP,
     ATTR_DUPE_POLICY_NONE,
     ATTR_USER_ID,
@@ -116,10 +112,6 @@ async def async_get_service(
     )
     hass.states.async_set(f"{DOMAIN}.failures", "0")
     hass.states.async_set(f"{DOMAIN}.sent", "0")
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_PRIORITY)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_APPLIED_SCENARIOS)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_REQUIRED_SCENARIOS)), "", {})
-    hass.states.async_set(".".join((DOMAIN, ATTR_DELIVERY_OCCUPANCY)), "", {})
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
     service = SuperNotificationService(
