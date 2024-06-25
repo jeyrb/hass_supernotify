@@ -111,7 +111,7 @@ async def async_get_service(
             CONF_ARCHIVE: config.get(CONF_ARCHIVE, {}),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
-            CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}).keys(),
+            CONF_SCENARIOS: list(config.get(CONF_SCENARIOS, {}).keys()),
             CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_CAMERAS: config.get(CONF_CAMERAS, {}),
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
