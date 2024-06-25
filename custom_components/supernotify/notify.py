@@ -295,7 +295,7 @@ class SuperNotificationService(BaseNotificationService):
 
     def expose_entities(self) -> None:
         for scenario in self.context.scenarios.values():
-            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes())
+            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes(include_condition=False))
         for method in self.context.methods.values():
             self.hass.states.async_set(
                 f"{DOMAIN}.method_{method.method}", str(len(method.valid_deliveries) > 0), method.attributes()

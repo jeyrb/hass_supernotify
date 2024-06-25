@@ -38,17 +38,19 @@ class Scenario:
                 return False
         return True
 
-    def attributes(self) -> dict[str, str | None | dict | bool]:
+    def attributes(self, include_condition: bool = True) -> dict[str, str | None | dict | bool]:
         """Return scenario attributes"""
-        return {
+        attrs = {
             "name": self.name,
             "alias": self.alias,
             "media": self.media,
             "delivery_selection": self.delivery_selection,
             "delivery": self.delivery,
             "default": self.default,
-            "condition": self.condition,
         }
+        if include_condition:
+            attrs["condition"] = self.condition
+        return attrs
 
     async def evaluate(self, condition_variables: ConditionVariables | None = None) -> bool:
         """Evaluate scenario conditions"""
