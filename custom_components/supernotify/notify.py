@@ -16,6 +16,13 @@ from homeassistant.helpers import condition
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.util.json import (  # noqa: F401
+    JSON_DECODE_EXCEPTIONS,
+    JSON_ENCODE_EXCEPTIONS,
+    SerializationError,
+    format_unserializable_data,
+    json_loads,
+)
 
 from custom_components.supernotify.scenario import Scenario
 
@@ -104,7 +111,7 @@ async def async_get_service(
             CONF_ARCHIVE: config.get(CONF_ARCHIVE, {}),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
-            CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}),
+            CONF_SCENARIOS: config.get(CONF_SCENARIOS, {}).keys(),
             CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_CAMERAS: config.get(CONF_CAMERAS, {}),
             CONF_DUPE_CHECK: config.get(CONF_DUPE_CHECK, {}),
