@@ -59,7 +59,7 @@ class Scenario:
                 conditions = cv.CONDITION_SCHEMA(self.condition)
                 test = await condition.async_from_config(self.hass, conditions)
             except Exception as e:
-                _LOGGER.error("SUPERNOTIFY Scenario condition create failed: %s", e)
+                _LOGGER.error("SUPERNOTIFY Scenario %s condition create failed: %s", self.name, e)
                 return False
             try:
                 if test(self.hass, asdict(condition_variables) if condition_variables else None):
