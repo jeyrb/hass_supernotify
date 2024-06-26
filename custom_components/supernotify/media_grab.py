@@ -144,20 +144,14 @@ async def snap_image(
                 img_args = {}
                 if media_ext in ("jpg", "jpeg") and jpeg_args:
                     img_args.update(jpeg_args)
-                    image_format = "JPEG"
-                elif media_ext == "png":
-                    image_format = "PNG"
-                elif media_ext == "gif":
-                    image_format = "GIF"
-                else:
-                    image_format = None
-                image.save(buffer, image_format, **img_args)
+                image.save(buffer, image.format, **img_args)
                 async with aiofiles.open(image_path, "wb") as file:
                     await file.write(buffer.getbuffer())
         else:
             _LOGGER.warning("SUPERNOTIFY Unable to find image entity %s", entity_id)
     except Exception as e:
         _LOGGER.warning("SUPERNOTIFY Unable to snap image %s: %s", entity_id, e)
+        return None
     return image_path
 
 
