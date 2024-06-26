@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def test_simple_create(hass: HomeAssistant) -> None:
     uut = Scenario("testing", {}, hass)
+    assert await uut.validate()
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate()
@@ -20,6 +21,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
 
 async def test_simple_trace(hass: HomeAssistant) -> None:
     uut = Scenario("testing", {}, hass)
+    assert await uut.validate()
     assert not uut.default
     assert await uut.validate()
     assert not await uut.trace()
@@ -46,6 +48,7 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
         },
         hass,
     )
+    assert await uut.validate()
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate(ConditionVariables([], [], PRIORITY_MEDIUM, []))
@@ -80,6 +83,7 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
             },
         },
     )
+    hass.states.async_set("sensor.outside_temperature", "15")
     await context.initialize()
     uut = Notification(context)
     await uut.initialize()
@@ -119,7 +123,7 @@ async def test_attributes(hass: HomeAssistant) -> None:
         },
         hass,
     )
-
+    assert await uut.validate()
     attrs = uut.attributes()
     assert attrs["delivery_selection"] == "implicit"
     assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
@@ -131,6 +135,7 @@ async def test_secondary_scenario(hass: HomeAssistant) -> None:
         {CONF_CONDITION: {"condition": "template", "value_template": '{{"scenario-possible-danger" in applied_scenarios}}'}},
         hass,
     )
+    assert await uut.validate()
     cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_MEDIUM, [])
     assert not uut.default
     assert await uut.validate()
@@ -139,13 +144,13 @@ async def test_secondary_scenario(hass: HomeAssistant) -> None:
     assert await uut.evaluate(cvars)
 
 
-async def test_state_attributes(hass: HomeAssistant) -> None:
+async def test_trace(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
         {CONF_CONDITION: {"condition": "template", "value_template": "{{'scenario-alert' in applied_scenarios}}"}},
         hass,
     )
-
+    assert await uut.validate()
     assert not uut.default
     assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, ["LONE_HOME"]))
     assert uut.last_trace is not None

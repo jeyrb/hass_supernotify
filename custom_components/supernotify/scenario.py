@@ -41,6 +41,11 @@ class Scenario:
                 if not await condition.async_validate_condition_config(self.hass, conditions):
                     _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
                     return False
+            except Invalid as ve:
+                _LOGGER.error(
+                    "SUPERNOTIFY Disabling scenario %s - schema failed: %s", self.name, humanize_error(self.condition, ve)
+                )
+                return False
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Disabling scenario %s with error validating %s: %s", self.name, self.condition, e)
                 return False
@@ -66,9 +71,6 @@ class Scenario:
             try:
                 conditions = cv.CONDITION_SCHEMA(self.condition)
                 test = await condition.async_from_config(self.hass, conditions)
-            except Invalid as ve:
-                _LOGGER.error("SUPERNOTIFY Scenario %s schema failed: %s", self.name, humanize_error(self.condition, ve))
-                return False
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Scenario %s condition create failed: %s", self.name, e)
                 return False
