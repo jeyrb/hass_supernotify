@@ -147,6 +147,6 @@ async def test_state_attributes(hass: HomeAssistant) -> None:
     )
 
     assert not uut.default
-    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, []))
+    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, ["LONE_HOME"]))
     assert uut.last_trace is not None
     _LOGGER.info("trace: %s", uut.last_trace.as_dict())

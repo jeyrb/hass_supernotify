@@ -12,6 +12,8 @@ from homeassistant.helpers import condition
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
+from voluptuous import Invalid
+from voluptuous.humanize import humanize_error
 
 from . import ATTR_DEFAULT, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, ConditionVariables
 
@@ -29,12 +31,18 @@ class Scenario:
         self.delivery: dict = scenario_definition.get(CONF_DELIVERY) or {}
         self.default: bool = self.name == ATTR_DEFAULT
         self.last_trace: ActionTrace | None = None
+        self.condition_func = None
 
     async def validate(self) -> bool:
         """Validate Home Assistant conditiion definition at initiation"""
         if self.condition:
-            if not await condition.async_validate_condition_config(self.hass, self.condition):
-                _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
+            try:
+                conditions = cv.CONDITION_SCHEMA(self.condition)
+                if not await condition.async_validate_condition_config(self.hass, conditions):
+                    _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
+                    return False
+            except Exception as e:
+                _LOGGER.error("SUPERNOTIFY Disabling scenario %s with error validating %s: %s", self.name, self.condition, e)
                 return False
         return True
 
@@ -58,6 +66,9 @@ class Scenario:
             try:
                 conditions = cv.CONDITION_SCHEMA(self.condition)
                 test = await condition.async_from_config(self.hass, conditions)
+            except Invalid as ve:
+                _LOGGER.error("SUPERNOTIFY Scenario %s schema failed: %s", self.name, humanize_error(self.condition, ve))
+                return False
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Scenario %s condition create failed: %s", self.name, e)
                 return False
