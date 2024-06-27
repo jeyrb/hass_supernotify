@@ -4,6 +4,7 @@ pytest-socket>=0.6.0
 pytest-homeassistant-custom-component>=0.13.101
 pytest-asyncio
 pytest-unordered
+pytest-xdist
 pre-commit
 pytest-httpserver>=1.0.10
 ruff

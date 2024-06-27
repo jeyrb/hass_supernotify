@@ -11,7 +11,6 @@ from homeassistant.components.notify.const import ATTR_TARGET
 from homeassistant.const import CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
-from homeassistant.helpers import config_validation as cv
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
@@ -141,10 +140,12 @@ class DeliveryMethod:
     ) -> bool | None:
         if CONF_CONDITION not in delivery_config:
             return True
+        cond_conf = delivery_config.get(CONF_CONDITION)
+        if cond_conf is None:
+            return True
 
         try:
-            conditions = cv.CONDITION_SCHEMA(delivery_config.get(CONF_CONDITION))
-            test = await condition.async_from_config(self.hass, conditions)
+            test = await condition.async_from_config(self.hass, cond_conf)
             return test(self.hass, asdict(condition_variables) if condition_variables else None)
         except Exception as e:
             _LOGGER.error("SUPERNOTIFY Condition eval failed: %s", e)

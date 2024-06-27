@@ -4,16 +4,15 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from typing import Any
 
-from homeassistant.components.trace import DATA_TRACE, async_setup, async_store_trace
+from homeassistant.components.trace import async_setup, async_store_trace
+from homeassistant.components.trace.const import DATA_TRACE
 from homeassistant.components.trace.models import ActionTrace
 from homeassistant.const import CONF_ALIAS, CONF_CONDITION
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import condition
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
 from voluptuous import Invalid
-from voluptuous.humanize import humanize_error
 
 from . import ATTR_DEFAULT, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, ConditionVariables
 
@@ -37,15 +36,10 @@ class Scenario:
         """Validate Home Assistant conditiion definition at initiation"""
         if self.condition:
             try:
-                conditions = cv.CONDITION_SCHEMA(self.condition)
-                if not await condition.async_validate_condition_config(self.hass, conditions):
+                cond = await condition.async_validate_condition_config(self.hass, self.condition)
+                if not await condition.async_from_config(self.hass, cond):
                     _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
                     return False
-            except Invalid as ve:
-                _LOGGER.error(
-                    "SUPERNOTIFY Disabling scenario %s - schema failed: %s", self.name, humanize_error(self.condition, ve)
-                )
-                return False
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Disabling scenario %s with error validating %s: %s", self.name, self.condition, e)
                 return False
@@ -69,8 +63,9 @@ class Scenario:
         """Evaluate scenario conditions"""
         if self.condition:
             try:
-                conditions = cv.CONDITION_SCHEMA(self.condition)
-                test = await condition.async_from_config(self.hass, conditions)
+                test = await condition.async_from_config(self.hass, self.condition)
+                if test is None:
+                    raise Invalid(f"Empty condition generated for {self.name}")
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Scenario %s condition create failed: %s", self.name, e)
                 return False

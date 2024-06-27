@@ -1,6 +1,16 @@
 {
     "version": "0.2.0",
     "configurations": [
+        {"name":"Python Debugger: Current File",
+        "type":"debugpy",
+        "request":"launch",
+        "program":"${file}",
+        "justMyCode": false,
+        "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "PYTEST_ADDOPTS": "--no-cov"
+            },
+        "console":"integratedTerminal"},
 
         {
             "name": "Python Debugger: Current File (Integrated Terminal)",
@@ -9,6 +19,7 @@
             "program": "${file}",
             "purpose": ["debug-test"],
             "console": "integratedTerminal",
+
             "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
@@ -20,6 +31,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
+            "justMyCode": false,
             "console": "externalTerminal",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",

@@ -1,9 +1,15 @@
 import logging
 
-from homeassistant.const import CONF_CONDITION
+from homeassistant.const import CONF_ALIAS, CONF_CONDITION
 from homeassistant.core import HomeAssistant
 
-from custom_components.supernotify import PRIORITY_CRITICAL, PRIORITY_MEDIUM, ConditionVariables
+from custom_components.supernotify import (
+    PLATFORM_SCHEMA,
+    PRIORITY_CRITICAL,
+    PRIORITY_MEDIUM,
+    SCENARIO_SCHEMA,
+    ConditionVariables,
+)
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
@@ -30,7 +36,8 @@ async def test_simple_trace(hass: HomeAssistant) -> None:
 async def test_conditional_create(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
-        {
+        SCENARIO_SCHEMA({
+            CONF_ALIAS: "test001",
             CONF_CONDITION: {
                 "condition": "and",
                 "conditions": [
@@ -44,8 +51,8 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
                         "value_template": "{{notification_priority in ['critical']}}",
                     },
                 ],
-            }
-        },
+            },
+        }),
         hass,
     )
     assert await uut.validate()
@@ -59,9 +66,9 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
 
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
-    context = SupernotificationConfiguration(
-        hass,
-        scenarios={
+    config = PLATFORM_SCHEMA({
+        "platform": "supernotify",
+        "scenarios": {
             "select_only": {},
             "cold_day": {
                 "alias": "Its a cold day",
@@ -82,9 +89,11 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
                 },
             },
         },
-    )
+    })
+    context = SupernotificationConfiguration(hass, scenarios=config["scenarios"])
     hass.states.async_set("sensor.outside_temperature", "15")
     await context.initialize()
+    assert len(context.scenarios) == 3
     uut = Notification(context)
     await uut.initialize()
     hass.states.async_set("sensor.outside_temperature", "42")
@@ -103,10 +112,9 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
 async def test_attributes(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
-        {
+        SCENARIO_SCHEMA({
             "delivery_selection": "implicit",
-            "media": {},
-            "camera_entity_id": "camera.doorbell",
+            "media": {"camera_entity_id": "camera.doorbell"},
             "delivery": {"doorbell_chime_alexa": {"data": {"amazon_magic_id": "a77464"}}, "email": {}},
             "condition": {
                 "condition": "and",
@@ -120,7 +128,7 @@ async def test_attributes(hass: HomeAssistant) -> None:
                     {"condition": "time", "after": "21:30:00", "before": "06:30:00"},
                 ],
             },
-        },
+        }),
         hass,
     )
     assert await uut.validate()
@@ -132,7 +140,9 @@ async def test_attributes(hass: HomeAssistant) -> None:
 async def test_secondary_scenario(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
-        {CONF_CONDITION: {"condition": "template", "value_template": '{{"scenario-possible-danger" in applied_scenarios}}'}},
+        SCENARIO_SCHEMA({
+            CONF_CONDITION: {"condition": "template", "value_template": '{{"scenario-possible-danger" in applied_scenarios}}'}
+        }),
         hass,
     )
     assert await uut.validate()
@@ -147,7 +157,9 @@ async def test_secondary_scenario(hass: HomeAssistant) -> None:
 async def test_trace(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
-        {CONF_CONDITION: {"condition": "template", "value_template": "{{'scenario-alert' in applied_scenarios}}"}},
+        SCENARIO_SCHEMA({
+            CONF_CONDITION: {"condition": "template", "value_template": "{{'scenario-alert' in applied_scenarios}}"}
+        }),
         hass,
     )
     assert await uut.validate()

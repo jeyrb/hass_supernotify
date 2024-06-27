@@ -98,7 +98,11 @@ async def async_get_service(
     _ = discovery_info
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if delivery and CONF_CONDITION in delivery:
-            await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
+            try:
+                await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
+            except Exception as e:
+                _LOGGER.error("SUPERNOTIFY delivery %s fails condition: %s", delivery[CONF_CONDITION], e)
+                raise
 
     hass.states.async_set(
         f"{DOMAIN}.configured",

@@ -12,16 +12,16 @@ notify:
         method: email
         template: default.html.j2
         condition:
-          condition: or
-          conditions:
-            - condition: state
-              entity_id: alarm_control_panel.home_alarm_control
-              state:
-                - armed_away
-                - armed_home
-                - armed_night
-            - condition: template
-              value_template: '{{ notification_priority in ["critical","high"] }}'
+            condition: or
+            conditions:
+              - condition: state
+                entity_id: alarm_control_panel.home_alarm_control
+                state:
+                  - armed_away
+                  - armed_home
+                  - armed_night
+              - condition: template
+                value_template: "{{ notification_priority in ['critical','high'] }}"
         priority:
           - critical
           - high
@@ -205,33 +205,33 @@ notify:
       ordinary_day:
         alias: nothing special
         condition:
-          condition: and
-          conditions:
-            - not:
-                - condition: state
-                  entity_id: alarm_control_panel.home_alarm_control
-                  state: disarmed
-            - condition: time
-              after: "21:30:00"
-              before: "06:30:00"
+            condition: and
+            conditions:
+              - not:
+                  - condition: state
+                    entity_id: alarm_control_panel.home_alarm_control
+                    state: disarmed
+              - condition: time
+                after: "21:30:00"
+                before: "06:30:00"
       mostly:
         alias: nothing special
         condition:
-          condition: and
-          conditions:
-            - not:
-                - condition: state
-                  entity_id: alarm_control_panel.home_alarm_control
-                  state: unknown
-            - condition: time
-              after: "06:30:00"
-              before: "21:30:00"
+            condition: and
+            conditions:
+              - not:
+                  - condition: state
+                    entity_id: alarm_control_panel.home_alarm_control
+                    state: unknown
+              - condition: time
+                after: "06:30:00"
+                before: "21:30:00"
       bedtime:
         condition:
-          condition: time
-          alias: Usual bedtime
-          after: "21:30:00"
-          before: "06:30:00"
+            condition: time
+            alias: Usual bedtime
+            after: "21:30:00"
+            before: "06:30:00"
 
     cameras:
       - camera: camera.front_door

@@ -24,6 +24,7 @@ from custom_components.supernotify import (
     CONF_SELECTION,
     CONF_TARGET,
     CONF_TARGETS_REQUIRED,
+    DELIVERY_SCHEMA,
     DELIVERY_SELECTION_EXPLICIT,
     METHOD_ALEXA,
     METHOD_CHIME,
@@ -240,22 +241,21 @@ async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
 
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     delivery = {
-        "testablity": {
-            CONF_METHOD: METHOD_GENERIC,
-            CONF_SERVICE: "testing.mock_notification",
-            CONF_CONDITION: {
-                CONF_CONDITION: "or",
-                CONF_CONDITIONS: [
-                    {
-                        CONF_CONDITION: "state",
-                        CONF_ENTITY_ID: "alarm_control_panel.home_alarm_control",
-                        CONF_STATE: ["armed_away", "armed_night"],
-                    },
-                    {CONF_CONDITION: "template", "value_template": '{{priority in ["critical", "high"]}}'},
-                ],
-            },
-        }
+        CONF_METHOD: METHOD_GENERIC,
+        CONF_SERVICE: "testing.mock_notification",
+        CONF_CONDITION: {
+            CONF_CONDITION: "or",
+            CONF_CONDITIONS: [
+                {
+                    CONF_CONDITION: "state",
+                    CONF_ENTITY_ID: "alarm_control_panel.home_alarm_control",
+                    CONF_STATE: ["armed_away", "armed_night"],
+                },
+                {CONF_CONDITION: "template", "value_template": "{{notification_priority in ['critical', 'high']}}"},
+            ],
+        },
     }
+
     calls_service_data = []
 
     @callback
@@ -267,8 +267,8 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         "mock_notification",
         mock_service_log,
     )
-
-    uut = SuperNotificationService(hass, deliveries=delivery, recipients=RECIPIENTS)
+    delivery_config = {"testablity": DELIVERY_SCHEMA(delivery)}
+    uut = SuperNotificationService(hass, deliveries=delivery_config, recipients=RECIPIENTS)
     await uut.initialize()
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
 
