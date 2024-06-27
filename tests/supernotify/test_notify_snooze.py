@@ -1,6 +1,5 @@
 from homeassistant.const import CONF_SERVICE
 from homeassistant.core import Context, Event, HomeAssistant
-from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.supernotify import (
     ATTR_ACTION,
@@ -120,9 +119,7 @@ async def test_check_notification_for_snooze_qualified(mock_hass: HomeAssistant)
     uut.shutdown()
 
 
-async def test_snooze_everything_for_person(
-    hass: HomeAssistant, device_registry: device_registry.DeviceRegistry, entity_registry: entity_registry.EntityRegistry
-) -> None:
+async def test_snooze_everything_for_person(hass: HomeAssistant) -> None:
     uut = SuperNotificationService(
         hass,
         recipients=[

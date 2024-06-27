@@ -27,7 +27,7 @@ def register_mobile_app(
         return
     try:
         context.hass.config_entries._entries[config_entry.entry_id] = config_entry  # type: ignore
-        context.hass.config_entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)  # type: ignore
+        context.hass.config_entries._entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)  # type: ignore
     except Exception as e:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking: %s", e)
     context.hass.states.async_set(

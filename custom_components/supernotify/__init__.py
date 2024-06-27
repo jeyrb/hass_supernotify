@@ -420,7 +420,7 @@ class Snooze:
         return f"Snooze({self.target_type}, {self.target}, {self.std_recipient()})"
 
     def active(self) -> bool:
-        return self.snooze_until is not None and self.snooze_until < time.time()
+        return self.snooze_until is None or self.snooze_until > time.time()
 
     def export(self) -> dict:
         return {
