@@ -135,8 +135,9 @@ async def test_snooze_everything_for_person(
     register_mobile_app(uut.context, person="person.bob_mctest")
     plain_notify = Notification(uut.context, "hello")
     await plain_notify.initialize()
-    assert ["person.bob_mctest", "person.jane_macunit"] == [
-        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    assert [p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))] == [
+        "person.bob_mctest",
+        "person.jane_macunit",
     ]
 
     uut.on_mobile_action(
@@ -146,8 +147,8 @@ async def test_snooze_everything_for_person(
         Snooze(GlobalTargetType.EVERYTHING, recipient_type=RecipientType.USER, recipient="person.bob_mctest")
     ]
     await plain_notify.initialize()
-    assert ["person.jane_macunit"] == [
-        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    assert [p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))] == [
+        "person.jane_macunit"
     ]
 
     uut.on_mobile_action(
@@ -155,8 +156,9 @@ async def test_snooze_everything_for_person(
     )
     assert list(uut.context.snoozes.values()) == []
     await plain_notify.initialize()
-    assert ["person.bob_mctest", "person.jane_macunit"] == [
-        p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))
+    assert [p[CONF_PERSON] for p in plain_notify.generate_recipients("email", uut.context.delivery_method("email"))] == [
+        "person.bob_mctest",
+        "person.jane_macunit",
     ]
 
     uut.shutdown()
