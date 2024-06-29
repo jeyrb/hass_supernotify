@@ -14,7 +14,7 @@ from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
 from voluptuous import Invalid
 
-from . import ATTR_DEFAULT, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, ConditionVariables
+from . import ATTR_DEFAULT, CONF_ACTION_GROUP_NAMES, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, ConditionVariables
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class Scenario:
         self.condition: ConfigType | None = scenario_definition.get(CONF_CONDITION)
         self.media: dict | None = scenario_definition.get(CONF_MEDIA)
         self.delivery_selection: str | None = scenario_definition.get(CONF_DELIVERY_SELECTION)
+        self.action_groups: list[str] = scenario_definition.get(CONF_ACTION_GROUP_NAMES, [])
         self.delivery: dict = scenario_definition.get(CONF_DELIVERY) or {}
         self.default: bool = self.name == ATTR_DEFAULT
         self.last_trace: ActionTrace | None = None
@@ -45,13 +46,14 @@ class Scenario:
                 return False
         return True
 
-    def attributes(self, include_condition: bool = True) -> dict[str, str | None | dict | bool]:
+    def attributes(self, include_condition: bool = True) -> dict[str, str | None | dict | bool | list[str]]:
         """Return scenario attributes"""
         attrs = {
             "name": self.name,
             "alias": self.alias,
             "media": self.media,
             "delivery_selection": self.delivery_selection,
+            "action_groups": self.action_groups,
             "delivery": self.delivery,
             "default": self.default,
         }

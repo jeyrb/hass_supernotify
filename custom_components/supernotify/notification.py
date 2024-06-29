@@ -14,6 +14,7 @@ from homeassistant.helpers.json import save_json
 from voluptuous import humanize
 
 from custom_components.supernotify import (
+    ATTR_ACTION_GROUPS,
     ATTR_ACTIONS,
     ATTR_DEBUG,
     ATTR_DELIVERY,
@@ -119,6 +120,7 @@ class Notification:
         self.delivery_selection: str | None = service_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type: str = service_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
+        self.action_groups: list[str] | None = service_data.get(ATTR_ACTION_GROUPS)
         self.recipients_override: list[str] | None = service_data.get(ATTR_RECIPIENTS)
         self.data.update(service_data.get(ATTR_DATA, {}))
         self.media: dict = service_data.get(ATTR_MEDIA) or {}
@@ -158,7 +160,21 @@ class Notification:
             self.selected_delivery_names = self.select_deliveries()
             self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
             self.inscope_snoozes = inscope_snoozes
+            self.apply_enabled_scenarios()
             self.default_media_from_actions()
+
+    def apply_enabled_scenarios(self) -> None:
+        """Set media and action_groups from scenario if defined, first come first applied"""
+        action_groups: list[str] = []
+        for scenario_name in self.enabled_scenarios:
+            scen_obj = self.context.scenarios.get(scenario_name)
+            if scen_obj:
+                if scen_obj.media and not self.media:
+                    self.media.update(scen_obj.media)
+                if scen_obj.action_groups:
+                    action_groups.extend(ag for ag in scen_obj.action_groups if ag not in action_groups)
+        if action_groups:
+            self.action_groups = action_groups
 
     def select_deliveries(self) -> list[str]:
         scenario_enable_deliveries: list[str] = []
@@ -325,9 +341,9 @@ class Notification:
         elif self.occupancy[STATE_NOT_HOME] and not self.occupancy[STATE_HOME]:
             occupancy_states.append("ALL_AWAY")
         if len(self.occupancy[STATE_HOME]) == 1:
-            occupancy_states.append("LONE_HOME")
+            occupancy_states.extend(["LONE_HOME", "SOME_HOME"])
         elif len(self.occupancy[STATE_HOME]) > 1 and self.occupancy[STATE_NOT_HOME]:
-            occupancy_states.append("SOME_HOME")
+            occupancy_states.extend(["MULTI_HOME", "SOME_HOME"])
 
         self.condition_variables = ConditionVariables(
             self.applied_scenarios, self.required_scenarios, self.priority, occupancy_states

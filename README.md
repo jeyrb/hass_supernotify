@@ -110,6 +110,8 @@ its also possible to directly set them, as in this example:
         media:
           camera_entity_id: camera.porch
           camera_ptz_preset: garden_gate
+        action_groups:
+          - security_actions
         delivery:
           mobile_push:
             data:

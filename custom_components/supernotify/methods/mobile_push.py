@@ -8,7 +8,6 @@ from homeassistant.components.notify.const import ATTR_DATA
 import custom_components.supernotify
 from custom_components.supernotify import (
     ATTR_ACTION_CATEGORY,
-    ATTR_ACTION_GROUPS,
     ATTR_ACTION_URL,
     ATTR_ACTION_URL_TITLE,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
@@ -65,8 +64,9 @@ class MobilePushDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY No targets provided for mobile_push")
             return False
         data = envelope.data or {}
+        # TODO: category not passed anywhere
         category = data.get(ATTR_ACTION_CATEGORY, "general")
-        action_groups = data.get(ATTR_ACTION_GROUPS)
+        action_groups = envelope.action_groups
 
         _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", envelope.title, envelope.targets)
 

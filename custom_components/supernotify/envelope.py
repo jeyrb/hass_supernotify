@@ -27,6 +27,7 @@ class Envelope:
         self._notification = notification
         self.notification_id = None
         self.media = None
+        self.action_groups = None
         self.priority = PRIORITY_MEDIUM
         self.message: str | None = None
         self.title: str | None = None
@@ -37,6 +38,7 @@ class Envelope:
         if notification:
             self.notification_id = notification.id
             self.media = notification.media
+            self.action_groups = notification.action_groups
             self.actions = notification.actions
             self.priority = notification.priority
             self.message = notification.message(delivery_name)

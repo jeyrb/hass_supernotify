@@ -113,6 +113,7 @@ ATTR_MEDIA_CAMERA_DELAY = "camera_delay"
 ATTR_MEDIA_CAMERA_PTZ_PRESET = "camera_ptz_preset"
 ATTR_MEDIA_CLIP_URL = "clip_url"
 ATTR_ACTION_GROUPS = "action_groups"
+CONF_ACTION_GROUP_NAMES = "action_groups"
 ATTR_ACTION_CATEGORY = "action_category"
 ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
@@ -280,6 +281,7 @@ SCENARIO_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
     vol.Optional(CONF_MEDIA): MEDIA_SCHEMA,
+    vol.Optional(CONF_ACTION_GROUP_NAMES, default=[]): vol.All(cv.ensure_list, [cv.string]),  # type: ignore
     vol.Optional(CONF_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
     vol.Optional(CONF_DELIVERY, default=dict): {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)},  # type: ignore
 })
