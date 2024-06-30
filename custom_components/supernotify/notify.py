@@ -2,6 +2,7 @@
 
 import datetime as dt
 import logging
+from dataclasses import asdict
 from typing import Any
 
 from cachetools import TTLCache
@@ -12,13 +13,6 @@ from homeassistant.helpers import condition
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.util.json import (  # noqa: F401
-    JSON_DECODE_EXCEPTIONS,
-    JSON_ENCODE_EXCEPTIONS,
-    SerializationError,
-    format_unserializable_data,
-    json_loads,
-)
 
 from custom_components.supernotify.archive import ARCHIVE_PURGE_MIN_INTERVAL
 from custom_components.supernotify.scenario import Scenario
@@ -376,7 +370,7 @@ class SuperNotificationService(BaseNotificationService):
         occupiers = self.context.determine_occupancy()
         cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers)
         if trace:
-            results = {"ENABLED": [], "DISABLED": [], "VARS": cvars}
+            results = {"ENABLED": [], "DISABLED": [], "VARS": asdict(cvars)}
             for s in self.context.scenarios.values():
                 if await s.evaluate(cvars):
                     results["ENABLED"].append(s)  # type: ignore

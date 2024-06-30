@@ -1,3 +1,4 @@
+import json
 import pathlib
 from typing import cast
 from unittest.mock import patch
@@ -126,6 +127,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     )
     await hass.async_block_till_done()
     assert response == {"scenarios": []}
+    json.dumps(response)
 
     response = await hass.services.async_call(
         "supernotify", "enquire_active_scenarios", {"trace": True}, blocking=True, return_response=True
@@ -135,12 +137,14 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     assert response["scenarios"]["DISABLED"] == []
     assert response["scenarios"]["ENABLED"] == []
     assert response["scenarios"]["VARS"]
+    json.dumps(response)
 
     response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
     await hass.async_block_till_done()
     assert response is not None
     assert "purged" in response
     assert cast(int, response["purged"]) >= 0
+    json.dumps(response)
 
 
 async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
