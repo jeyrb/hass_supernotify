@@ -1,4 +1,3 @@
-import json
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -14,7 +13,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import condition
-from homeassistant.helpers.json import ExtendedJSONEncoder
 from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
 from voluptuous import Invalid
@@ -67,7 +65,7 @@ class Scenario:
         if include_condition:
             attrs["condition"] = self.condition
         if include_trace and self.last_trace:
-            attrs["trace"] = json.dumps(self.last_trace.as_extended_dict(), cls=ExtendedJSONEncoder)
+            attrs["trace"] = self.last_trace.as_extended_dict()
         return attrs
 
     async def evaluate(self, condition_variables: ConditionVariables | None = None) -> bool:

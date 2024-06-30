@@ -1,6 +1,7 @@
 """Supernotify service, extending BaseNotificationService"""
 
 import datetime as dt
+import json
 import logging
 from dataclasses import asdict
 from typing import Any
@@ -11,6 +12,7 @@ from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.json import ExtendedJSONEncoder
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
@@ -369,13 +371,17 @@ class SuperNotificationService(BaseNotificationService):
     async def enquire_active_scenarios(self, trace: bool) -> list[str] | dict:
         occupiers = self.context.determine_occupancy()
         cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers)
+
+        def safe_json(v: Any) -> Any:
+            return json.loads(json.dumps(v, cls=ExtendedJSONEncoder))
+
         if trace:
             results = {"ENABLED": [], "DISABLED": [], "VARS": asdict(cvars)}
             for s in self.context.scenarios.values():
                 if await s.trace(cvars):
-                    results["ENABLED"].append(s.attributes(include_trace=True))  # type: ignore
+                    results["ENABLED"].append(safe_json(s.attributes(include_trace=True)))  # type: ignore
                 else:
-                    results["DISABLED"].append(s.attributes(include_trace=True))  # type: ignore
+                    results["DISABLED"].append(safe_json(s.attributes(include_trace=True)))  # type: ignore
             return results
 
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
