@@ -1,19 +1,12 @@
-import json
-import tempfile
-import time
-from pathlib import Path
 from typing import cast
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-import aiofiles
-from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENABLED, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
+from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 
 from custom_components.supernotify import (
     ATTR_DUPE_POLICY_NONE,
     ATTR_PRIORITY,
-    CONF_ARCHIVE_DAYS,
-    CONF_ARCHIVE_PATH,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_DUPE_POLICY,
@@ -165,62 +158,6 @@ async def test_null_delivery(mock_hass: HomeAssistant) -> None:
     await uut.initialize()
     await uut.async_send_message("just a test")
     mock_hass.services.async_call.assert_not_called()  # type: ignore
-
-
-async def test_archive(mock_hass: HomeAssistant) -> None:
-    with tempfile.TemporaryDirectory() as archive:
-        uut = SuperNotificationService(
-            mock_hass,
-            deliveries=DELIVERY,
-            scenarios=SCENARIOS,
-            recipients=[],  # recipients will generate mock person_config data and break json
-            method_defaults=METHOD_DEFAULTS,
-            archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive},
-        )
-        await uut.initialize()
-        await uut.async_send_message("just a test", target="person.bob")
-        assert uut.last_notification is not None
-        obj_path: Path = Path(archive) / f"{uut.last_notification.created.isoformat()[:16]}_{uut.last_notification.id}.json"
-        assert obj_path.exists()
-        async with aiofiles.open(obj_path, mode="r") as stream:
-            blob: str = "".join(await stream.readlines())
-            reobj = json.loads(blob)
-        assert reobj["_message"] == "just a test"
-        assert reobj["target"] == ["person.bob"]
-        assert len(reobj["delivered_envelopes"]) == 5
-
-
-async def test_cleanup_archive(mock_hass: HomeAssistant) -> None:
-    archive = "config/archive/test"
-    uut = SuperNotificationService(mock_hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_DAYS: 7, CONF_ARCHIVE_PATH: archive})
-    await uut.initialize()
-    old_time = Mock(return_value=Mock(st_ctime=time.time() - (8 * 24 * 60 * 60)))
-    new_time = Mock(return_value=Mock(st_ctime=time.time() - (5 * 24 * 60 * 60)))
-    with patch("os.scandir") as scan:
-        with patch("pathlib.Path.unlink") as rmfr:
-            scan.return_value.__enter__.return_value = [
-                Mock(path="abc", stat=new_time),
-                Mock(path="def", stat=new_time),
-                Mock(path="xyz", stat=old_time),
-            ]
-            uut.cleanup_archive()
-            rmfr.assert_called_once_with()
-    # skip cleanup for a few hours
-    first_purge = uut.last_purge
-    uut.cleanup_archive()
-    assert first_purge == uut.last_purge
-
-
-async def test_archive_size(mock_hass: HomeAssistant):
-    with tempfile.TemporaryDirectory() as tmp_path:
-        uut = SuperNotificationService(
-            mock_hass, archive={CONF_ENABLED: True, CONF_ARCHIVE_DAYS: 7, CONF_ARCHIVE_PATH: tmp_path}
-        )
-        await uut.initialize()
-        assert uut.archive_size() == 0
-        async with aiofiles.open(Path(tmp_path) / "test.foo", mode="w") as f:
-            await f.write("{}")
-        assert uut.archive_size() == 1
 
 
 async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:

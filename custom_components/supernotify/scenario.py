@@ -7,7 +7,10 @@ from typing import Any
 from homeassistant.components.trace import async_setup, async_store_trace
 from homeassistant.components.trace.const import DATA_TRACE
 from homeassistant.components.trace.models import ActionTrace
-from homeassistant.const import CONF_ALIAS, CONF_CONDITION
+from homeassistant.const import (
+    CONF_ALIAS,
+    CONF_CONDITION,
+)
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import condition
 from homeassistant.helpers.trace import trace_get, trace_path

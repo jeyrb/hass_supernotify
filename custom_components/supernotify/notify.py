@@ -2,15 +2,11 @@
 
 import datetime as dt
 import logging
-import os
-import os.path
-from pathlib import Path
 from typing import Any
 
-import homeassistant.util.dt as dt_util
 from cachetools import TTLCache
 from homeassistant.components.notify.legacy import BaseNotificationService
-from homeassistant.const import CONF_CONDITION, CONF_ENABLED, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
 from homeassistant.helpers.event import async_track_time_change
@@ -24,6 +20,7 @@ from homeassistant.util.json import (  # noqa: F401
     json_loads,
 )
 
+from custom_components.supernotify.archive import ARCHIVE_PURGE_MIN_INTERVAL
 from custom_components.supernotify.scenario import Scenario
 
 from . import (
@@ -35,8 +32,6 @@ from . import (
     CONF_ACTION_GROUPS,
     CONF_ACTIONS,
     CONF_ARCHIVE,
-    CONF_ARCHIVE_DAYS,
-    CONF_ARCHIVE_PATH,
     CONF_CAMERAS,
     CONF_DELIVERY,
     CONF_DUPE_CHECK,
@@ -55,8 +50,10 @@ from . import (
     DOMAIN,
     PLATFORM_SCHEMA,
     PLATFORMS,
+    PRIORITY_MEDIUM,
     PRIORITY_VALUES,
     CommandType,
+    ConditionVariables,
     GlobalTargetType,
     QualifiedTargetType,
     RecipientType,
@@ -148,8 +145,12 @@ async def async_get_service(
     def supplemental_service_enquire_last_notification(_call: ServiceCall) -> dict:
         return service.last_notification.contents() if service.last_notification else {}
 
-    async def supplemental_service_enquire_active_scenarios(_call: ServiceCall) -> dict:
-        return {"scenarios": await service.enquire_active_scenarios()}
+    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
+        trace = call.data.get("trace", False)
+        return {"scenarios": await service.enquire_active_scenarios(trace)}
+
+    async def supplemental_service_enquire_occupancy(_call: ServiceCall) -> dict:
+        return {"scenarios": await service.enquire_occupancy()}
 
     async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
         return {"snoozes": service.enquire_snoozes()}
@@ -162,11 +163,13 @@ async def async_get_service(
 
     async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
+        if service.context.archive is None:
+            return {"error": "No archive configured"}
         return {
-            "purged": service.cleanup_archive(days=days, force=True),
-            "remaining": service.archive_size(),
-            "interval": service.ARCHIVE_PURGE_MIN_INTERVAL,
-            "days": service.context.archive.get(CONF_ARCHIVE_DAYS, 1) if days is None else days,
+            "purged": service.context.archive.cleanup(days=days, force=True),
+            "remaining": service.context.archive.size(),
+            "interval": ARCHIVE_PURGE_MIN_INTERVAL,
+            "days": service.context.archive.archive_days if days is None else days,
         }
 
     hass.services.async_register(
@@ -185,6 +188,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_active_scenarios",
         supplemental_service_enquire_active_scenarios,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "enquire_occupancy",
+        supplemental_service_enquire_occupancy,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
@@ -217,8 +226,6 @@ async def async_get_service(
 
 class SuperNotificationService(BaseNotificationService):
     """Implement SuperNotification service."""
-
-    ARCHIVE_PURGE_MIN_INTERVAL = 3 * 60
 
     def __init__(
         self,
@@ -346,10 +353,7 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
 
             self.last_notification = notification
-            if self.context.archive.get(CONF_ENABLED):
-                archive_path: str | None = self.context.archive.get(CONF_ARCHIVE_PATH)
-                if archive_path:
-                    notification.archive(Path(archive_path))
+            self.context.archive.archive(notification)
 
             _LOGGER.debug(
                 "SUPERNOTIFY %s deliveries, %s errors, %s skipped",
@@ -362,48 +366,25 @@ class SuperNotificationService(BaseNotificationService):
             self.failures += 1
             self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
 
-    def archive_size(self) -> int:
-        path = self.context.archive.get(CONF_ARCHIVE_PATH)
-        if path and Path(path).exists():
-            return len(os.listdir(path))
-
-        return 0
-
-    def cleanup_archive(self, days: int | None = None, force: bool = False) -> int:
-        if (
-            not force
-            and self.last_purge is not None
-            and self.last_purge > dt.datetime.now(dt.UTC) - dt.timedelta(minutes=self.ARCHIVE_PURGE_MIN_INTERVAL)
-        ):
-            return 0
-        if days is None:
-            days = self.context.archive.get(CONF_ARCHIVE_DAYS)
-        days = 1 if days is None else days
-        path = self.context.archive.get(CONF_ARCHIVE_PATH)
-        cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
-        cutoff = cutoff.astimezone(dt.UTC)
-        purged = 0
-        if path and Path(path).exists():
-            try:
-                with os.scandir(path) as archive:
-                    for entry in archive:
-                        if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
-                            _LOGGER.debug("SUPERNOTIFY Purging %s", entry.path)
-                            Path(entry.path).unlink()
-                            purged += 1
-            except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", path, e, exc_info=True)
-            _LOGGER.info("SUPERNOTIFY Purged %s archived notifications for cutoff %s", purged, cutoff)
-            self.last_purge = dt.datetime.now(dt.UTC)
-        else:
-            _LOGGER.debug("SUPERNOTIFY Skipping archive purge for unknown path %s", path)
-        return purged
-
     def enquire_deliveries_by_scenario(self) -> dict[str, list[Scenario]]:
         return self.context.delivery_by_scenario
 
-    async def enquire_active_scenarios(self) -> list[str]:
-        return [s.name for s in self.context.scenarios.values() if await s.evaluate()]
+    async def enquire_occupancy(self) -> dict[str, list]:
+        return self.context.determine_occupancy()
+
+    async def enquire_active_scenarios(self, trace: bool) -> list[str] | dict:
+        occupiers = self.context.determine_occupancy()
+        cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers)
+        if trace:
+            results = {"ENABLED": [], "DISABLED": [], "VARS": cvars}
+            for s in self.context.scenarios.values():
+                if await s.evaluate(cvars):
+                    results["ENABLED"].append(s)  # type: ignore
+                else:
+                    results["DISABLED"].append(s)  # type: ignore
+            return results
+
+        return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
         return [s.export() for s in self.context.snoozes.values()]
@@ -492,6 +473,6 @@ class SuperNotificationService(BaseNotificationService):
     @callback
     def async_nightly_tasks(self, now: dt.datetime) -> None:
         _LOGGER.info("SUPERNOTIFY Housekeeping starting as scheduled at %s", now)
-        self.cleanup_archive()
+        self.context.archive.cleanup()
         self.context.purge_snoozes()
         _LOGGER.info("SUPERNOTIFY Housekeeping completed")

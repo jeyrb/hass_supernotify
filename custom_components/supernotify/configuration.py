@@ -3,17 +3,26 @@ from __future__ import annotations
 import logging
 import socket
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_METHOD, CONF_NAME
+from homeassistant.const import (
+    ATTR_STATE,
+    CONF_ENABLED,
+    CONF_METHOD,
+    CONF_NAME,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
 from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
 from homeassistant.util import slugify
 
+from custom_components.supernotify.archive import NotificationArchive
 from custom_components.supernotify.common import ensure_list, safe_get
 
 from . import (
     ATTR_USER_ID,
+    CONF_ARCHIVE_DAYS,
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
     CONF_DEVICE_TRACKER,
@@ -55,7 +64,7 @@ class SupernotificationConfiguration:
         mobile_actions: dict | None = None,
         template_path: str | None = None,
         media_path: str | None = None,
-        archive: dict | None = None,
+        archive_config: dict[str, str] | None = None,
         scenarios: dict[str, dict] | None = None,
         method_defaults: dict | None = None,
         cameras: list[dict] | None = None,
@@ -101,8 +110,10 @@ class SupernotificationConfiguration:
         self.mobile_actions: dict = mobile_actions or {}
         self.template_path: Path | None = Path(template_path) if template_path else None
         self.media_path: Path | None = Path(media_path) if media_path else None
-        self.archive: dict[str, Any] = archive or {}
-        self.archive.setdefault(CONF_ENABLED, False)
+        archive_config = archive_config or {}
+        self.archive: NotificationArchive = NotificationArchive(
+            archive_config.get(CONF_ARCHIVE_PATH), archive_config.get(CONF_ARCHIVE_DAYS)
+        )
         self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
         self.methods: dict[str, DeliveryMethod] = {}
         self.method_defaults: dict = method_defaults or {}
@@ -138,15 +149,8 @@ class SupernotificationConfiguration:
                 self.media_path = None
         if self.media_path is not None:
             _LOGGER.info("SUPERNOTIFY abs media path: %s", self.media_path.absolute())
-        if self.archive and self.archive.get(CONF_ARCHIVE_PATH):
-            archive_path: Path = Path(cast(str, self.archive.get(CONF_ARCHIVE_PATH)))
-            if archive_path and not archive_path.exists():
-                _LOGGER.info("SUPERNOTIFY archive path not found at %s", archive_path)
-                try:
-                    archive_path.mkdir(parents=True, exist_ok=True)
-                except Exception as e:
-                    _LOGGER.warning("SUPERNOTIFY archive path %s cannot be created: %s", self.archive.get(CONF_ARCHIVE_PATH), e)
-                    self.archive[CONF_ENABLED] = False
+        if self.archive:
+            self.archive.initialize()
         default_deliveries: dict = self.initialize_deliveries()
         self.initialize_scenarios(default_deliveries)
 
@@ -256,6 +260,16 @@ class SupernotificationConfiguration:
                 except Exception as e:
                     _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
                 results.append(person_config)
+        return results
+
+    def determine_occupancy(self) -> dict[str, list[dict]]:
+        results: dict[str, list[dict]] = {STATE_HOME: [], STATE_NOT_HOME: []}
+        for person_config in self.people_state():
+            if person_config.get(ATTR_STATE) in (None, STATE_HOME):
+                # default to at home if unknown tracker
+                results[STATE_HOME].append(person_config)
+            else:
+                results[STATE_NOT_HOME].append(person_config)
         return results
 
     def entity_registry(self) -> entity_registry.EntityRegistry | None:

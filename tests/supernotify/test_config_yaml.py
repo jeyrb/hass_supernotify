@@ -127,6 +127,15 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     await hass.async_block_till_done()
     assert response == {"scenarios": []}
 
+    response = await hass.services.async_call(
+        "supernotify", "enquire_active_scenarios", {"trace": True}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert response
+    assert response["scenarios"]["DISABLED"] == []
+    assert response["scenarios"]["ENABLED"] == []
+    assert response["scenarios"]["VARS"]
+
     response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
     await hass.async_block_till_done()
     assert response is not None

@@ -23,6 +23,8 @@ from homeassistant.const import (
     CONF_SERVICE,
     CONF_TARGET,
     CONF_URL,
+    STATE_HOME,
+    STATE_NOT_HOME,
     Platform,
 )
 from homeassistant.helpers import config_validation as cv
@@ -452,3 +454,24 @@ class ConditionVariables:
     required_scenarios: list[str] = field(default_factory=list)
     notification_priority: str = PRIORITY_MEDIUM
     occupancy: list[str] = field(default_factory=list)
+
+    def __init__(
+        self,
+        applied_scenarios: list[str] | None = None,
+        required_scenarios: list[str] | None = None,
+        delivery_priority: str | None = PRIORITY_MEDIUM,
+        occupiers: dict | None = None,
+    ) -> None:
+        occupiers = occupiers or {}
+        self.occupancy = []
+        if not occupiers.get(STATE_NOT_HOME) and occupiers.get(STATE_HOME):
+            self.occupancy.append("ALL_HOME")
+        elif occupiers.get(STATE_NOT_HOME) and not occupiers.get(STATE_HOME):
+            self.occupancy.append("ALL_AWAY")
+        if len(occupiers.get(STATE_HOME, [])) == 1:
+            self.occupancy.extend(["LONE_HOME", "SOME_HOME"])
+        elif len(occupiers.get(STATE_HOME, [])) > 1 and occupiers.get(STATE_NOT_HOME):
+            self.occupancy.extend(["MULTI_HOME", "SOME_HOME"])
+        self.applied_scenarios = applied_scenarios or []
+        self.required_scenarios = required_scenarios or []
+        self.notification_priority = delivery_priority or PRIORITY_MEDIUM

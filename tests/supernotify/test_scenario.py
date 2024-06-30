@@ -58,11 +58,11 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
     assert await uut.validate()
     assert not uut.default
     assert await uut.validate()
-    assert not await uut.evaluate(ConditionVariables([], [], PRIORITY_MEDIUM, []))
+    assert not await uut.evaluate(ConditionVariables([], [], PRIORITY_MEDIUM, {}))
 
     hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
 
-    assert await uut.evaluate(ConditionVariables([], [], PRIORITY_CRITICAL, []))
+    assert await uut.evaluate(ConditionVariables([], [], PRIORITY_CRITICAL, {}))
 
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
@@ -146,7 +146,7 @@ async def test_secondary_scenario(hass: HomeAssistant) -> None:
         hass,
     )
     assert await uut.validate()
-    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_MEDIUM, [])
+    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_MEDIUM, {})
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate(cvars)
@@ -164,6 +164,6 @@ async def test_trace(hass: HomeAssistant) -> None:
     )
     assert await uut.validate()
     assert not uut.default
-    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, ["LONE_HOME"]))
+    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, {"AT_HOME": ["bob"]}))
     assert uut.last_trace is not None
     _LOGGER.info("trace: %s", uut.last_trace.as_dict())

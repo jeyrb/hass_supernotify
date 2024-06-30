@@ -25,7 +25,7 @@ async def test_and_condition(hass: HomeAssistant) -> None:
     config = cv.CONDITION_SCHEMA(config)
     config = await condition.async_validate_condition_config(hass, config)
     test = await condition.async_from_config(hass, config)
-    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_CRITICAL, [])
+    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_CRITICAL, {})
 
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
     assert not test(hass, asdict(cvars))
@@ -48,7 +48,7 @@ async def test_template_condition(hass: HomeAssistant) -> None:
     config = cv.CONDITION_SCHEMA(config)
     config = await condition.async_validate_condition_config(hass, config)
     test = await condition.async_from_config(hass, config)
-    cvars = ConditionVariables([], [], PRIORITY_MEDIUM, [])
+    cvars = ConditionVariables([], [], PRIORITY_MEDIUM, {})
 
     hass.states.async_set("sensor.bedroom_temperature", "12")
     assert not test(hass, asdict(cvars))

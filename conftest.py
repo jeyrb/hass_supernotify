@@ -8,7 +8,11 @@ import pytest
 from homeassistant.components.notify.const import DOMAIN
 from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.config_entries import ConfigEntries
-from homeassistant.const import ATTR_STATE
+from homeassistant.const import (
+    ATTR_STATE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
 from homeassistant.core import EventBus, HomeAssistant, ServiceRegistry, StateMachine, SupportsResponse, callback
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
@@ -72,6 +76,10 @@ def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
         {CONF_PERSON: "person.new_home_owner", ATTR_STATE: "not_home"},
         {CONF_PERSON: "person.bidey_in", ATTR_STATE: "home"},
     ]
+    context.determine_occupancy.return_value = {
+        STATE_HOME: [{CONF_PERSON: "person.bidey_in"}],
+        STATE_NOT_HOME: [{CONF_PERSON: "person.new_home_owner"}],
+    }
 
     return context
 

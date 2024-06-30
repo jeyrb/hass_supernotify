@@ -9,8 +9,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.const import ATTR_STATE, CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
-from homeassistant.helpers.json import save_json
+from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
 from voluptuous import humanize
 
 from custom_components.supernotify import (
@@ -68,6 +67,7 @@ from custom_components.supernotify import (
     RecipientType,
     Snooze,
 )
+from custom_components.supernotify.archive import ArchivableObject
 from custom_components.supernotify.common import safe_extend
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -80,7 +80,7 @@ from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_cam
 _LOGGER = logging.getLogger(__name__)
 
 
-class Notification:
+class Notification(ArchivableObject):
     def __init__(
         self,
         context: SupernotificationConfiguration,
@@ -148,8 +148,10 @@ class Notification:
                 # whereas a dict may be used to tune or restrict
                 self.delivery_selection = DELIVERY_SELECTION_IMPLICIT
 
-        self.occupancy = self.determine_occupancy()
-        self.initialize_condition_variables()  # requires occupancy first
+        self.occupancy = self.context.determine_occupancy()
+        self.condition_variables = ConditionVariables(
+            self.applied_scenarios, self.required_scenarios, self.priority, self.occupancy
+        )  # requires occupancy first
 
         self.enabled_scenarios = list(self.applied_scenarios) or []
         self.selected_scenarios = await self.select_scenarios()
@@ -306,24 +308,14 @@ class Notification:
         return hash((self._message, self._title))
 
     def contents(self, minimal: bool = False) -> dict[str, Any]:
+        """ArchiveableObject implementation"""
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
         sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
         return sanitized
 
-    def archive(self, path: Path) -> None:
-        if not path:
-            return
-        filename: Path = path / f"{self.created.isoformat()[:16]}_{self.id}.json"
-        try:
-            save_json(str(filename), self.contents())
-            _LOGGER.debug("SUPERNOTIFY Archived notification %s", filename)
-        except Exception as e:
-            _LOGGER.warning("SUPERNOTIFY Unable to archived notification: %s", e)
-            try:
-                save_json(str(filename), self.contents(minimal=True))
-                _LOGGER.debug("SUPERNOTIFY Archived pruned notification %s", filename)
-            except Exception as e2:
-                _LOGGER.error("SUPERNOTIFY Unable to archived pruned notification: %s", e2)
+    def base_filename(self) -> str:
+        """ArchiveableObject implementation"""
+        return f"{self.created.isoformat()[:16]}_{self.id}"
 
     def delivery_data(self, delivery_name: str) -> dict:
         delivery_override = self.delivery_overrides.get(delivery_name)
@@ -335,21 +327,6 @@ class Notification:
             for k in self.enabled_scenarios
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
-
-    def initialize_condition_variables(self) -> None:
-        occupancy_states = []
-        if not self.occupancy[STATE_NOT_HOME] and self.occupancy[STATE_HOME]:
-            occupancy_states.append("ALL_HOME")
-        elif self.occupancy[STATE_NOT_HOME] and not self.occupancy[STATE_HOME]:
-            occupancy_states.append("ALL_AWAY")
-        if len(self.occupancy[STATE_HOME]) == 1:
-            occupancy_states.extend(["LONE_HOME", "SOME_HOME"])
-        elif len(self.occupancy[STATE_HOME]) > 1 and self.occupancy[STATE_NOT_HOME]:
-            occupancy_states.extend(["MULTI_HOME", "SOME_HOME"])
-
-        self.condition_variables = ConditionVariables(
-            self.applied_scenarios, self.required_scenarios, self.priority, occupancy_states
-        )
 
     async def select_scenarios(self) -> list[str]:
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(self.condition_variables)]
@@ -373,16 +350,6 @@ class Notification:
             self.debug_trace.resolved[delivery_name][category].extend(resolved)
         else:
             self.debug_trace.resolved[delivery_name][category].append(resolved)
-
-    def determine_occupancy(self) -> dict[str, list[dict]]:
-        results: dict[str, list[dict]] = {STATE_HOME: [], STATE_NOT_HOME: []}
-        for person_config in self.context.people_state():
-            if person_config.get(ATTR_STATE) in (None, STATE_HOME):
-                # default to at home if unknown tracker
-                results[STATE_HOME].append(person_config)
-            else:
-                results[STATE_NOT_HOME].append(person_config)
-        return results
 
     def filter_people_by_occupancy(self, occupancy: str) -> list[dict]:
         people = list(self.context.people.values())
