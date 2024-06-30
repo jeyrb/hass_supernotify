@@ -132,6 +132,7 @@ class Notification:
 
         self.selected_delivery_names: list[str] = []
         self.enabled_scenarios: list[str] = []
+        self.selected_scenarios: list[str] = []
         self.people_by_occupancy: list = []
         self.globally_disabled: bool = False
         self.occupancy: dict[str, list] = {}
@@ -151,7 +152,8 @@ class Notification:
         self.initialize_condition_variables()  # requires occupancy first
 
         self.enabled_scenarios = list(self.applied_scenarios) or []
-        self.enabled_scenarios.extend(await self.select_scenarios())
+        self.selected_scenarios = await self.select_scenarios()
+        self.enabled_scenarios.extend(self.selected_scenarios)
         if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
             _LOGGER.info("SUPERNOTIFY suppressing notification, no required scenarios enabled")
             self.selected_delivery_names = []
@@ -160,8 +162,8 @@ class Notification:
             self.selected_delivery_names = self.select_deliveries()
             self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
             self.inscope_snoozes = inscope_snoozes
-            self.apply_enabled_scenarios()
             self.default_media_from_actions()
+            self.apply_enabled_scenarios()
 
     def apply_enabled_scenarios(self) -> None:
         """Set media and action_groups from scenario if defined, first come first applied"""
