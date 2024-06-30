@@ -22,6 +22,7 @@ SIMPLE_CONFIG = {
     "delivery": {
         "testing": {"method": "generic", "service": "notify.mock"},
     },
+    "scenarios": {"simple": {"delivery_selection": "implicit"}},
     "recipients": [{"person": "person.house_owner", "email": "test@testing.com", "phone_number": "+4497177848484"}],
 }
 
@@ -105,7 +106,7 @@ async def test_empty_config(hass: HomeAssistant) -> None:
     await hass.services.async_call(NOTIFY_DOMAIN, DOMAIN, {"title": "my title", "message": "unit test"}, blocking=True)
 
 
-async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: MockService) -> None:
+async def test_call_supplemental_services(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
@@ -114,7 +115,7 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
         "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
     )
     await hass.async_block_till_done()
-    assert response == {"DEFAULT": ["testing"]}
+    assert response == {"DEFAULT": ["testing"], "simple": ["testing"]}
 
     response = await hass.services.async_call(
         "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
@@ -134,7 +135,8 @@ async def test_call_supplemental_services(hass: HomeAssistant, mock_notify: Mock
     )
     await hass.async_block_till_done()
     assert response
-    assert response["scenarios"]["DISABLED"] == []
+    assert response["scenarios"]
+    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple"]
     assert response["scenarios"]["ENABLED"] == []
     assert response["scenarios"]["VARS"]
     json.dumps(response)

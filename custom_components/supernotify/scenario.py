@@ -1,3 +1,4 @@
+import json
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -13,6 +14,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import condition
+from homeassistant.helpers.json import ExtendedJSONEncoder
 from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
 from voluptuous import Invalid
@@ -49,7 +51,9 @@ class Scenario:
                 return False
         return True
 
-    def attributes(self, include_condition: bool = True) -> dict[str, str | None | dict | bool | list[str]]:
+    def attributes(
+        self, include_condition: bool = True, include_trace: bool = False
+    ) -> dict[str, str | None | dict | bool | list[str]]:
         """Return scenario attributes"""
         attrs = {
             "name": self.name,
@@ -62,6 +66,8 @@ class Scenario:
         }
         if include_condition:
             attrs["condition"] = self.condition
+        if include_trace and self.last_trace:
+            attrs["trace"] = json.dumps(self.last_trace.as_extended_dict(), cls=ExtendedJSONEncoder)
         return attrs
 
     async def evaluate(self, condition_variables: ConditionVariables | None = None) -> bool:

@@ -372,10 +372,10 @@ class SuperNotificationService(BaseNotificationService):
         if trace:
             results = {"ENABLED": [], "DISABLED": [], "VARS": asdict(cvars)}
             for s in self.context.scenarios.values():
-                if await s.evaluate(cvars):
-                    results["ENABLED"].append(s)  # type: ignore
+                if await s.trace(cvars):
+                    results["ENABLED"].append(s.attributes(include_trace=True))  # type: ignore
                 else:
-                    results["DISABLED"].append(s)  # type: ignore
+                    results["DISABLED"].append(s.attributes(include_trace=True))  # type: ignore
             return results
 
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
