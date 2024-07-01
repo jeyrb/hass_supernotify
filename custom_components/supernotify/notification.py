@@ -57,6 +57,7 @@ from custom_components.supernotify import (
     OCCUPANCY_ONLY_OUT,
     PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
+    PRIORITY_VALUES,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
     SERVICE_DATA_SCHEMA,
@@ -114,6 +115,9 @@ class Notification(ArchivableObject):
         service_data = {k: v for k, v in service_data.items() if k not in self.data}
 
         self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        if self.priority and self.priority not in PRIORITY_VALUES:
+            _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", self.priority)
+            self.priority = PRIORITY_MEDIUM
         self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
         self.required_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_CONSTRAIN))
         self.applied_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_APPLY))
