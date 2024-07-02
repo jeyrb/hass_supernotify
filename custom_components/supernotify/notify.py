@@ -350,7 +350,8 @@ class SuperNotificationService(BaseNotificationService):
                     _LOGGER.warning("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
 
         except Exception as err:
-            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err)
+            # faulr barrier of last resort, integration failures should be caught within envelope delivery
+            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err, exc_info=True)
             self.failures += 1
             if notification is not None:
                 notification.delivery_error = format_exception(err)
