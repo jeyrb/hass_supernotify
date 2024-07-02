@@ -91,9 +91,10 @@ class NotificationArchive:
     def archive(self, archive_object: ArchivableObject) -> bool:
         if not self.enabled or not self.archive_path:
             return False
-        filename = f"{archive_object.base_filename()}.json"
-        archive_path = str(self.archive_path.joinpath(filename))
+        archive_path: str = ""
         try:
+            filename = f"{archive_object.base_filename()}.json"
+            archive_path = str(self.archive_path.joinpath(filename))
             save_json(archive_path, archive_object.contents())
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", archive_path)
             return True

@@ -348,6 +348,12 @@ class SuperNotificationService(BaseNotificationService):
                 else:
                     _LOGGER.warning("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
 
+        except Exception as err:
+            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err)
+            self.failures += 1
+            self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
+
+        if notification is not None:
             self.last_notification = notification
             self.context.archive.archive(notification)
 
@@ -357,10 +363,6 @@ class SuperNotificationService(BaseNotificationService):
                 notification.errored,
                 notification.skipped,
             )
-        except Exception as err:
-            _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err)
-            self.failures += 1
-            self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
 
     def enquire_deliveries_by_scenario(self) -> dict[str, list[Scenario]]:
         return self.context.delivery_by_scenario

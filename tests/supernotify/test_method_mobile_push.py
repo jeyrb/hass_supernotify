@@ -181,4 +181,5 @@ async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService
         await hass.services.async_call("supernotify", "enquire_last_notification", None, blocking=True, return_response=True),
     )
     assert notification is not None
+    assert "delivered_envelopes" in notification
     assert notification["delivered_envelopes"][0]["data"]["clickAction"] == "android_something"
