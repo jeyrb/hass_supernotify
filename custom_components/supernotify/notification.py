@@ -104,6 +104,7 @@ class Notification(ArchivableObject):
         self.skipped: int = 0
         self.delivered_envelopes: list[Envelope] = []
         self.undelivered_envelopes: list[Envelope] = []
+        self.delivery_error: list[str] | None = None
 
         try:
             humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
@@ -296,11 +297,11 @@ class Notification(ArchivableObject):
                     self.delivered += envelope.delivered
                     self.errored += envelope.errored
                     self.delivered_envelopes.append(envelope)
-                except Exception as e:
-                    _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e)
-                    _LOGGER.debug("SUPERNOTIFY %s", e, exc_info=True)
+                except Exception as e2:
+                    _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e2)
+                    _LOGGER.debug("SUPERNOTIFY %s", e2, exc_info=True)
                     self.errored += 1
-                    envelope.delivery_error = format_exception(e)
+                    envelope.delivery_error = format_exception(e2)
                     self.undelivered_envelopes.append(envelope)
 
         except Exception as e:

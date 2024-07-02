@@ -4,6 +4,7 @@ import datetime as dt
 import json
 import logging
 from dataclasses import asdict
+from traceback import format_exception
 from typing import Any
 
 from cachetools import TTLCache
@@ -351,6 +352,8 @@ class SuperNotificationService(BaseNotificationService):
         except Exception as err:
             _LOGGER.error("SUPERNOTIFY Failed to send message %s: %s", message, err)
             self.failures += 1
+            if notification is not None:
+                notification.delivery_error = format_exception(err)
             self.hass.states.async_set(f"{DOMAIN}.failures", str(self.failures))
 
         if notification is not None:
