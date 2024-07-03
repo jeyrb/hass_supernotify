@@ -159,3 +159,15 @@ async def test_snooze_everything_for_person(hass: HomeAssistant) -> None:
     ]
 
     uut.shutdown()
+
+
+def test_clear_snoozes(mock_hass: HomeAssistant) -> None:
+    uut = SuperNotificationService(mock_hass)
+    uut.on_mobile_action(Event("mobile_action", data={ATTR_ACTION: "SUPERNOTIFY_SNOOZE_EVERYONE_EVERYTHING"}))
+    assert list(uut.context.snoozes.values()) == [Snooze(GlobalTargetType.EVERYTHING, recipient_type=RecipientType.EVERYONE)]
+    assert all(
+        s.target is None and s.snooze_until is not None and s.snooze_until - s.snoozed_at == 3600
+        for s in uut.context.snoozes.values()
+    )
+    uut.clear_snoozes()
+    assert list(uut.context.snoozes.values()) == []

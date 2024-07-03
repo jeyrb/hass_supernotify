@@ -4,6 +4,7 @@ import pytest
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
+from pytest_httpserver import HTTPServer
 
 from conftest import MockService
 from custom_components.supernotify import (
@@ -183,3 +184,17 @@ async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService
     assert notification is not None
     assert "delivered_envelopes" in notification
     assert notification["delivered_envelopes"][0]["data"]["clickAction"] == "android_something"
+
+
+async def test_action_title(mock_hass: HomeAssistant, superconfig, local_server: HTTPServer) -> None:
+    uut = MobilePushDeliveryMethod(mock_hass, superconfig, {})
+    action_url = local_server.url_for("/action_goes_here")
+    local_server.expect_oneshot_request("/action_goes_here").respond_with_data(
+        "<html><title>my old action page</title><html>", content_type="text/html"
+    )  # type: ignore
+
+    assert await uut.action_title(action_url) == "my old action page"
+    # cached response
+    assert await uut.action_title(action_url) == "my old action page"
+
+    assert await uut.action_title("http://127.0.0.1/no/such/page") is None
