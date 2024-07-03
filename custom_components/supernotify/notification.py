@@ -106,19 +106,12 @@ class Notification(ArchivableObject):
         self.undelivered_envelopes: list[Envelope] = []
         self.delivery_error: list[str] | None = None
 
-        try:
-            humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
-        except vol.Invalid as e:
-            _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
-            raise
+        self.validate_service_data(service_data)
         # for compatibility with other notify calls, pass thru surplus data to underlying delivery methods
         self.data = {k: v for k, v in service_data.items() if k not in STRICT_SERVICE_DATA_SCHEMA(service_data)}
         service_data = {k: v for k, v in service_data.items() if k not in self.data}
 
         self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
-        if self.priority and self.priority not in PRIORITY_VALUES:
-            _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", self.priority)
-            self.priority = PRIORITY_MEDIUM
         self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
         self.required_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_CONSTRAIN))
         self.applied_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_APPLY))
@@ -171,6 +164,16 @@ class Notification(ArchivableObject):
             self.inscope_snoozes = inscope_snoozes
             self.default_media_from_actions()
             self.apply_enabled_scenarios()
+
+    def validate_service_data(self, service_data: dict) -> None:
+        if service_data.get(ATTR_PRIORITY) and service_data.get(ATTR_PRIORITY) not in PRIORITY_VALUES:
+            _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", service_data.get(ATTR_PRIORITY))
+            service_data[ATTR_PRIORITY] = PRIORITY_MEDIUM
+        try:
+            humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
+        except vol.Invalid as e:
+            _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
+            raise
 
     def apply_enabled_scenarios(self) -> None:
         """Set media and action_groups from scenario if defined, first come first applied"""
