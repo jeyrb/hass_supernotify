@@ -15,6 +15,13 @@ RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
+DATA_SCHEMA_RESTRICT = {
+    "media_player": ["data", "entity_id", "media_content_id", "media_content_type", "enqueue", "announce"],
+    "switch": ["entity_id"],
+    "script": ["data", "variables", "context", "wait"],
+    "siren": ["data", "entity_id", "duration", "volume_level", "tone"],
+}  # TODO: source directly from component schema
+
 
 class ChimeDeliveryMethod(DeliveryMethod):
     method = METHOD_CHIME
@@ -50,13 +57,14 @@ class ChimeDeliveryMethod(DeliveryMethod):
             service_data = None
             try:
                 domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
-
-                if domain == "script":
-                    self.set_service_data(service_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
-                    self.set_service_data(service_data[CONF_VARIABLES], ATTR_TITLE, envelope.title)
-                    self.set_service_data(service_data[CONF_VARIABLES], "chime_tune", tune)
-
                 if domain is not None and service is not None:
+                    self.prune_data(domain, service_data)
+
+                    if domain == "script":
+                        self.set_service_data(service_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
+                        self.set_service_data(service_data[CONF_VARIABLES], ATTR_TITLE, envelope.title)
+                        self.set_service_data(service_data[CONF_VARIABLES], "chime_tune", tune)
+
                     if await self.call_service(envelope, f"{domain}.{service}", service_data=service_data):
                         chimes += 1
                 else:
@@ -65,7 +73,17 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
         return chimes > 0
 
+    def prune_data(self, domain: str, data: dict) -> dict:
+        if domain in DATA_SCHEMA_RESTRICT:
+            for key in list(data.keys()):
+                if key not in DATA_SCHEMA_RESTRICT[domain]:
+                    del data[key]
+                    _LOGGER.debug("SUPERNOTIFY Chime for %s pruning key %s", domain, key)
+        return data
+
     def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
+        if not target:
+            return "", None, {}
         domain, name = target.split(".", 1)
         service_data: dict[str, Any] = {}
         service: str | None = None
