@@ -19,7 +19,7 @@ DATA_SCHEMA_RESTRICT = {
     "media_player": ["data", "entity_id", "media_content_id", "media_content_type", "enqueue", "announce"],
     "switch": ["entity_id"],
     "script": ["data", "variables", "context", "wait"],
-    "siren": ["data", "entity_id", "duration", "volume_level", "tone"],
+    "siren": ["data", "entity_id"],
 }  # TODO: source directly from component schema
 
 
@@ -83,6 +83,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
         if not target:
+            _LOGGER.warning("SUPERNOTIFY Empty chime target")
             return "", None, {}
         domain, name = target.split(".", 1)
         service_data: dict[str, Any] = {}
@@ -103,19 +104,21 @@ class ChimeDeliveryMethod(DeliveryMethod):
             service_data[ATTR_DATA]["volume_level"] = chime_volume
 
         elif domain == "script":
-            service = name
-            service_data.setdefault(CONF_VARIABLES, {})
             if data:
                 service_data.update(data)
+            service = name
+            service_data.setdefault(CONF_VARIABLES, {})
+
         elif domain == "media_player" and chime_tune:
+            if data:
+                service_data.update(data)
             service = "play_media"
             service_data[ATTR_ENTITY_ID] = target
             service_data["media_content_type"] = "sound"
             service_data["media_content_id"] = chime_tune
-            if data:
-                service_data.update(data)
+
         else:
-            _LOGGER.debug("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, target, chime_tune)
+            _LOGGER.warning("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, target, chime_tune)
 
         return domain, service, service_data
 
