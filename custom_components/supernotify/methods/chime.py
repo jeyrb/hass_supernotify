@@ -58,7 +58,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
             try:
                 domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
                 if domain is not None and service is not None:
-                    self.prune_data(domain, service_data)
+                    service_data = self.prune_data(domain, service_data)
 
                     if domain == "script":
                         self.set_service_data(service_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
