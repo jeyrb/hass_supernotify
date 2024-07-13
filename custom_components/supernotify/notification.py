@@ -148,7 +148,7 @@ class Notification(ArchivableObject):
 
         self.occupancy = self.context.determine_occupancy()
         self.condition_variables = ConditionVariables(
-            self.applied_scenarios, self.required_scenarios, self.priority, self.occupancy
+            self.applied_scenarios, self.required_scenarios, self.priority, self.occupancy, self._message, self._title
         )  # requires occupancy first
 
         self.enabled_scenarios = list(self.applied_scenarios) or []

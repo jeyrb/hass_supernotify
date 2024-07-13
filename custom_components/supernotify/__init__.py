@@ -446,6 +446,8 @@ class ConditionVariables:
         applied_scenarios (list[str]): Scenarios that have been applied
         required_scenarios (list[str]): Scenarios that must be applied
         notification_priority (str): Priority of the notification
+        notification_message (str): Message of the notification
+        notification_title (str): Title of the notification
         occupancy (list[str]): List of occupancy scenarios
 
     """
@@ -453,6 +455,8 @@ class ConditionVariables:
     applied_scenarios: list[str] = field(default_factory=list)
     required_scenarios: list[str] = field(default_factory=list)
     notification_priority: str = PRIORITY_MEDIUM
+    notification_message: str = ""
+    notification_title: str = ""
     occupancy: list[str] = field(default_factory=list)
 
     def __init__(
@@ -461,6 +465,8 @@ class ConditionVariables:
         required_scenarios: list[str] | None = None,
         delivery_priority: str | None = PRIORITY_MEDIUM,
         occupiers: dict | None = None,
+        message: str | None = None,
+        title: str | None = None,
     ) -> None:
         occupiers = occupiers or {}
         self.occupancy = []
@@ -475,3 +481,5 @@ class ConditionVariables:
         self.applied_scenarios = applied_scenarios or []
         self.required_scenarios = required_scenarios or []
         self.notification_priority = delivery_priority or PRIORITY_MEDIUM
+        self.notification_message = message or ""
+        self.notification_title = title or ""

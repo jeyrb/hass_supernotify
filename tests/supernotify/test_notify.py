@@ -188,7 +188,10 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
                     CONF_ENTITY_ID: "alarm_control_panel.home_alarm_control",
                     CONF_STATE: ["armed_away", "armed_night"],
                 },
-                {CONF_CONDITION: "template", "value_template": "{{notification_priority in ['critical', 'high']}}"},
+                {
+                    CONF_CONDITION: "template",
+                    "value_template": "{{notification_priority in ['critical', 'high'] and notification_message != 'test'}}",
+                },
             ],
         },
     }
@@ -217,6 +220,25 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     await uut.async_send_message(
         title="test_title",
         message="testing 123",
+        data={"priority": "high", "delivery": {"testablity": {CONF_DATA: {"test": "unit"}}}},
+    )
+    await hass.async_block_till_done()
+    assert calls_service_data == [{"test": "unit"}]
+
+    calls_service_data.clear()
+    hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
+    await uut.async_send_message(
+        title="test_title",
+        message="test",
+        data={"priority": "high", "delivery": {"testablity": {CONF_DATA: {"test": "unit"}}}},
+    )
+    await hass.async_block_till_done()
+    assert calls_service_data == []
+
+    calls_service_data.clear()
+    await uut.async_send_message(
+        title="test_title",
+        message="for real",
         data={"priority": "high", "delivery": {"testablity": {CONF_DATA: {"test": "unit"}}}},
     )
     await hass.async_block_till_done()
