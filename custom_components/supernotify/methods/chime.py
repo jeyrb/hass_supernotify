@@ -74,12 +74,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return chimes > 0
 
     def prune_data(self, domain: str, data: dict) -> dict:
-        if domain in DATA_SCHEMA_RESTRICT:
-            for key in list(data.keys()):
-                if key not in DATA_SCHEMA_RESTRICT[domain]:
-                    del data[key]
-                    _LOGGER.debug("SUPERNOTIFY Chime for %s pruning key %s", domain, key)
-        return data
+        pruned = {}
+        for key in list(data.keys()):
+            if domain not in DATA_SCHEMA_RESTRICT or key in DATA_SCHEMA_RESTRICT[domain]:
+                pruned[key] = data[key]
+        return pruned
 
     def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
         if not target:
