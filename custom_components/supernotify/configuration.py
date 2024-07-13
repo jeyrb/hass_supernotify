@@ -304,13 +304,13 @@ class SupernotificationConfiguration:
         if not person_state:
             _LOGGER.warning("SUPERNOTIFY Unable to resolve %s", person_entity_id)
         else:
-            entity_registry = self.entity_registry()
-            device_registry = self.device_registry()
-            if entity_registry and device_registry:
+            ent_reg = self.entity_registry()
+            dev_reg = self.device_registry()
+            if ent_reg and dev_reg:
                 for d_t in person_state.attributes.get("device_trackers", ()):
-                    entity = entity_registry.async_get(d_t)
+                    entity = ent_reg.async_get(d_t)
                     if entity and entity.platform == "mobile_app" and entity.device_id:
-                        device = device_registry.async_get(entity.device_id)
+                        device = dev_reg.async_get(entity.device_id)
                         if device:
                             mobile_devices.append({
                                 CONF_MANUFACTURER: device.manufacturer,

@@ -1,3 +1,5 @@
+"""Config file loading tests"""
+
 import json
 import pathlib
 from typing import cast
@@ -10,7 +12,6 @@ from homeassistant.core import HomeAssistant, ServiceResponse
 from homeassistant.helpers.service import async_call_from_config
 from homeassistant.setup import async_setup_component
 
-from conftest import MockService
 from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath("..", "..", "examples", "maximal.yaml")
@@ -70,7 +71,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert len(uut.context.deliveries) == 12
 
 
-async def test_call_service(hass: HomeAssistant, mock_notify: MockService) -> None:
+async def test_call_service(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
@@ -135,8 +136,9 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
     )
     await hass.async_block_till_done()
     assert response
-    assert response["scenarios"]
-    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple"]
+    assert isinstance(response["scenarios"], dict)
+    assert isinstance(response["scenarios"]["DISABLED"], list)
+    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple"]  # type: ignore
     assert response["scenarios"]["ENABLED"] == []
     assert response["scenarios"]["VARS"]
     json.dumps(response)
@@ -149,7 +151,7 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
     json.dumps(response)
 
 
-async def test_template_delivery(hass: HomeAssistant, mock_notify: MockService) -> None:
+async def test_template_delivery(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
     await hass.async_block_till_done()
     await async_call_from_config(

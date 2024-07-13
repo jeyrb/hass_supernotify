@@ -82,7 +82,7 @@ async def test_cleanup_archive() -> None:
 
 async def test_archive_size():
     with tempfile.TemporaryDirectory() as tmp_path:
-        uut = NotificationArchive(tmp_path, 7)
+        uut = NotificationArchive(tmp_path, "7")
         uut.initialize()
         assert uut.enabled
         assert uut.size() == 0
