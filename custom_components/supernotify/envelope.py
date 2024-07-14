@@ -50,7 +50,7 @@ class Envelope:
             self.data = copy.deepcopy(delivery_config_data) if delivery_config_data else {}
             self.data |= data
         else:
-            self.data = delivery_config_data
+            self.data = delivery_config_data if delivery_config_data else {}
 
         self.delivered: int = 0
         self.errored: int = 0

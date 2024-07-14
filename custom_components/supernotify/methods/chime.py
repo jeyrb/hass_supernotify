@@ -15,7 +15,7 @@ RE_VALID_CHIME = r"(switch|script|group|siren|media_player)\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA_RESTRICT = {
+DATA_SCHEMA_RESTRICT: dict[str, list[str]] = {
     "media_player": ["data", "entity_id", "media_content_id", "media_content_type", "enqueue", "announce"],
     "switch": ["entity_id"],
     "script": ["data", "variables", "context", "wait"],
@@ -46,7 +46,13 @@ class ChimeDeliveryMethod(DeliveryMethod):
         # chime_repeat = data.pop("chime_repeat", 1)
         chime_tune: str | None = data.pop("chime_tune", None)
 
-        _LOGGER.info("SUPERNOTIFY notify_chime: %s -> %s", chime_tune, targets)
+        _LOGGER.info(
+            "SUPERNOTIFY notify_chime: %s -> %s (env_data:%s, dlv_data:%s)",
+            chime_tune,
+            targets,
+            envelope.data,
+            config.get(CONF_DATA),
+        )
 
         expanded_targets = dict.fromkeys(expand_entity_ids(self.hass, targets), chime_tune)
         entities_and_tunes = self.resolve_tune(chime_tune)
@@ -74,10 +80,12 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return chimes > 0
 
     def prune_data(self, domain: str, data: dict) -> dict:
-        pruned = {}
-        for key in list(data.keys()):
-            if domain not in DATA_SCHEMA_RESTRICT or key in DATA_SCHEMA_RESTRICT[domain]:
-                pruned[key] = data[key]
+        pruned: dict[str, Any] = {}
+        if data and domain in DATA_SCHEMA_RESTRICT:
+            restrict: list[str] = DATA_SCHEMA_RESTRICT.get(domain) or []
+            for key in list(data.keys()):
+                if key in restrict:
+                    pruned[key] = data[key]
         return pruned
 
     def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
