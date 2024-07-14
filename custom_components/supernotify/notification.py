@@ -299,7 +299,10 @@ class Notification(ArchivableObject):
                     await delivery_method.deliver(envelope)
                     self.delivered += envelope.delivered
                     self.errored += envelope.errored
-                    self.delivered_envelopes.append(envelope)
+                    if envelope.delivered:
+                        self.delivered_envelopes.append(envelope)
+                    else:
+                        self.undelivered_envelopes.append(envelope)
                 except Exception as e2:
                     _LOGGER.warning("SUPERNOTIFY Failed to deliver %s: %s", envelope.delivery_name, e2)
                     _LOGGER.debug("SUPERNOTIFY %s", e2, exc_info=True)
@@ -319,6 +322,7 @@ class Notification(ArchivableObject):
         """ArchiveableObject implementation"""
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
         sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
+        sanitized["undelivered_envelopes"] = [e.contents(minimal=minimal) for e in self.undelivered_envelopes]
         return sanitized
 
     def base_filename(self) -> str:

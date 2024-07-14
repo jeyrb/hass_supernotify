@@ -46,7 +46,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         # chime_repeat = data.pop("chime_repeat", 1)
         chime_tune: str | None = data.pop("chime_tune", None)
 
-        _LOGGER.info("SUPERNOTIFY notify_chime: %s", targets)
+        _LOGGER.info("SUPERNOTIFY notify_chime: %s -> %s", chime_tune, targets)
 
         expanded_targets = dict.fromkeys(expand_entity_ids(self.hass, targets), chime_tune)
         entities_and_tunes = self.resolve_tune(chime_tune)

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from homeassistant import config as hass_config
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
-from homeassistant.const import SERVICE_RELOAD
+from homeassistant.const import CONF_PLATFORM, SERVICE_RELOAD
 from homeassistant.core import HomeAssistant, ServiceResponse
 from homeassistant.helpers.service import async_call_from_config
 from homeassistant.setup import async_setup_component
@@ -21,10 +21,20 @@ SIMPLE_CONFIG = {
     "name": DOMAIN,
     "platform": DOMAIN,
     "delivery": {
-        "testing": {"method": "generic", "service": "notify.mock"},
+        "testing": {"method": "generic", "service": "notify.notify"},
+        "chime_person": {"method": "chime", "selection": "scenario", "data": {"chime_tune": "person"}},
     },
-    "scenarios": {"simple": {"delivery_selection": "implicit"}},
+    "scenarios": {
+        "simple": {"delivery_selection": "implicit"},
+        "somebody": {"delivery_selection": "explicit", "delivery": {"chime_person": {}}},
+    },
     "recipients": [{"person": "person.house_owner", "email": "test@testing.com", "phone_number": "+4497177848484"}],
+    "methods": {
+        "chime": {
+            "target": ["media_player.lobby", "switch.doorbell"],
+            "options": {"chime_aliases": {"person": {"media_player": "bell_02", "switch": {"entity_id": "switch.chime_ding"}}}},
+        }
+    },
 }
 
 
@@ -116,7 +126,7 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
         "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
     )
     await hass.async_block_till_done()
-    assert response == {"DEFAULT": ["testing"], "simple": ["testing"]}
+    assert response == {"DEFAULT": ["testing"], "simple": ["testing"], "somebody": ["chime_person"]}
 
     response = await hass.services.async_call(
         "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
@@ -138,7 +148,7 @@ async def test_call_supplemental_services(hass: HomeAssistant) -> None:
     assert response
     assert isinstance(response["scenarios"], dict)
     assert isinstance(response["scenarios"]["DISABLED"], list)
-    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple"]  # type: ignore
+    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple", "somebody"]  # type: ignore
     assert response["scenarios"]["ENABLED"] == []
     assert response["scenarios"]["VARS"]
     json.dumps(response)
@@ -174,3 +184,29 @@ async def test_template_delivery(hass: HomeAssistant) -> None:
     assert notification is not None
     assert notification["_message"] == "unit test 105"
     assert notification["priority"] == "high"
+
+
+async def test_delivery_and_scenario(hass: HomeAssistant) -> None:
+    assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
+    assert await async_setup_component(hass, "media_player", {"media_player": {CONF_PLATFORM: "test"}})
+    assert await async_setup_component(hass, "switch", {"switch": {CONF_PLATFORM: "test"}})
+    assert await async_setup_component(hass, "notify", {"notify": [{CONF_PLATFORM: "test"}]})
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        NOTIFY_DOMAIN,
+        DOMAIN,
+        {"title": "my title", "message": "unit test 85753", "data": {"apply_scenarios": ["somebody"]}},
+        blocking=True,
+    )
+    notification = await hass.services.async_call(
+        "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
+    )
+    assert notification is not None
+    assert isinstance(notification["delivered_envelopes"], list)
+    delivered_chimes = [e for e in notification["delivered_envelopes"] if e and e.get("delivery_name", "") == "chime_person"]  # type: ignore
+    assert len(delivered_chimes) == 1
+    assert delivered_chimes[0]["calls"][0][:3] == (
+        "media_player",
+        "play_media",
+        {"entity_id": "media_player.lobby", "media_content_type": "sound", "media_content_id": "bell_02"},
+    )  # type: ignore
