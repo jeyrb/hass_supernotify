@@ -215,7 +215,7 @@ class SupernotificationConfiguration:
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
 
     def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
-        if not delivery_config.get(attr):
+        if attr not in delivery_config:
             method_default = self.method_defaults.get(delivery_config.get(CONF_METHOD), {})
             if method_default.get(attr):
                 delivery_config[attr] = method_default[attr]

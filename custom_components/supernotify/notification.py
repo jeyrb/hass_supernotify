@@ -141,10 +141,12 @@ class Notification(ArchivableObject):
         if self.delivery_selection is None:
             if self.delivery_overrides_type in ("list", "str"):
                 # a bare list of deliveries implies intent to restrict
+                _LOGGER.debug("SUPERNOTIFY defaulting delivery selection as explicit for type %s", self.delivery_overrides_type)
                 self.delivery_selection = DELIVERY_SELECTION_EXPLICIT
             else:
                 # whereas a dict may be used to tune or restrict
                 self.delivery_selection = DELIVERY_SELECTION_IMPLICIT
+                _LOGGER.debug("SUPERNOTIFY defaulting delivery selection as implicit for type %s", self.delivery_overrides_type)
 
         self.occupancy = self.context.determine_occupancy()
         self.condition_variables = ConditionVariables(
