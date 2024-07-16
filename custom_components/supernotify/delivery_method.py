@@ -120,7 +120,8 @@ class DeliveryMethod:
         return []
 
     def delivery_config(self, delivery_name: str) -> dict:
-        return self.context.deliveries.get(delivery_name) or self.default_delivery or {}
+        config = self.context.deliveries.get(delivery_name) or self.default_delivery or {}
+        return dict(config)
 
     def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
         config = self.delivery_config(envelope.delivery_name)
