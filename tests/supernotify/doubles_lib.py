@@ -29,6 +29,7 @@ class DummyDeliveryMethod(DeliveryMethod):
 
     async def deliver(self, envelope: Envelope) -> bool:
         self.test_calls.append(envelope)
+        envelope.delivered = True
         return True
 
 

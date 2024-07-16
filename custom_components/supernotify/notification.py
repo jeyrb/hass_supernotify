@@ -411,7 +411,7 @@ class Notification(ArchivableObject):
                 self.record_resolve(delivery_name, "2a_delivery_config_entity", delivery_config.get(CONF_ENTITIES))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
             # third priority is explicit target on delivery
-            if delivery_config and CONF_TARGET in delivery_config:
+            if delivery_config and CONF_TARGET in delivery_config and delivery_config[CONF_TARGET]:
                 recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_TARGET, []))
                 self.record_resolve(delivery_name, "2b_delivery_config_target", delivery_config.get(CONF_TARGET))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)

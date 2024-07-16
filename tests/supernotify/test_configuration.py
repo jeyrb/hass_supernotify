@@ -36,6 +36,36 @@ async def test_default_recipients_with_override(mock_hass) -> None:
     assert dummy.test_calls == [Envelope("dummy", uut, targets=["dummy.new_home_owner"])]
 
 
+async def test_delivery_override_method(mock_hass) -> None:
+    delivery_config = {
+        "quiet_alert": {
+            "method": "dummy",
+            "entities": ["switch.pillow_vibrate"],
+            "target": None,
+            "selection": "explicit",
+        },
+        "regular_alert": {"method": "dummy", "entities": ["switch.pillow_vibrate"], "selection": "explicit"},
+    }
+    context = SupernotificationConfiguration(
+        mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config
+    )
+    dummy = DummyDeliveryMethod(mock_hass, context, delivery_config)
+    await context.initialize()
+    await context.register_delivery_methods([dummy], set_as_default=False)
+    uut = Notification(context, "testing", service_data={"delivery": ["regular_alert"]})
+    await uut.initialize()
+    await uut.deliver()
+    envelope = uut.delivered_envelopes[0]
+    assert envelope.targets == ["switch.pillow_vibrate", "media_player.hall"]
+
+    uut = Notification(context, "testing", service_data={"delivery": ["quiet_alert"]})
+    await uut.initialize()
+
+    await uut.deliver()
+    envelope = uut.delivered_envelopes[0]
+    assert envelope.targets == ["switch.pillow_vibrate"]
+
+
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
     uut = SupernotificationConfiguration(hass)
     await uut.initialize()

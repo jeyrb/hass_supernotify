@@ -384,6 +384,10 @@ red_alert:
         downstairs_siren:
 ```
 
+Delivery selection can also be passed in the `data` of a service call, in which case it can
+also be `fixed`, which disables scenarios from enabling or disabling deliveries and leaves it solely
+to defaults or what's listed in the service call.
+
 Conditions aren't essential for scenarios, since they can also be switched on by a notification.
 For example in this case, where the `home_security` and `garden` scenarios are explicitly
 triggered, and so any overrides declared in those scenarios will be applied.
