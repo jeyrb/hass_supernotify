@@ -47,9 +47,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
         chime_tune: str | None = data.pop("chime_tune", None)
 
         _LOGGER.info(
-            "SUPERNOTIFY notify_chime: %s -> %s (env_data:%s, dlv_data:%s)",
+            "SUPERNOTIFY notify_chime: %s -> %s (delivery: %s, env_data:%s, dlv_data:%s)",
             chime_tune,
             targets,
+            envelope.delivery_name,
             envelope.data,
             config.get(CONF_DATA),
         )

@@ -14,7 +14,7 @@ from homeassistant.helpers import condition
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
-from . import CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
+from . import CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -121,6 +121,7 @@ class DeliveryMethod:
 
     def delivery_config(self, delivery_name: str) -> dict:
         config = self.context.deliveries.get(delivery_name) or self.default_delivery or {}
+        config[CONF_DATA] = dict(config.get(CONF_DATA) or {})
         return dict(config)
 
     def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
