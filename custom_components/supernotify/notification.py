@@ -406,7 +406,7 @@ class Notification(ArchivableObject):
             _LOGGER.debug("SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
         else:
             # second priority is explicit entities on delivery
-            if delivery_config and CONF_ENTITIES in delivery_config:
+            if delivery_config and CONF_ENTITIES in delivery_config and delivery_config[CONF_ENTITIES]:
                 recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_ENTITIES, []))
                 self.record_resolve(delivery_name, "2a_delivery_config_entity", delivery_config.get(CONF_ENTITIES))
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
@@ -417,7 +417,7 @@ class Notification(ArchivableObject):
                 _LOGGER.debug("SUPERNOTIFY %s Using delivery config targets: %s", __name__, recipients)
 
             # next priority is explicit recipients on delivery
-            if delivery_config and CONF_RECIPIENTS in delivery_config:
+            if delivery_config and CONF_RECIPIENTS in delivery_config and delivery_config[CONF_RECIPIENTS]:
                 recipients.extend(delivery_config[CONF_RECIPIENTS])
                 self.record_resolve(delivery_name, "2c_delivery_config_recipient", delivery_config.get(CONF_RECIPIENTS))
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s", delivery_name, recipients)

@@ -45,6 +45,7 @@ async def test_delivery_override_method(mock_hass) -> None:
             "selection": "explicit",
         },
         "regular_alert": {"method": "dummy", "entities": ["switch.pillow_vibrate"], "selection": "explicit"},
+        "day_alert": {"method": "dummy", "selection": "explicit"},
     }
     context = SupernotificationConfiguration(
         mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config
@@ -64,6 +65,13 @@ async def test_delivery_override_method(mock_hass) -> None:
     await uut.deliver()
     envelope = uut.delivered_envelopes[0]
     assert envelope.targets == ["switch.pillow_vibrate"]
+
+    uut = Notification(context, "testing", service_data={"delivery": ["day_alert"]})
+    await uut.initialize()
+
+    await uut.deliver()
+    envelope = uut.delivered_envelopes[0]
+    assert envelope.targets == ["media_player.hall"]
 
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
