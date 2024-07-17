@@ -39,7 +39,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     async def deliver(self, envelope: Envelope) -> bool:
         config = self.delivery_config(envelope.delivery_name)
-        data = config.get(CONF_DATA) or {}
+        data: dict[str, Any] = {}
+        data.update(config.get(CONF_DATA) or {})
         data.update(envelope.data or {})
         targets = envelope.targets or []
 

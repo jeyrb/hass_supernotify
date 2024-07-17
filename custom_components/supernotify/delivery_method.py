@@ -119,10 +119,11 @@ class DeliveryMethod:
         """Pick out delivery appropriate target from a person (recipient) config"""
         return []
 
-    def delivery_config(self, delivery_name: str) -> dict:
+    def delivery_config(self, delivery_name: str) -> dict[str, Any]:
         config = self.context.deliveries.get(delivery_name) or self.default_delivery or {}
+        config = dict(config)
         config[CONF_DATA] = dict(config.get(CONF_DATA) or {})
-        return dict(config)
+        return config
 
     def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
         config = self.delivery_config(envelope.delivery_name)
