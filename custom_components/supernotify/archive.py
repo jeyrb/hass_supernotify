@@ -5,6 +5,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Any, cast
 
+import aiofiles.os
 import homeassistant.util.dt as dt_util
 from homeassistant.helpers.json import save_json
 
@@ -60,7 +61,7 @@ class NotificationArchive:
             return sum(1 for p in os.listdir(path) if p != WRITE_TEST)
         return 0
 
-    def cleanup(self, days: int | None = None, force: bool = False) -> int:
+    async def cleanup(self, days: int | None = None, force: bool = False) -> int:
         if (
             not force
             and self.last_purge is not None
@@ -74,12 +75,14 @@ class NotificationArchive:
         purged = 0
         if self.archive_path and Path(self.archive_path).exists():
             try:
-                with os.scandir(self.archive_path) as archive:
-                    for entry in archive:
-                        if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
-                            _LOGGER.debug("SUPERNOTIFY Purging %s", entry.path)
-                            Path(entry.path).unlink()
-                            purged += 1
+                archive = await aiofiles.os.scandir(self.archive_path)
+                for entry in archive:
+                    if entry.name == ".startup":
+                        continue
+                    if dt_util.utc_from_timestamp(entry.stat().st_ctime) <= cutoff:
+                        _LOGGER.debug("SUPERNOTIFY Purging %s", entry.path)
+                        await aiofiles.os.unlink(Path(entry.path))
+                        purged += 1
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY Unable to clean up archive at %s: %s", self.archive_path, e, exc_info=True)
             _LOGGER.info("SUPERNOTIFY Purged %s archived notifications for cutoff %s", purged, cutoff)

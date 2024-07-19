@@ -162,8 +162,9 @@ async def async_get_service(
         days = call.data.get("days")
         if service.context.archive is None:
             return {"error": "No archive configured"}
+        purged = await service.context.archive.cleanup(days=days, force=True)
         return {
-            "purged": service.context.archive.cleanup(days=days, force=True),
+            "purged": purged,
             "remaining": service.context.archive.size(),
             "interval": ARCHIVE_PURGE_MIN_INTERVAL,
             "days": service.context.archive.archive_days if days is None else days,
@@ -477,8 +478,8 @@ class SuperNotificationService(BaseNotificationService):
             _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)
 
     @callback
-    def async_nightly_tasks(self, now: dt.datetime) -> None:
+    async def async_nightly_tasks(self, now: dt.datetime) -> None:
         _LOGGER.info("SUPERNOTIFY Housekeeping starting as scheduled at %s", now)
-        self.context.archive.cleanup()
+        await self.context.archive.cleanup()
         self.context.purge_snoozes()
         _LOGGER.info("SUPERNOTIFY Housekeeping completed")
