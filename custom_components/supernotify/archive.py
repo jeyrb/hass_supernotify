@@ -1,6 +1,5 @@
 import datetime as dt
 import logging
-import os
 from abc import abstractmethod
 from pathlib import Path
 from typing import Any, cast
@@ -55,10 +54,10 @@ class NotificationArchive:
         else:
             _LOGGER.warning("SUPERNOTIFY archive path %s is not a directory or does not exist", verify_archive_path)
 
-    def size(self) -> int:
+    async def size(self) -> int:
         path = self.archive_path
         if path and Path(path).exists():
-            return sum(1 for p in os.listdir(path) if p != WRITE_TEST)
+            return sum(1 for p in await aiofiles.os.listdir(path) if p != WRITE_TEST)
         return 0
 
     async def cleanup(self, days: int | None = None, force: bool = False) -> int:

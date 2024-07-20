@@ -85,7 +85,7 @@ async def test_archive_size():
         uut = NotificationArchive(tmp_path, "7")
         uut.initialize()
         assert uut.enabled
-        assert uut.size() == 0
+        assert await uut.size() == 0
         async with aiofiles.open(Path(tmp_path) / "test.foo", mode="w") as f:
             await f.write("{}")
-        assert uut.size() == 1
+        assert await uut.size() == 1

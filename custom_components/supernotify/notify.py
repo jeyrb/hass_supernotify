@@ -163,9 +163,10 @@ async def async_get_service(
         if service.context.archive is None:
             return {"error": "No archive configured"}
         purged = await service.context.archive.cleanup(days=days, force=True)
+        arch_size = await service.context.archive.size()
         return {
             "purged": purged,
-            "remaining": service.context.archive.size(),
+            "remaining": arch_size,
             "interval": ARCHIVE_PURGE_MIN_INTERVAL,
             "days": service.context.archive.archive_days if days is None else days,
         }
