@@ -3,4 +3,5 @@ mkdocstrings-python>=1.10.5
 pymdown-extensions
 mkdocs-material
 mkdocs-autorefs
+mkdocs-coverage
 mkdocs
