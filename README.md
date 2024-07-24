@@ -432,3 +432,4 @@ a much more detailed body only for email.
 Use `data_template` to build the `data` dictionary with Jinja2 logic from automations or scripts.
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/:user/:repo/:workflow)
