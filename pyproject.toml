@@ -75,7 +75,7 @@ norecursedirs = [
     "templates",
 ]
 
-xxaddopts = [
+addopts = [
     "-n 4",
     "--timeout=30",
     "--cov-report=xml:cov.xml",
