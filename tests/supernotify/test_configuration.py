@@ -99,6 +99,6 @@ async def test_autoresolve_mobile_devices_for_devices(
             "device_tracker": "device_tracker.mobile_app_phone_bob",
             "device_id": device.id,
             "device_name": "Bobs Phone",
-            "device_labels": set(),
+            # "device_labels": set(),
         }
     ]
