@@ -51,7 +51,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=5.0)) as client:
                 resp: httpx.Response = await client.get(url, follow_redirects=True, timeout=5)
-            html = BeautifulSoup(resp.text)
+            html = BeautifulSoup(resp.text, features='html.parser')
             if html.title and html.title.string:
                 self.action_titles[url] = html.title.string
                 return html.title.string
