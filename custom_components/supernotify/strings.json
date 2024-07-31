@@ -1,12 +1,29 @@
 {
-  "services": {
-    "reload": {
-      "name": "[%key:common::action::reload%]",
-      "description": "Reloads supernotify services."
+    "services": {
+        "reload": {
+            "name": "[%key:common::action::reload%]",
+            "description": "Reloads supernotify services."
+        },
+        "enquire_deliveries_by_scenario": {
+            "name": "Enquire Deliveries By Scenario",
+            "description": "Debugging assistant to show list of deliveries for each scenario, including default usage"
+        }
     },
-    "enquire_deliveries_by_scenario": {
-      "name": "Enquire Deliveries By Scenario",
-      "description": "Debugging assistant to show list of deliveries for each scenario, including default usage"
+    "config": {
+        "step": {
+            "user": {
+                "title": "Environment",
+                "data": {
+                    "template_path": "Template Path",
+                    "media_path": "Media Path",
+                    "archive_path": "Archive Path"
+                },
+                "data_description": {
+                    "template_path": "Optional location where Jinja2 templates for HTML email are to be found",
+                    "media_path": "Storage path for media created during notifications, for example camera snapshots created for attachments",
+                    "archive_path": "Storage path for archived notifications, useful for debugging configuration, scenarios etc"
+                }
+            }
+        }
     }
-  }
 }

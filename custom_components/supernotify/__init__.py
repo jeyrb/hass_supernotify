@@ -6,6 +6,7 @@ from enum import StrEnum
 
 import voluptuous as vol
 from homeassistant.components.notify import PLATFORM_SCHEMA
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DOMAIN,
     ATTR_SERVICE,
@@ -27,6 +28,7 @@ from homeassistant.const import (
     STATE_NOT_HOME,
     Platform,
 )
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
 from custom_components.supernotify.common import format_timestamp
@@ -68,6 +70,8 @@ CONF_OCCUPANCY: str = "occupancy"
 CONF_SCENARIOS: str = "scenarios"
 CONF_MANUFACTURER: str = "manufacturer"
 CONF_DEVICE_TRACKER: str = "device_tracker"
+CONF_DEVICE_NAME: str = "device_name"
+CONF_DEVICE_LABELS: str = "device_labels"
 CONF_MODEL: str = "model"
 CONF_MESSAGE: str = "message"
 CONF_TARGETS_REQUIRED: str = "targets_required"
@@ -483,3 +487,27 @@ class ConditionVariables:
         self.notification_priority = delivery_priority or PRIORITY_MEDIUM
         self.notification_message = message or ""
         self.notification_title = title or ""
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:  # noqa: ARG001
+    """Set up the SuperNotify component."""
+    hass.data.setdefault(DOMAIN, {})
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up SuperNotify from a config entry."""
+    hass.data[DOMAIN][entry.entry_id] = entry.data
+
+    hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, Platform.NOTIFY))
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, [Platform.NOTIFY])
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+
+    return unload_ok

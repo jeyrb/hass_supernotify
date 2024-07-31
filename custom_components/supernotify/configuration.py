@@ -5,14 +5,7 @@ import socket
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import (
-    ATTR_STATE,
-    CONF_ENABLED,
-    CONF_METHOD,
-    CONF_NAME,
-    STATE_HOME,
-    STATE_NOT_HOME,
-)
+from homeassistant.const import ATTR_STATE, CONF_DEVICE_ID, CONF_ENABLED, CONF_METHOD, CONF_NAME, STATE_HOME, STATE_NOT_HOME
 from homeassistant.helpers import device_registry, entity_registry
 from homeassistant.helpers.network import get_url
 from homeassistant.util import slugify
@@ -25,6 +18,7 @@ from . import (
     CONF_ARCHIVE_DAYS,
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
+    CONF_DEVICE_NAME,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
     CONF_MOBILE_DEVICES,
@@ -311,13 +305,26 @@ class SupernotificationConfiguration:
                     entity = ent_reg.async_get(d_t)
                     if entity and entity.platform == "mobile_app" and entity.device_id:
                         device = dev_reg.async_get(entity.device_id)
-                        if device:
-                            mobile_devices.append({
-                                CONF_MANUFACTURER: device.manufacturer,
-                                CONF_MODEL: device.model,
-                                CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
-                                CONF_DEVICE_TRACKER: d_t,
-                            })
+                        if not device:
+                            _LOGGER.warning("SUPERNOTIFY Unable to find device %s", entity.device_id)
+                        else:
+                            notify_service = f"mobile_app_{slugify(device.name)}"
+                            if (
+                                not self.hass
+                                or not self.hass.services
+                                or not self.hass.services.has_service("notify", notify_service)
+                            ):
+                                _LOGGER.warning("SUPERNOTIFY Unable to find notify service %s", notify_service)
+                            else:
+                                mobile_devices.append({
+                                    CONF_MANUFACTURER: device.manufacturer,
+                                    CONF_MODEL: device.model,
+                                    CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
+                                    CONF_DEVICE_TRACKER: d_t,
+                                    CONF_DEVICE_ID: device.id,
+                                    CONF_DEVICE_NAME: device.name,
+                                    # CONF_DEVICE_LABELS: device.labels,
+                                })
         return mobile_devices
 
     def register_snooze(

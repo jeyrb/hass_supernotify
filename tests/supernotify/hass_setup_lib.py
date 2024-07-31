@@ -3,13 +3,14 @@
 import logging
 
 from homeassistant import config_entries
+from homeassistant.util import slugify
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def register_mobile_app(
+async def register_mobile_app(
     context: SupernotificationConfiguration,
     person="person.test_user",
     manufacturer="xUnit",
@@ -24,7 +25,7 @@ def register_mobile_app(
     )
     if context is None or context.hass is None:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking")
-        return
+        return None
     try:
         context.hass.config_entries._entries[config_entry.entry_id] = config_entry  # type: ignore
         context.hass.config_entries._entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)  # type: ignore
@@ -42,6 +43,17 @@ def register_mobile_app(
             model=model,
             identifiers={(domain, f"device-id_{device_name}")},
         )
+    if context.hass.services and device_entry and context.hass and context.hass.services:
+
+        def fake_service(*args, **kwargs):
+            _LOGGER.debug("Fake service called with args: %s, kwargs: %s", args, kwargs)
+            return True
+
+        # device.name seems to be derived from title, not the name supplied here
+        context.hass.services.async_register(
+            "notify", slugify(f"mobile_app_{title}"), service_func=fake_service, supports_response=False
+        )
     entity_registry = context.entity_registry()
     if entity_registry and device_entry:
         entity_registry.async_get_or_create("device_tracker", "mobile_app", device_name, device_id=device_entry.id)
+    return device_entry

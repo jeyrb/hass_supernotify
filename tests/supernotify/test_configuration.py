@@ -89,12 +89,16 @@ async def test_autoresolve_mobile_devices_for_devices(
     uut._device_registry = device_registry
     uut._entity_registry = entity_registry
     await uut.initialize()
-    register_mobile_app(uut, person="person.test_user", device_name="phone_bob", title="Bobs Phone")
+    device = await register_mobile_app(uut, person="person.test_user", device_name="phone_bob", title="Bobs Phone")
+    assert device is not None
     assert uut.mobile_devices_for_person("person.test_user") == [
         {
-            "device_tracker": "device_tracker.mobile_app_phone_bob",
             "manufacturer": "xUnit",
             "model": "PyTest001",
             "notify_service": "mobile_app_bobs_phone",
+            "device_tracker": "device_tracker.mobile_app_phone_bob",
+            "device_id": device.id,
+            "device_name": "Bobs Phone",
+            "device_labels": set(),
         }
     ]
