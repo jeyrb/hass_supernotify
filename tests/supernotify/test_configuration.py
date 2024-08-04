@@ -95,7 +95,7 @@ async def test_autoresolve_mobile_devices_for_devices(
         {
             "manufacturer": "xUnit",
             "model": "PyTest001",
-            "notify_service": "mobile_app_bobs_phone",
+            "notify_service": "notify.mobile_app_bobs_phone",
             "device_tracker": "device_tracker.mobile_app_phone_bob",
             "device_id": device.id,
             "device_name": "Bobs Phone",
