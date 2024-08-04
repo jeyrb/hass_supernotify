@@ -1,7 +1,7 @@
 {
     "domain":"supernotify",
     "name":"SuperNotifier",
-    "version":"0.6.0",
+    "version":"0.6.1",
     "after_dependencies":["mobile_app"],
     "dependencies":["person"],
     "requirements":[
