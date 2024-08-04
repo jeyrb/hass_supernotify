@@ -51,7 +51,7 @@ async def register_mobile_app(
 
         # device.name seems to be derived from title, not the name supplied here
         context.hass.services.async_register(
-            "notify", slugify(f"mobile_app_{title}"), service_func=fake_service, supports_response=False
+            "notify", "notify." + slugify(f"mobile_app_{title}"), service_func=fake_service, supports_response=False
         )
     entity_registry = context.entity_registry()
     if entity_registry and device_entry:

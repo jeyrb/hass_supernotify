@@ -51,7 +51,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=5.0)) as client:
                 resp: httpx.Response = await client.get(url, follow_redirects=True, timeout=5)
-            html = BeautifulSoup(resp.text, features='html.parser')
+            html = BeautifulSoup(resp.text, features="html.parser")
             if html.title and html.title.string:
                 self.action_titles[url] = html.title.string
                 return html.title.string
@@ -134,6 +134,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         service_data[ATTR_DATA] = data
         hits = 0
         for mobile_target in envelope.targets:
-            if await self.call_service(envelope, f"notify.{mobile_target}", service_data=service_data):
+            full_target = mobile_target if mobile_target.starts_with("notify.") else f"notify.{mobile_target}"
+            if await self.call_service(envelope, full_target, service_data=service_data):
                 hits += 1
         return hits > 0

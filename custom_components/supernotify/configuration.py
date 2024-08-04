@@ -300,7 +300,9 @@ class SupernotificationConfiguration:
         else:
             ent_reg = self.entity_registry()
             dev_reg = self.device_registry()
-            if ent_reg and dev_reg:
+            if not ent_reg or not dev_reg:
+                _LOGGER.warning("SUPERNOTIFY Unable to access entity or device registries for %s", person_entity_id)
+            else:
                 for d_t in person_state.attributes.get("device_trackers", ()):
                     entity = ent_reg.async_get(d_t)
                     if entity and entity.platform == "mobile_app" and entity.device_id:
@@ -312,7 +314,7 @@ class SupernotificationConfiguration:
                             if (
                                 not self.hass
                                 or not self.hass.services
-                                or not self.hass.services.has_service("notify", notify_service)
+                                or not self.hass.services.has_service("notify", f"notify.{notify_service}")
                             ):
                                 _LOGGER.warning("SUPERNOTIFY Unable to find notify service %s", notify_service)
                             else:
@@ -325,6 +327,9 @@ class SupernotificationConfiguration:
                                     CONF_DEVICE_NAME: device.name,
                                     # CONF_DEVICE_LABELS: device.labels,
                                 })
+                    else:
+                        _LOGGER.debug("SUPERNOTIFY Ignoring device tracker %s", d_t)
+
         return mobile_devices
 
     def register_snooze(
