@@ -310,18 +310,18 @@ class SupernotificationConfiguration:
                         if not device:
                             _LOGGER.warning("SUPERNOTIFY Unable to find device %s", entity.device_id)
                         else:
-                            notify_service = f"mobile_app_{slugify(device.name)}"
+                            notify_service = f"notify.mobile_app_{slugify(device.name)}"
                             if (
                                 not self.hass
                                 or not self.hass.services
-                                or not self.hass.services.has_service("notify", f"notify.{notify_service}")
+                                or not self.hass.services.has_service("notify", f"{notify_service}")
                             ):
                                 _LOGGER.warning("SUPERNOTIFY Unable to find notify service %s", notify_service)
                             else:
                                 mobile_devices.append({
                                     CONF_MANUFACTURER: device.manufacturer,
                                     CONF_MODEL: device.model,
-                                    CONF_NOTIFY_SERVICE: f"mobile_app_{slugify(device.name)}",
+                                    CONF_NOTIFY_SERVICE: notify_service,
                                     CONF_DEVICE_TRACKER: d_t,
                                     CONF_DEVICE_ID: device.id,
                                     CONF_DEVICE_NAME: device.name,
