@@ -134,7 +134,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         service_data[ATTR_DATA] = data
         hits = 0
         for mobile_target in envelope.targets:
-            full_target = mobile_target if mobile_target.starts_with("notify.") else f"notify.{mobile_target}"
+            full_target = mobile_target if mobile_target.startswith("notify.") else f"notify.{mobile_target}"
             if await self.call_service(envelope, full_target, service_data=service_data):
                 hits += 1
         return hits > 0
