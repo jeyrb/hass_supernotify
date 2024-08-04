@@ -1,8 +1,9 @@
 {
     "domain":"supernotify",
     "name":"SuperNotifier",
-    "version":"0.5.0",
-    "dependencies":[],
+    "version":"0.6.0",
+    "after_dependencies":["mobile_app"],
+    "dependencies":["person"],
     "requirements":[
     ],
     "iot_class":"local_push",
