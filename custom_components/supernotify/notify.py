@@ -55,6 +55,7 @@ from . import (
     QualifiedTargetType,
     RecipientType,
     TargetType,
+    async_setup_entry,  # noqa: F401
 )
 from .configuration import SupernotificationConfiguration
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -81,6 +82,7 @@ METHODS: list[type] = [
     PersistentDeliveryMethod,
     GenericDeliveryMethod,
 ]
+
 
 async def async_get_service(
     hass: HomeAssistant,
@@ -287,7 +289,6 @@ class SuperNotificationService(BaseNotificationService):
             )
 
         self.unsubscribes.append(self.hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, self.async_shutdown))
-
 
     async def async_shutdown(self, event: Event) -> None:
         _LOGGER.info("SUPERNOTIFY shutting down, %s", event)
