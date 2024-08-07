@@ -9,6 +9,7 @@ from typing import Any
 
 from cachetools import TTLCache
 from homeassistant.components.notify.legacy import BaseNotificationService
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import condition
@@ -55,7 +56,6 @@ from . import (
     QualifiedTargetType,
     RecipientType,
     TargetType,
-    async_setup_entry,  # noqa: F401
 )
 from .configuration import SupernotificationConfiguration
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -492,3 +492,11 @@ class SuperNotificationService(BaseNotificationService):
         await self.context.archive.cleanup()
         self.context.purge_snoozes()
         _LOGGER.info("SUPERNOTIFY Housekeeping completed")
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+    _LOGGER.info("SUPERNOTIFY async_setup_entry: %s", entry)
+
+    return True

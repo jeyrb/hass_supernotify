@@ -11,6 +11,7 @@ cov.xml
 examples/barrsofcloak.yaml
 node_modules/
 package-lock.json
+supernotify/media
 
 
 # C extensions
