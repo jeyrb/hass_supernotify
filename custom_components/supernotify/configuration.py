@@ -317,6 +317,9 @@ class SupernotificationConfiguration:
                                 or not self.hass.services.has_service("notify", notify_service)
                             ):
                                 _LOGGER.warning("SUPERNOTIFY Unable to find notify service <%s>", notify_service)
+                                alt_service = f"notify.{notify_service}"
+                                if self.hass and self.hass.services and self.hass.services.has_service("notify", alt_service):
+                                    _LOGGER.warning("SUPERNOTIFY Can find notify service <%s>", alt_service)
                             else:
                                 mobile_devices.append({
                                     CONF_MANUFACTURER: device.manufacturer,
@@ -329,7 +332,11 @@ class SupernotificationConfiguration:
                                 })
                     else:
                         _LOGGER.debug("SUPERNOTIFY Ignoring device tracker %s", d_t)
-
+        if not mobile_devices:
+            _LOGGER.warning(
+                "SUPERNOTIFY Unable to find services. Notify has %s",
+                self.hass.services.async_services_for_domain("notify"),  # type: ignore
+            )  # type: ignore
         return mobile_devices
 
     def register_snooze(
