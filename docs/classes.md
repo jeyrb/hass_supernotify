@@ -28,7 +28,7 @@ classDiagram
     handler: python
     heading_level: 2
 
-::: custom_components.supernotify.Snooze
+::: custom_components.supernotify.snoozer.Snooze
     handler: python
     heading_level: 2
 
