@@ -18,8 +18,14 @@ from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
 from pytest_httpserver import HTTPServer
 
-from custom_components.supernotify import CONF_PERSON
+from custom_components.supernotify import (
+    CONF_METHOD,
+    CONF_MOBILE_DEVICES,
+    CONF_NOTIFY_ACTION,
+    CONF_PERSON,
+)
 from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.snoozer import Snoozer
 
 
 class MockableHomeAssistant(HomeAssistant):
@@ -28,12 +34,12 @@ class MockableHomeAssistant(HomeAssistant):
     bus: EventBus = Mock(spec=EventBus)
 
 
-class MockService(BaseNotificationService):
+class MockAction(BaseNotificationService):
     """A test class for notification services."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.calls = []
+        self.calls: list = []
 
     @callback
     async def async_send_message(self, message="", title=None, target=None, **kwargs):
@@ -60,17 +66,22 @@ def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
     context = Mock(spec=SupernotificationConfiguration)
     context.hass = mock_hass
     context.scenarios = {}
-    context.deliveries = {}
+    context.deliveries = {"chime": {}, "gmail": {CONF_METHOD: "email"}}
     context.cameras = {}
-    context.snoozes = {}
+    context.snoozer = Snoozer()
     context.delivery_by_scenario = {}
     context.method_defaults = {}
+    context.mobile_actions = {}
     context.hass_internal_url = "http://hass-dev"
+    context.hass_external_url = "http://hass-dev.nabu.casa"
     context.media_path = Path("/nosuchpath")
     context.template_path = Path("/templates_here")
     context.people = {
         "person.new_home_owner": {CONF_PERSON: "person.new_home_owner"},
-        "person.bidey_in": {CONF_PERSON: "person.bidey_in"},
+        "person.bidey_in": {
+            CONF_PERSON: "person.bidey_in",
+            CONF_MOBILE_DEVICES: [{CONF_NOTIFY_ACTION: "mobile_app_iphone"}, {CONF_NOTIFY_ACTION: "mobile_app_nophone"}],
+        },
     }
     context.people_state.return_value = [
         {CONF_PERSON: "person.new_home_owner", ATTR_STATE: "not_home"},
@@ -85,10 +96,10 @@ def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
 
 
 @pytest.fixture()
-def mock_notify(hass: HomeAssistant) -> MockService:
-    mock_service: MockService = MockService()
-    hass.services.async_register(DOMAIN, "mock", mock_service, supports_response=SupportsResponse.NONE)  # type: ignore
-    return mock_service
+def mock_notify(hass: HomeAssistant) -> MockAction:
+    mock_action: MockAction = MockAction()
+    hass.services.async_register(DOMAIN, "mock", mock_action, supports_response=SupportsResponse.NONE)  # type: ignore
+    return mock_action
 
 
 @pytest.fixture()

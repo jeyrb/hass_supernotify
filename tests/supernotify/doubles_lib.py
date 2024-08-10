@@ -17,8 +17,8 @@ class DummyDeliveryMethod(DeliveryMethod):
         super().__init__(hass, context, deliveries)
         self.test_calls = []
 
-    def validate_service(self, service):
-        return service is None
+    def validate_action(self, action):
+        return action is None
 
     def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
         if recipient:
@@ -36,7 +36,7 @@ class DummyDeliveryMethod(DeliveryMethod):
 class BrokenDeliveryMethod(DeliveryMethod):
     method = "broken"
 
-    def validate_service(self, service) -> bool:
+    def validate_action(self, action) -> bool:
         return True
 
     async def deliver(self, envelope: Envelope) -> bool:

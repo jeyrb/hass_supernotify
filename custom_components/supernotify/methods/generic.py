@@ -1,8 +1,6 @@
 import logging
 
-from homeassistant.const import CONF_SERVICE
-
-from custom_components.supernotify import CONF_DATA, CONF_TARGET, METHOD_GENERIC
+from custom_components.supernotify import CONF_ACTION, CONF_DATA, CONF_TARGET, METHOD_GENERIC
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -17,10 +15,10 @@ class GenericDeliveryMethod(DeliveryMethod):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service: str | None) -> bool:
-        if service is not None and "." in service:
+    def validate_action(self, action: str | None) -> bool:
+        if action is not None and "." in action:
             return True
-        _LOGGER.warning("SUPERNOTIFY generic method must have a qualified service name, e.g. notify.foo")
+        _LOGGER.warning("SUPERNOTIFY generic method must have a qualified action name, e.g. notify.foo")
         return False
 
     async def deliver(self, envelope: Envelope) -> bool:
@@ -28,14 +26,14 @@ class GenericDeliveryMethod(DeliveryMethod):
         targets = envelope.targets or []
         config = self.delivery_config(envelope.delivery_name)
 
-        qualified_service = config.get(CONF_SERVICE)
-        if qualified_service and qualified_service.startswith("notify."):
-            service_data = envelope.core_service_data()
+        qualified_action = config.get(CONF_ACTION)
+        if qualified_action and qualified_action.startswith("notify."):
+            action_data = envelope.core_action_data()
             if targets is not None:
-                service_data[CONF_TARGET] = targets
+                action_data[CONF_TARGET] = targets
             if data is not None:
-                service_data[CONF_DATA] = data
+                action_data[CONF_DATA] = data
         else:
-            service_data = data
+            action_data = data
 
-        return await self.call_service(envelope, qualified_service, service_data)
+        return await self.call_action(envelope, qualified_action, action_data=action_data)

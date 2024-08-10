@@ -59,7 +59,7 @@ Here is an example working config for a Heiman HS2WD-E plugin Zigbee siren
 
 ``` yaml
  action:
-    service: notify.supernotifier
+    action: notify.supernotifier
     data_template:
       title: "Home Assistant Restart"
       message: "Home Assistant has started up."

@@ -12,6 +12,7 @@ from homeassistant.util import slugify
 
 from custom_components.supernotify.archive import NotificationArchive
 from custom_components.supernotify.common import ensure_list, safe_get
+from custom_components.supernotify.snoozer import Snoozer
 
 from . import (
     ATTR_USER_ID,
@@ -24,7 +25,7 @@ from . import (
     CONF_MOBILE_DEVICES,
     CONF_MOBILE_DISCOVERY,
     CONF_MODEL,
-    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_ACTION,
     CONF_PERSON,
     CONF_SELECTION,
     DELIVERY_SELECTION_IMPLICIT,
@@ -33,10 +34,6 @@ from . import (
     SELECTION_DEFAULT,
     SELECTION_FALLBACK,
     SELECTION_FALLBACK_ON_ERROR,
-    CommandType,
-    RecipientType,
-    Snooze,
-    TargetType,
 )
 from .scenario import Scenario
 
@@ -97,9 +94,9 @@ class SupernotificationConfiguration:
 
         self.links = ensure_list(links)
         # raw configured deliveries
-        self._deliveries: dict = deliveries if isinstance(deliveries, dict) else {}
+        self._deliveries: dict[str, Any] = deliveries if isinstance(deliveries, dict) else {}
         # validated deliveries
-        self.deliveries: dict = {}
+        self.deliveries: dict[str, Any] = {}
         self._recipients: list = ensure_list(recipients)
         self.mobile_actions: dict = mobile_actions or {}
         self.template_path: Path | None = Path(template_path) if template_path else None
@@ -112,14 +109,14 @@ class SupernotificationConfiguration:
         self.methods: dict[str, DeliveryMethod] = {}
         self.method_defaults: dict = method_defaults or {}
         self.scenarios: dict[str, Scenario] = {}
-        self.people: dict[str, Any] = {}
+        self.people: dict[str, dict] = {}
         self.applied_scenarios: dict = scenarios or {}
         self.delivery_by_scenario: dict[str, list] = {SCENARIO_DEFAULT: []}
         self.fallback_on_error: dict = {}
         self.fallback_by_default: dict = {}
-        self.snoozes: dict[str, Snooze] = {}
         self._entity_registry: entity_registry.EntityRegistry | None = None
         self._device_registry: device_registry.DeviceRegistry | None = None
+        self.snoozer = Snoozer()
 
     async def initialize(self) -> None:
         self.people = self.setup_people(self._recipients)
@@ -210,7 +207,7 @@ class SupernotificationConfiguration:
 
     def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
         if attr not in delivery_config:
-            method_default = self.method_defaults.get(delivery_config.get(CONF_METHOD), {})
+            method_default: dict = self.method_defaults.get(delivery_config.get(CONF_METHOD), {})
             if method_default.get(attr):
                 delivery_config[attr] = method_default[attr]
                 _LOGGER.debug(
@@ -224,7 +221,7 @@ class SupernotificationConfiguration:
             raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
         return method
 
-    def setup_people(self, recipients: list | tuple) -> dict[str, dict]:
+    def setup_people(self, recipients: list[dict] | tuple[dict]) -> dict[str, dict]:
         people: dict[str, dict] = {}
         for r in recipients:
             if r.get(CONF_MOBILE_DISCOVERY):
@@ -304,7 +301,7 @@ class SupernotificationConfiguration:
 
         Returns:
         -------
-            list: mobile target services for this person
+            list: mobile target actions for this person
 
         """
         mobile_devices = []
@@ -324,19 +321,19 @@ class SupernotificationConfiguration:
                         if not device:
                             _LOGGER.warning("SUPERNOTIFY Unable to find device %s", entity.device_id)
                         else:
-                            notify_service = f"mobile_app_{slugify(device.name)}"
+                            notify_action = f"mobile_app_{slugify(device.name)}"
                             if (
                                 validate_targets
                                 and self.hass
                                 and self.hass.services
-                                and not self.hass.services.has_service("notify", notify_service)
+                                and not self.hass.services.has_service("notify", notify_action)
                             ):
-                                _LOGGER.warning("SUPERNOTIFY Unable to find notify service <%s>", notify_service)
+                                _LOGGER.warning("SUPERNOTIFY Unable to find notify action <%s>", notify_action)
                             else:
                                 mobile_devices.append({
                                     CONF_MANUFACTURER: device.manufacturer,
                                     CONF_MODEL: device.model,
-                                    CONF_NOTIFY_SERVICE: notify_service,
+                                    CONF_NOTIFY_ACTION: notify_action,
                                     CONF_DEVICE_TRACKER: d_t,
                                     CONF_DEVICE_ID: device.id,
                                     CONF_DEVICE_NAME: device.name,
@@ -346,37 +343,3 @@ class SupernotificationConfiguration:
                         _LOGGER.debug("SUPERNOTIFY Ignoring device tracker %s", d_t)
 
         return mobile_devices
-
-    def register_snooze(
-        self,
-        cmd: CommandType,
-        target_type: TargetType,
-        target: str | None,
-        recipient_type: RecipientType,
-        recipient: str | None,
-        snooze_for: int | None,
-    ) -> None:
-        if cmd == CommandType.SNOOZE:
-            snooze = Snooze(target_type, recipient_type, target, recipient, snooze_for)
-            self.snoozes[snooze.short_key()] = snooze
-        elif cmd == CommandType.SILENCE:
-            snooze = Snooze(target_type, recipient_type, target, recipient)
-            self.snoozes[snooze.short_key()] = snooze
-        elif cmd == CommandType.NORMAL:
-            anti_snooze = Snooze(target_type, recipient_type, target, recipient)
-            to_del = [k for k, v in self.snoozes.items() if v.short_key() == anti_snooze.short_key()]
-            for k in to_del:
-                del self.snoozes[k]
-        else:
-            _LOGGER.warning(
-                "SUPERNOTIFY Invalid mobile cmd %s (target_type: %s, target: %s, recipient_type: %s)",
-                cmd,
-                target_type,
-                target,
-                recipient_type,
-            )
-
-    def purge_snoozes(self) -> None:
-        to_del = [k for k, v in self.snoozes.items() if not v.active()]
-        for k in to_del:
-            del self.snoozes[k]

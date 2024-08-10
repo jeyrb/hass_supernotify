@@ -38,8 +38,8 @@ class SMSDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY notify_sms: No message to send")
             return False
 
-        service_data = {"message": message[:158], ATTR_TARGET: mobile_numbers}
+        action_data = {"message": message[:158], ATTR_TARGET: mobile_numbers}
         if data and data.get("data"):
-            service_data[ATTR_DATA] = data.get("data", {})
+            action_data[ATTR_DATA] = data.get("data", {})
 
-        return await self.call_service(envelope, service_data=service_data)
+        return await self.call_action(envelope, action_data=action_data)

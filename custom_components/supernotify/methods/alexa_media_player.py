@@ -41,7 +41,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
 
         message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
 
-        service_data: dict[str, Any] = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
+        action_data: dict[str, Any] = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
         if envelope.data and envelope.data.get("data"):
-            service_data[ATTR_DATA].update(envelope.data.get("data"))
-        return await self.call_service(envelope, service_data=service_data)
+            action_data[ATTR_DATA].update(envelope.data.get("data"))
+        return await self.call_action(envelope, action_data=action_data)

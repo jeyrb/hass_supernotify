@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
@@ -14,9 +15,12 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
     CONF_MOBILE_DEVICES,
-    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_ACTION,
     CONF_PERSON,
     METHOD_MOBILE_PUSH,
+    CommandType,
+    QualifiedTargetType,
+    RecipientType,
 )
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -36,12 +40,12 @@ class MobilePushDeliveryMethod(DeliveryMethod):
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_MOBILE_APP, target) is not None
 
-    def validate_service(self, service: str | None) -> bool:
-        return service is None
+    def validate_action(self, action: str | None) -> bool:
+        return action is None
 
     def recipient_target(self, recipient: dict) -> list[str]:
         if CONF_PERSON in recipient:
-            services: list[str] = [md.get(CONF_NOTIFY_SERVICE) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
+            services: list[str] = [md.get(CONF_NOTIFY_ACTION) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))
         return []
 
@@ -63,7 +67,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         if not envelope.targets:
             _LOGGER.warning("SUPERNOTIFY No targets provided for mobile_push")
             return False
-        data = envelope.data or {}
+        data: dict[str, Any] = envelope.data or {}
         # TODO: category not passed anywhere
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = envelope.action_groups
@@ -130,11 +134,29 @@ class MobilePushDeliveryMethod(DeliveryMethod):
                 data["actions"].extend(actions)
         if not data["actions"]:
             del data["actions"]
-        service_data = envelope.core_service_data()
-        service_data[ATTR_DATA] = data
+        action_data = envelope.core_action_data()
+        action_data[ATTR_DATA] = data
         hits = 0
         for mobile_target in envelope.targets:
             full_target = mobile_target if mobile_target.startswith("notify.") else f"notify.{mobile_target}"
-            if await self.call_service(envelope, full_target, service_data=service_data):
+            if await self.call_action(envelope, full_target, action_data=action_data):
                 hits += 1
+            else:
+                simple_target = (
+                    mobile_target if not mobile_target.startswith("notify.") else mobile_target.replace("notify.", "")
+                )
+                _LOGGER.warning("SUPERNOTIFY Failed to send to %s, snoozing for a day", simple_target)
+                # somewhat hacky way to tie the mobile device back to a recipient to please the snoozing api
+                for recipient in self.context.people.values():
+                    for md in recipient.get(CONF_MOBILE_DEVICES, []):
+                        if md.get(CONF_NOTIFY_ACTION) in (simple_target, mobile_target):
+                            self.context.snoozer.register_snooze(
+                                CommandType.SNOOZE,
+                                target_type=QualifiedTargetType.ACTION,
+                                target=simple_target,
+                                recipient_type=RecipientType.USER,
+                                recipient=recipient[CONF_PERSON],
+                                snooze_for=24 * 60 * 60,
+                                reason="Action Failure",
+                            )
         return hits > 0

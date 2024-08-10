@@ -33,7 +33,7 @@ class Envelope:
         self.title: str | None = None
         self.message_html: str | None = None
         self.data: dict = {}
-        self.actions: list = []
+        self.actions: list[dict] = []
         delivery_config_data: dict = {}
         if notification:
             self.notification_id = notification.id
@@ -65,7 +65,7 @@ class Envelope:
             return await self._notification.grab_image(self.delivery_name)
         return None
 
-    def core_service_data(self) -> dict:
+    def core_action_data(self) -> dict:
         """Build the core set of `service_data` dict to pass to underlying notify service"""
         data: dict = {}
         # message is mandatory for notify platform

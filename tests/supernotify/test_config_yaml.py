@@ -21,7 +21,7 @@ SIMPLE_CONFIG = {
     "name": DOMAIN,
     "platform": DOMAIN,
     "delivery": {
-        "testing": {"method": "generic", "service": "notify.notify"},
+        "testing": {"method": "generic", "action": "notify.notify"},
         "chime_person": {"method": "chime", "selection": "scenario", "data": {"chime_tune": "person"}},
     },
     "scenarios": {
@@ -81,7 +81,7 @@ async def test_reload(hass: HomeAssistant) -> None:
     assert len(uut.context.deliveries) == 12
 
 
-async def test_call_service(hass: HomeAssistant) -> None:
+async def test_call_action(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
 
     await hass.async_block_till_done()
@@ -117,22 +117,20 @@ async def test_empty_config(hass: HomeAssistant) -> None:
     await hass.services.async_call(NOTIFY_DOMAIN, DOMAIN, {"title": "my title", "message": "unit test"}, blocking=True)
 
 
-async def test_call_supplemental_services(hass: HomeAssistant) -> None:
+async def test_call_supplemental_actions(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, {NOTIFY_DOMAIN: [SIMPLE_CONFIG]})
-
     await hass.async_block_till_done()
-
     response: ServiceResponse = await hass.services.async_call(
-        "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
-    )
-    await hass.async_block_till_done()
-    assert response == {"DEFAULT": ["testing"], "simple": ["testing"], "somebody": ["chime_person"]}
-
-    response = await hass.services.async_call(
         "supernotify", "enquire_last_notification", None, blocking=True, return_response=True
     )
     await hass.async_block_till_done()
     assert response == {}
+
+    response = await hass.services.async_call(
+        "supernotify", "enquire_deliveries_by_scenario", None, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert response == {"DEFAULT": ["testing"], "simple": ["testing"], "somebody": ["chime_person"]}
 
     response = await hass.services.async_call(
         "supernotify", "enquire_active_scenarios", None, blocking=True, return_response=True

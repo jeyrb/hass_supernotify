@@ -31,8 +31,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
         self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
 
-    def validate_service(self, service: str | None) -> bool:
-        return service is None
+    def validate_action(self, action: str | None) -> bool:
+        return action is None
 
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_CHIME, target) is not None
@@ -62,23 +62,23 @@ class ChimeDeliveryMethod(DeliveryMethod):
         chimes = 0
         for chime_entity_id, tune in expanded_targets.items():
             _LOGGER.debug("SUPERNOTIFY chime %s: %s", chime_entity_id, tune)
-            service_data = None
+            action_data = None
             try:
-                domain, service, service_data = self.analyze_target(chime_entity_id, tune, data)
+                domain, service, action_data = self.analyze_target(chime_entity_id, tune, data)
                 if domain is not None and service is not None:
-                    service_data = self.prune_data(domain, service_data)
+                    action_data = self.prune_data(domain, action_data)
 
                     if domain == "script":
-                        self.set_service_data(service_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
-                        self.set_service_data(service_data[CONF_VARIABLES], ATTR_TITLE, envelope.title)
-                        self.set_service_data(service_data[CONF_VARIABLES], "chime_tune", tune)
+                        self.set_action_data(action_data[CONF_VARIABLES], ATTR_MESSAGE, envelope.message)
+                        self.set_action_data(action_data[CONF_VARIABLES], ATTR_TITLE, envelope.title)
+                        self.set_action_data(action_data[CONF_VARIABLES], "chime_tune", tune)
 
-                    if await self.call_service(envelope, f"{domain}.{service}", service_data=service_data):
+                    if await self.call_action(envelope, f"{domain}.{service}", action_data=action_data):
                         chimes += 1
                 else:
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s,%s", chime_entity_id, tune)
             except Exception as e:
-                _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, service_data, e)
+                _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, action_data, e)
         return chimes > 0
 
     def prune_data(self, domain: str, data: dict) -> dict:
@@ -95,41 +95,41 @@ class ChimeDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY Empty chime target")
             return "", None, {}
         domain, name = target.split(".", 1)
-        service_data: dict[str, Any] = {}
-        service: str | None = None
+        action_data: dict[str, Any] = {}
+        action: str | None = None
         chime_volume = data.pop("chime_volume", 1)
         chime_duration = data.pop("chime_duration", 10)
 
         if domain == "switch":
-            service = "turn_on"
-            service_data[ATTR_ENTITY_ID] = target
+            action = "turn_on"
+            action_data[ATTR_ENTITY_ID] = target
         elif domain == "siren":
-            service = "turn_on"
-            service_data[ATTR_ENTITY_ID] = target
-            service_data[ATTR_DATA] = {}
+            action = "turn_on"
+            action_data[ATTR_ENTITY_ID] = target
+            action_data[ATTR_DATA] = {}
             if chime_tune:
-                service_data[ATTR_DATA]["tone"] = chime_tune
-            service_data[ATTR_DATA]["duration"] = chime_duration
-            service_data[ATTR_DATA]["volume_level"] = chime_volume
+                action_data[ATTR_DATA]["tone"] = chime_tune
+            action_data[ATTR_DATA]["duration"] = chime_duration
+            action_data[ATTR_DATA]["volume_level"] = chime_volume
 
         elif domain == "script":
             if data:
-                service_data.update(data)
-            service = name
-            service_data.setdefault(CONF_VARIABLES, {})
+                action_data.update(data)
+            action = name
+            action_data.setdefault(CONF_VARIABLES, {})
 
         elif domain == "media_player" and chime_tune:
             if data:
-                service_data.update(data)
-            service = "play_media"
-            service_data[ATTR_ENTITY_ID] = target
-            service_data["media_content_type"] = "sound"
-            service_data["media_content_id"] = chime_tune
+                action_data.update(data)
+            action = "play_media"
+            action_data[ATTR_ENTITY_ID] = target
+            action_data["media_content_type"] = "sound"
+            action_data["media_content_id"] = chime_tune
 
         else:
             _LOGGER.warning("SUPERNOTIFY No matching chime domain/tune: %s, target: %s, tune: %s", domain, target, chime_tune)
 
-        return domain, service, service_data
+        return domain, action, action_data
 
     def resolve_tune(self, tune: str | None) -> dict[str, Any]:
         entities_and_tunes: dict[str, Any] = {}

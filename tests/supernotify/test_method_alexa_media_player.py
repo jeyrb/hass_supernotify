@@ -1,13 +1,13 @@
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_SERVICE
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD
 
-from custom_components.supernotify import METHOD_ALEXA
+from custom_components.supernotify import CONF_ACTION, METHOD_ALEXA
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 DELIVERY = {
-    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
+    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_ACTION: "notify.alexa"},
 }
 
 
@@ -18,7 +18,7 @@ async def test_notify_alexa(mock_hass) -> None:
     uut = AlexaMediaPlayerDeliveryMethod(
         mock_hass,
         context,
-        {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True, CONF_SERVICE: "notify.alexa"}},
+        {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True, CONF_ACTION: "notify.alexa"}},
     )
     await uut.initialize()
     await uut.deliver(

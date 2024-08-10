@@ -30,7 +30,7 @@ async def test_default_recipients_with_override(mock_hass) -> None:
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
     await context.register_delivery_methods([dummy], set_as_default=True)
-    uut = Notification(context, "testing", service_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
+    uut = Notification(context, "testing", action_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.initialize()
     await uut.deliver()
     assert dummy.test_calls == [Envelope("dummy", uut, targets=["dummy.new_home_owner"])]
@@ -53,20 +53,20 @@ async def test_delivery_override_method(mock_hass) -> None:
     dummy = DummyDeliveryMethod(mock_hass, context, delivery_config)
     await context.initialize()
     await context.register_delivery_methods([dummy], set_as_default=False)
-    uut = Notification(context, "testing", service_data={"delivery": ["regular_alert"]})
+    uut = Notification(context, "testing", action_data={"delivery": ["regular_alert"]})
     await uut.initialize()
     await uut.deliver()
     envelope = uut.delivered_envelopes[0]
     assert envelope.targets == ["switch.pillow_vibrate", "media_player.hall"]
 
-    uut = Notification(context, "testing", service_data={"delivery": ["quiet_alert"]})
+    uut = Notification(context, "testing", action_data={"delivery": ["quiet_alert"]})
     await uut.initialize()
 
     await uut.deliver()
     envelope = uut.delivered_envelopes[0]
     assert envelope.targets == ["switch.pillow_vibrate"]
 
-    uut = Notification(context, "testing", service_data={"delivery": ["day_alert"]})
+    uut = Notification(context, "testing", action_data={"delivery": ["day_alert"]})
     await uut.initialize()
 
     await uut.deliver()
@@ -95,7 +95,7 @@ async def test_autoresolve_mobile_devices_for_devices(
         {
             "manufacturer": "xUnit",
             "model": "PyTest001",
-            "notify_service": "mobile_app_bobs_phone",
+            "notify_action": "mobile_app_bobs_phone",
             "device_tracker": "device_tracker.mobile_app_phone_bob",
             "device_id": device.id,
             "device_name": "Bobs Phone",

@@ -25,7 +25,6 @@ from . import (
     ATTR_DATA,
     ATTR_DUPE_POLICY_MTSLP,
     ATTR_DUPE_POLICY_NONE,
-    ATTR_USER_ID,
     CONF_ACTION_GROUPS,
     CONF_ACTIONS,
     CONF_ARCHIVE,
@@ -38,7 +37,6 @@ from . import (
     CONF_LINKS,
     CONF_MEDIA_PATH,
     CONF_METHODS,
-    CONF_PERSON,
     CONF_RECIPIENTS,
     CONF_SCENARIOS,
     CONF_SIZE,
@@ -49,12 +47,7 @@ from . import (
     PLATFORMS,
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
-    CommandType,
     ConditionVariables,
-    GlobalTargetType,
-    QualifiedTargetType,
-    RecipientType,
-    TargetType,
 )
 from .configuration import SupernotificationConfiguration
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -87,7 +80,7 @@ async def async_get_service(
     hass: HomeAssistant,
     config: ConfigType,
     discovery_info: DiscoveryInfoType | None = None,
-) -> "SuperNotificationService":
+) -> "SuperNotificationAction":
     """Notify specific component setup - see async_setup_legacy in BaseNotificationService"""
     _ = PLATFORM_SCHEMA  # schema must be imported even if not used for HA platform detection
     _ = discovery_info
@@ -120,7 +113,7 @@ async def async_get_service(
     hass.states.async_set(f"{DOMAIN}.sent", "0")
 
     await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
-    service = SuperNotificationService(
+    service = SuperNotificationAction(
         hass,
         deliveries=config[CONF_DELIVERY],
         template_path=config[CONF_TEMPLATE_PATH],
@@ -137,29 +130,29 @@ async def async_get_service(
     )
     await service.initialize()
 
-    def supplemental_service_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict:
         return service.enquire_deliveries_by_scenario()
 
-    def supplemental_service_enquire_last_notification(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_last_notification(_call: ServiceCall) -> dict:
         return service.last_notification.contents() if service.last_notification else {}
 
-    async def supplemental_service_enquire_active_scenarios(call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_active_scenarios(call: ServiceCall) -> dict:
         trace = call.data.get("trace", False)
         return {"scenarios": await service.enquire_active_scenarios(trace)}
 
-    async def supplemental_service_enquire_occupancy(_call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_occupancy(_call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_occupancy()}
 
-    async def supplemental_service_enquire_snoozes(_call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_snoozes(_call: ServiceCall) -> dict:
         return {"snoozes": service.enquire_snoozes()}
 
-    async def supplemental_service_clear_snoozes(_call: ServiceCall) -> dict:
+    async def supplemental_action_clear_snoozes(_call: ServiceCall) -> dict:
         return {"cleared": service.clear_snoozes()}
 
-    async def supplemental_service_enquire_people(_call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_people(_call: ServiceCall) -> dict:
         return {"people": service.enquire_people()}
 
-    async def supplemental_service_purge_archive(call: ServiceCall) -> dict[str, Any]:
+    async def supplemental_action_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
         if service.context.archive is None:
             return {"error": "No archive configured"}
@@ -175,57 +168,57 @@ async def async_get_service(
     hass.services.async_register(
         DOMAIN,
         "enquire_deliveries_by_scenario",
-        supplemental_service_enquire_deliveries_by_scenario,
+        supplemental_action_enquire_deliveries_by_scenario,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "enquire_last_notification",
-        supplemental_service_enquire_last_notification,
+        supplemental_action_enquire_last_notification,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "enquire_active_scenarios",
-        supplemental_service_enquire_active_scenarios,
+        supplemental_action_enquire_active_scenarios,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "enquire_occupancy",
-        supplemental_service_enquire_occupancy,
+        supplemental_action_enquire_occupancy,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "enquire_people",
-        supplemental_service_enquire_people,
+        supplemental_action_enquire_people,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "enquire_snoozes",
-        supplemental_service_enquire_snoozes,
+        supplemental_action_enquire_snoozes,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "clear_snoozes",
-        supplemental_service_clear_snoozes,
+        supplemental_action_clear_snoozes,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
         DOMAIN,
         "purge_archive",
-        supplemental_service_purge_archive,
+        supplemental_action_purge_archive,
         supports_response=SupportsResponse.ONLY,
     )
 
     return service
 
 
-class SuperNotificationService(BaseNotificationService):
-    """Implement SuperNotification service."""
+class SuperNotificationAction(BaseNotificationService):
+    """Implement SuperNotification action."""
 
     def __init__(
         self,
@@ -272,6 +265,7 @@ class SuperNotificationService(BaseNotificationService):
     async def initialize(self) -> None:
         await self.context.initialize()
         await self.context.register_delivery_methods(delivery_method_classes=METHODS)
+
         self.expose_entities()
         self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))
         housekeeping_schedule = self.housekeeping.get(CONF_HOUSEKEEPING_TIME)
@@ -402,12 +396,10 @@ class SuperNotificationService(BaseNotificationService):
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
-        return [s.export() for s in self.context.snoozes.values()]
+        return self.context.snoozer.export()
 
     def clear_snoozes(self) -> int:
-        cleared = len(self.context.snoozes)
-        self.context.snoozes.clear()
-        return cleared
+        return self.context.snoozer.clear()
 
     def enquire_people(self) -> list[dict]:
         return list(self.context.people.values())
@@ -430,64 +422,11 @@ class SuperNotificationService(BaseNotificationService):
         event_name = event.data.get(ATTR_ACTION)
         if event_name is None or not event_name.startswith("SUPERNOTIFY_"):
             return  # event not intended for here
-        try:
-            cmd: CommandType
-            target_type: TargetType | None = None
-            target: str | None = None
-            snooze_for: int = SNOOZE_TIME
-            recipient_type: RecipientType | None = None
-
-            _LOGGER.debug(
-                "SUPERNOTIFY Mobile Action: %s, %s, %s, %s", event.origin, event.time_fired, event.data, event.context
-            )
-            event_parts: list[str] = event_name.split("_")
-            if len(event_parts) < 4:
-                _LOGGER.warning("SUPERNOTIFY Malformed mobile event action %s", event_name)
-                return
-            cmd = CommandType[event_parts[1]]
-            recipient_type = RecipientType[event_parts[2]]
-            if event_parts[3] in QualifiedTargetType and len(event_parts) > 4:
-                target_type = QualifiedTargetType[event_parts[3]]
-                target = event_parts[4]
-                snooze_for = int(event_parts[-1]) if len(event_parts) == 6 else SNOOZE_TIME
-            elif event_parts[3] in GlobalTargetType and len(event_parts) >= 4:
-                target_type = GlobalTargetType[event_parts[3]]
-                snooze_for = int(event_parts[-1]) if len(event_parts) == 5 else SNOOZE_TIME
-
-            if cmd is None or target_type is None or recipient_type is None:
-                _LOGGER.warning("SUPERNOTIFY Invalid mobile event name %s", event_name)
-                return
-
-        except KeyError as ke:
-            _LOGGER.warning("SUPERNOTIFY Unknown enum in event %s: %s", event, ke)
-            return
-        except Exception as e:
-            _LOGGER.warning("SUPERNOTIFY Unable to analyze event %s: %s", event, e)
-            return
-
-        try:
-            recipient: str | None = None
-            if recipient_type == RecipientType.USER:
-                people = [
-                    p.get(CONF_PERSON)
-                    for p in self.context.people.values()
-                    if p.get(ATTR_USER_ID) == event.context.user_id and event.context.user_id is not None and p.get(CONF_PERSON)
-                ]
-                if people:
-                    recipient = people[0]
-                    _LOGGER.debug("SUPERNOTIFY mobile action from %s mapped to %s", event.context.user_id, recipient)
-                else:
-                    _LOGGER.warning("SUPERNOTIFY Unable to find person for action from %s", event.context.user_id)
-                    return
-
-            self.context.register_snooze(cmd, target_type, target, recipient_type, recipient, snooze_for)
-
-        except Exception as e:
-            _LOGGER.warning("SUPERNOTIFY Unable to handle event %s: %s", event, e)
+        self.context.snoozer.handle_command_event(event, self.context.people)
 
     @callback
     async def async_nightly_tasks(self, now: dt.datetime) -> None:
         _LOGGER.info("SUPERNOTIFY Housekeeping starting as scheduled at %s", now)
         await self.context.archive.cleanup()
-        self.context.purge_snoozes()
+        self.context.snoozer.purge_snoozes()
         _LOGGER.info("SUPERNOTIFY Housekeeping completed")

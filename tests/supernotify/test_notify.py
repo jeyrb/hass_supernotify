@@ -1,12 +1,13 @@
 from typing import cast
 from unittest.mock import Mock
 
-from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_SERVICE, CONF_STATE
+from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_STATE
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 
 from custom_components.supernotify import (
     ATTR_DUPE_POLICY_NONE,
     ATTR_PRIORITY,
+    CONF_ACTION,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_DUPE_POLICY,
@@ -34,15 +35,15 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
-from custom_components.supernotify.notify import SuperNotificationService
+from custom_components.supernotify.notify import SuperNotificationAction
 from tests.supernotify.doubles_lib import BrokenDeliveryMethod, DummyDeliveryMethod
 
 DELIVERY: dict[str, dict] = {
-    "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
-    "text": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.sms"},
+    "email": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp"},
+    "text": {CONF_METHOD: METHOD_SMS, CONF_ACTION: "notify.sms"},
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
-    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
-    "chat": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.my_chat_server"},
+    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_ACTION: "notify.alexa"},
+    "chat": {CONF_METHOD: METHOD_GENERIC, CONF_ACTION: "notify.my_chat_server"},
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SELECTION: SELECTION_BY_SCENARIO},
     "dummy": {CONF_METHOD: "dummy"},
 }
@@ -57,21 +58,21 @@ RECIPIENTS: list[dict] = [
         "person": "person.new_home_owner",
         "email": "me@tester.net",
         CONF_PHONE_NUMBER: "+447989408889",
-        "mobile_devices": [{"notify_service": "mobile_app_new_iphone"}],
+        "mobile_devices": [{"notify_action": "mobile_app_new_iphone"}],
         CONF_DELIVERY: {"dummy": {CONF_DATA: {"emoji_id": 912393}, CONF_TARGET: ["xyz123"]}},
     },
     {"person": "person.bidey_in", CONF_PHONE_NUMBER: "+4489393013834", CONF_DELIVERY: {"dummy": {CONF_TARGET: ["abc789"]}}},
 ]
 
 METHOD_DEFAULTS: dict[str, dict] = {
-    METHOD_GENERIC: {CONF_SERVICE: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
+    METHOD_GENERIC: {CONF_ACTION: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
     METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_args": {"progressive": True}}},
     "dummy": {CONF_TARGETS_REQUIRED: False},
 }
 
 
 async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
-    uut = SuperNotificationService(
+    uut = SuperNotificationAction(
         mock_hass,
         deliveries=DELIVERY,
         scenarios=SCENARIOS,
@@ -104,7 +105,7 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
 
 
 async def inject_dummy_delivery_method(
-    hass: HomeAssistant, uut: SuperNotificationService, delivery_method_class: type, delivery_config=None
+    hass: HomeAssistant, uut: SuperNotificationAction, delivery_method_class: type, delivery_config=None
 ) -> DeliveryMethod:
     dm = delivery_method_class(hass, uut.context, deliveries=delivery_config)
     await dm.initialize()
@@ -113,7 +114,7 @@ async def inject_dummy_delivery_method(
 
 
 async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> None:
-    uut = SuperNotificationService(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
+    uut = SuperNotificationAction(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     dummy: DummyDeliveryMethod = cast(
         DummyDeliveryMethod, await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
@@ -134,9 +135,7 @@ async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> Non
 
 async def test_broken_delivery(mock_hass: HomeAssistant) -> None:
     delivery_config = {"broken": {CONF_METHOD: "broken"}}
-    uut = SuperNotificationService(
-        mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS
-    )
+    uut = SuperNotificationAction(mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     await inject_dummy_delivery_method(mock_hass, uut, BrokenDeliveryMethod, delivery_config=delivery_config)
     await uut.async_send_message(
@@ -154,18 +153,18 @@ async def test_broken_delivery(mock_hass: HomeAssistant) -> None:
 
 
 async def test_null_delivery(mock_hass: HomeAssistant) -> None:
-    uut = SuperNotificationService(mock_hass)
+    uut = SuperNotificationAction(mock_hass)
     await uut.initialize()
     await uut.async_send_message("just a test")
     mock_hass.services.async_call.assert_not_called()  # type: ignore
 
 
 async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
-    uut = SuperNotificationService(
+    uut = SuperNotificationAction(
         mock_hass,
         deliveries={
-            "generic": {CONF_METHOD: METHOD_GENERIC, CONF_SELECTION: SELECTION_FALLBACK, CONF_SERVICE: "notify.dummy"},
-            "push": {CONF_METHOD: METHOD_MOBILE_PUSH, CONF_SERVICE: "notify.push", CONF_PRIORITY: "critical"},
+            "generic": {CONF_METHOD: METHOD_GENERIC, CONF_SELECTION: SELECTION_FALLBACK, CONF_ACTION: "notify.dummy"},
+            "push": {CONF_METHOD: METHOD_MOBILE_PUSH, CONF_ACTION: "notify.push", CONF_PRIORITY: "critical"},
         },
         method_defaults=METHOD_DEFAULTS,
     )
@@ -179,7 +178,7 @@ async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
 async def test_send_message_with_condition(hass: HomeAssistant) -> None:
     delivery = {
         CONF_METHOD: METHOD_GENERIC,
-        CONF_SERVICE: "testing.mock_notification",
+        CONF_ACTION: "testing.mock_notification",
         CONF_CONDITION: {
             CONF_CONDITION: "or",
             CONF_CONDITIONS: [
@@ -208,7 +207,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
         mock_service_log,
     )
     delivery_config = {"testablity": DELIVERY_SCHEMA(delivery)}
-    uut = SuperNotificationService(hass, deliveries=delivery_config, recipients=RECIPIENTS)
+    uut = SuperNotificationAction(hass, deliveries=delivery_config, recipients=RECIPIENTS)
     await uut.initialize()
     hass.states.async_set("alarm_control_panel.home_alarm_control", "disarmed")
 
@@ -247,7 +246,7 @@ async def test_send_message_with_condition(hass: HomeAssistant) -> None:
 
 async def test_dupe_check_suppresses_same_priority_and_message(mock_hass: HomeAssistant) -> None:
     context = Mock(spec=SupernotificationConfiguration)
-    uut = SuperNotificationService(mock_hass)
+    uut = SuperNotificationAction(mock_hass)
     await uut.initialize()
     n1 = Notification(context, "message here", "title here")
     assert uut.dupe_check(n1) is False
@@ -257,9 +256,9 @@ async def test_dupe_check_suppresses_same_priority_and_message(mock_hass: HomeAs
 
 async def test_dupe_check_allows_higher_priority_and_same_message(mock_hass: HomeAssistant) -> None:
     context = Mock(SupernotificationConfiguration)
-    uut = SuperNotificationService(mock_hass)
+    uut = SuperNotificationAction(mock_hass)
     await uut.initialize()
     n1 = Notification(context, "message here", "title here")
     assert uut.dupe_check(n1) is False
-    n2 = Notification(context, "message here", "title here", service_data={ATTR_PRIORITY: "high"})
+    n2 = Notification(context, "message here", "title here", action_data={ATTR_PRIORITY: "high"})
     assert uut.dupe_check(n2) is False

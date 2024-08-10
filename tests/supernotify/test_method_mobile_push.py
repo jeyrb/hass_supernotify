@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_httpserver import HTTPServer
 
-from conftest import MockService
+from conftest import MockAction
 from custom_components.supernotify import (
     ATTR_PRIORITY,
     CONF_METHOD,
@@ -18,11 +18,14 @@ from custom_components.supernotify import (
     PRIORITY_LOW,
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
+    QualifiedTargetType,
+    RecipientType,
 )
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.mobile_push import MobilePushDeliveryMethod
 from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.snoozer import Snooze
 
 
 async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> None:
@@ -36,7 +39,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
             Notification(
                 context,
                 message="hello there",
-                service_data={
+                action_data={
                     "media": {
                         "camera_entity_id": "camera.porch",
                         "camera_ptz_preset": "front-door",
@@ -95,21 +98,21 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssista
 async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration(
-        recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
+        recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_action": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
     n = Notification(context, message="hello there", title="testing")
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
-    recipients = n.generate_recipients("dummy", uut)
+    recipients: list[dict[str, Any]] = n.generate_recipients("dummy", uut)
     assert len(recipients) == 1
     assert recipients[0]["person"] == "person.test_user"
-    assert recipients[0]["mobile_devices"][0]["notify_service"] == "mobile_app_test_user_iphone"
+    assert recipients[0]["mobile_devices"][0]["notify_action"] == "mobile_app_test_user_iphone"
 
 
 async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = SupernotificationConfiguration(
-        recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_service": "mobile_app_test_user_iphone"}]}]
+        recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_action": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
@@ -117,7 +120,7 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
     await uut.deliver(
         Envelope(
             "",
-            Notification(context, message="hello there", title="testing", service_data={CONF_PRIORITY: PRIORITY_CRITICAL}),
+            Notification(context, message="hello there", title="testing", action_data={CONF_PRIORITY: PRIORITY_CRITICAL}),
             targets=["mobile_app_test_user_iphone"],
         )
     )
@@ -143,9 +146,9 @@ async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, pr
         PRIORITY_MEDIUM: "active",
     }
     uut = MobilePushDeliveryMethod(mock_hass, superconfig, {})
-    e = Envelope(
+    e: Envelope = Envelope(
         "",
-        Notification(superconfig, message="hello there", title="testing", service_data={ATTR_PRIORITY: priority}),
+        Notification(superconfig, message="hello there", title="testing", action_data={ATTR_PRIORITY: priority}),
         targets=["mobile_app_test_user_iphone"],
     )
     await uut.deliver(e)
@@ -158,11 +161,11 @@ INTEGRATION_CONFIG = {
     "delivery": {
         "push": {CONF_METHOD: METHOD_MOBILE_PUSH},
     },
-    "recipients": [{"person": "person.house_owner", "mobile_devices": {"notify_service": "notify.mobile_app_new_iphone"}}],
+    "recipients": [{"person": "person.house_owner", "mobile_devices": {"notify_action": "notify.mobile_app_new_iphone"}}],
 }
 
 
-async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockService) -> None:
+async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockAction) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, config={NOTIFY_DOMAIN: [INTEGRATION_CONFIG]})
     await hass.async_block_till_done()
 
@@ -198,3 +201,20 @@ async def test_action_title(mock_hass: HomeAssistant, superconfig, local_server:
     assert await uut.action_title(action_url) == "my old action page"
 
     assert await uut.action_title("http://127.0.0.1/no/such/page") is None
+
+
+async def test_on_notify_mobile_push_with_broken_mobile_targets(mock_context: SupernotificationConfiguration) -> None:
+    """Test on_notify_mobile_push."""
+    uut = MobilePushDeliveryMethod(mock_context.hass, mock_context, {})
+    e = Envelope(
+        "",
+        Notification(mock_context, message="hello there", title="testing"),
+        targets=["mobile_app_nophone"],
+    )
+    assert mock_context.hass is not None
+    assert mock_context.hass.services is not None
+    mock_context.hass.services.async_call.side_effect = Exception("Boom!")  # type: ignore
+    await uut.deliver(e)
+    expected_snooze = Snooze(QualifiedTargetType.ACTION, RecipientType.USER, "mobile_app_nophone", "person.bidey_in")
+    assert mock_context.snoozer.snoozes == {"ACTION_mobile_app_nophone_person.bidey_in": expected_snooze}
+    assert mock_context.snoozer.current_snoozes() == [expected_snooze]

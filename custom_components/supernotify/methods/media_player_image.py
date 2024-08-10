@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
-    default_service = "media_player.play_media"
+    default_action = "media_player.play_media"
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -21,8 +21,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_MEDIA_PLAYER, target) is not None
 
-    def validate_service(self, service: str | None) -> bool:
-        return service is None or service == "media_player.play_media"
+    def validate_action(self, action: str | None) -> bool:
+        return action is None or action == "media_player.play_media"
 
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
@@ -40,8 +40,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         # absolutize relative URL for external URl, probably preferred by Alexa Show etc
         snapshot_url = urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
 
-        service_data = {"media_content_id": snapshot_url, "media_content_type": "image", "entity_id": media_players}
+        action_data = {"media_content_id": snapshot_url, "media_content_type": "image", "entity_id": media_players}
         if data and data.get("data"):
-            service_data["extra"] = data.get("data")
+            action_data["extra"] = data.get("data")
 
-        return await self.call_service(envelope, service_data=service_data)
+        return await self.call_action(envelope, action_data=action_data)

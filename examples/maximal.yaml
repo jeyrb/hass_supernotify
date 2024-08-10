@@ -34,26 +34,26 @@ notify:
           - fallback
       text_message:
         method: sms
-        service: notify.mikrotik_sms
+        action: notify.mikrotik_sms
         occupancy: only_out
         priority:
           - critical
           - high
       alexa_announce:
         method: alexa
-        service: notify.alexa
+        action: notify.alexa
         occupancy: any_in
       mobile_push:
         method: mobile_push
       expensive_api_call:
         method: generic
-        service: notify.megacorp_api
+        action: notify.megacorp_api
         selection:
           - scenario
           - fallback_on_error
       alexa_show:
         method: media
-        service: media_player.play_media
+        action: media_player.play_media
         target:
           - media_player.kitchen_2
       play_chimes:
@@ -65,7 +65,7 @@ notify:
         occupancy: any_in
       alexa_red_alert:
         method: generic
-        service: notify.alexa
+        action: notify.alexa
         selection: scenario
         message: '<audio src="soundbank://soundlibrary/home/scifi/amzn_sfx_scifi_alarm_04"/>'
         data:
@@ -81,7 +81,7 @@ notify:
           chime_tune: amzn_sfx_doorbell_chime_01
       upstairs_siren:
         method: generic
-        service: mqtt.publish
+        action: mqtt.publish
         priority:
           - critical
         data:
@@ -124,14 +124,14 @@ notify:
         mobile_devices:
           - manufacturer: nokia
             model: 6110
-            notify_service: notify.mobile_old
+            notify_action: notify.mobile_old
             device_tracker: device_tracker.nokia_6110
         delivery:
           text_message:
             enabled: false
     methods:
       email:
-        service: notify.smtp
+        action: notify.smtp
         data:
           footer: Delivered by SuperNotify (MsgId:{e.notification_id})
         options:
@@ -149,7 +149,7 @@ notify:
         options:
           title_only: True
       sms:
-        service: notify.mikrotik_sms
+        action: notify.mikrotik_sms
         targets_required: true
       mobile_push:
         options:

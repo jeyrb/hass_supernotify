@@ -13,6 +13,7 @@ from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TAR
 from voluptuous import humanize
 
 from custom_components.supernotify import (
+    ACTION_DATA_SCHEMA,
     ATTR_ACTION_GROUPS,
     ATTR_ACTIONS,
     ATTR_DEBUG,
@@ -33,7 +34,6 @@ from custom_components.supernotify import (
     CONF_DATA,
     CONF_DELIVERY,
     CONF_MESSAGE,
-    CONF_METHOD,
     CONF_OCCUPANCY,
     CONF_OPTIONS,
     CONF_PERSON,
@@ -55,18 +55,12 @@ from custom_components.supernotify import (
     OCCUPANCY_NONE,
     OCCUPANCY_ONLY_IN,
     OCCUPANCY_ONLY_OUT,
-    PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
     SCENARIO_DEFAULT,
     SELECTION_BY_SCENARIO,
-    SERVICE_DATA_SCHEMA,
-    STRICT_SERVICE_DATA_SCHEMA,
+    STRICT_ACTION_DATA_SCHEMA,
     ConditionVariables,
-    GlobalTargetType,
-    QualifiedTargetType,
-    RecipientType,
-    Snooze,
 )
 from custom_components.supernotify.archive import ArchivableObject
 from custom_components.supernotify.common import safe_extend
@@ -88,14 +82,14 @@ class Notification(ArchivableObject):
         message: str | None = None,
         title: str | None = None,
         target: list | str | None = None,
-        service_data: dict | None = None,
+        action_data: dict | None = None,
     ) -> None:
         self.created: dt.datetime = dt.datetime.now(tz=dt.UTC)
-        self.debug_trace: DebugTrace = DebugTrace(message=message, title=title, data=service_data, target=target)
+        self.debug_trace: DebugTrace = DebugTrace(message=message, title=title, data=action_data, target=target)
         self._message: str | None = message
         self.context: SupernotificationConfiguration = context
-        service_data = service_data or {}
-        self.target: list = ensure_list(target)
+        action_data = action_data or {}
+        self.target: list[str] = ensure_list(target)
         self._title: str | None = title
         self.id = str(uuid.uuid1())
         self.snapshot_image_path: Path | None = None
@@ -106,27 +100,26 @@ class Notification(ArchivableObject):
         self.undelivered_envelopes: list[Envelope] = []
         self.delivery_error: list[str] | None = None
 
-        self.validate_service_data(service_data)
+        self.validate_action_data(action_data)
         # for compatibility with other notify calls, pass thru surplus data to underlying delivery methods
-        self.data = {k: v for k, v in service_data.items() if k not in STRICT_SERVICE_DATA_SCHEMA(service_data)}
-        service_data = {k: v for k, v in service_data.items() if k not in self.data}
+        self.data: dict[str, Any] = {k: v for k, v in action_data.items() if k not in STRICT_ACTION_DATA_SCHEMA(action_data)}
+        action_data = {k: v for k, v in action_data.items() if k not in self.data}
 
-        self.priority: str = service_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
-        self.message_html: str | None = service_data.get(ATTR_MESSAGE_HTML)
-        self.required_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_CONSTRAIN))
-        self.applied_scenarios: list = ensure_list(service_data.get(ATTR_SCENARIOS_APPLY))
-        self.delivery_selection: str | None = service_data.get(ATTR_DELIVERY_SELECTION)
-        self.delivery_overrides_type: str = service_data.get(ATTR_DELIVERY).__class__.__name__
-        self.delivery_overrides: dict = ensure_dict(service_data.get(ATTR_DELIVERY))
-        self.action_groups: list[str] | None = service_data.get(ATTR_ACTION_GROUPS)
-        self.recipients_override: list[str] | None = service_data.get(ATTR_RECIPIENTS)
-        self.data.update(service_data.get(ATTR_DATA, {}))
-        self.media: dict = service_data.get(ATTR_MEDIA) or {}
-        self.debug: bool = service_data.get(ATTR_DEBUG, False)
-        self.actions: dict = service_data.get(ATTR_ACTIONS) or {}
+        self.priority: str = action_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
+        self.message_html: str | None = action_data.get(ATTR_MESSAGE_HTML)
+        self.required_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
+        self.applied_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
+        self.delivery_selection: str | None = action_data.get(ATTR_DELIVERY_SELECTION)
+        self.delivery_overrides_type: str = action_data.get(ATTR_DELIVERY).__class__.__name__
+        self.delivery_overrides: dict = ensure_dict(action_data.get(ATTR_DELIVERY))
+        self.action_groups: list[str] | None = action_data.get(ATTR_ACTION_GROUPS)
+        self.recipients_override: list[str] | None = action_data.get(ATTR_RECIPIENTS)
+        self.data.update(action_data.get(ATTR_DATA, {}))
+        self.media: dict = action_data.get(ATTR_MEDIA) or {}
+        self.debug: bool = action_data.get(ATTR_DEBUG, False)
+        self.actions: dict = action_data.get(ATTR_ACTIONS) or {}
         self.delivery_results: dict = {}
         self.delivery_errors: dict = {}
-        self.inscope_snoozes: list[Snooze] = []
 
         self.selected_delivery_names: list[str] = []
         self.enabled_scenarios: list[str] = []
@@ -162,19 +155,18 @@ class Notification(ArchivableObject):
             self.globally_disabled = True
         else:
             self.selected_delivery_names = self.select_deliveries()
-            self.globally_disabled, inscope_snoozes = self.check_for_snoozes()
-            self.inscope_snoozes = inscope_snoozes
+            self.globally_disabled = self.context.snoozer.is_global_snooze(self.priority)
             self.default_media_from_actions()
             self.apply_enabled_scenarios()
 
-    def validate_service_data(self, service_data: dict) -> None:
-        if service_data.get(ATTR_PRIORITY) and service_data.get(ATTR_PRIORITY) not in PRIORITY_VALUES:
-            _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", service_data.get(ATTR_PRIORITY))
-            service_data[ATTR_PRIORITY] = PRIORITY_MEDIUM
+    def validate_action_data(self, action_data: dict) -> None:
+        if action_data.get(ATTR_PRIORITY) and action_data.get(ATTR_PRIORITY) not in PRIORITY_VALUES:
+            _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", action_data.get(ATTR_PRIORITY))
+            action_data[ATTR_PRIORITY] = PRIORITY_MEDIUM
         try:
-            humanize.validate_with_humanized_errors(service_data, SERVICE_DATA_SCHEMA)
+            humanize.validate_with_humanized_errors(action_data, ACTION_DATA_SCHEMA)
         except vol.Invalid as e:
-            _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", service_data, e)
+            _LOGGER.warning("SUPERNOTIFY invalid service data %s: %s", action_data, e)
             raise
 
     def apply_enabled_scenarios(self) -> None:
@@ -393,13 +385,13 @@ class Notification(ArchivableObject):
     def generate_recipients(self, delivery_name: str, delivery_method: DeliveryMethod) -> list[dict]:
         delivery_config: dict[str, Any] = delivery_method.delivery_config(delivery_name)
 
-        recipients = []
+        recipients: list[dict] = []
         if self.target:
             # first priority is explicit target set on notify call, which overrides everything else
             for t in self.target:
                 if t in self.context.people:
                     recipients.append(self.context.people[t])
-                    self.record_resolve(delivery_name, "1a_person_target", self.context.people[t])
+                    self.record_resolve(delivery_name, "1a_person_target", self.context.people[t])  # type: ignore
                 else:
                     recipients.append({ATTR_TARGET: t})
                     self.record_resolve(delivery_name, "1b_non_person_target", t)
@@ -434,28 +426,9 @@ class Notification(ArchivableObject):
                 )
                 _LOGGER.debug("SUPERNOTIFY %s Using recipients: %s", delivery_name, recipients)
 
-        for snooze in self.inscope_snoozes:
-            if snooze.recipient_type == RecipientType.USER:
-                # assume the everyone checks are made before notification gets this far
-                if (
-                    (snooze.target_type == QualifiedTargetType.DELIVERY and snooze.target == delivery_name)
-                    or (snooze.target_type == QualifiedTargetType.METHOD and snooze.target == delivery_method.method)
-                    or (
-                        snooze.target_type == QualifiedTargetType.PRIORITY
-                        and (
-                            snooze.target == self.priority
-                            or (isinstance(snooze.target, list) and self.priority in snooze.target)
-                        )
-                    )
-                    or snooze.target_type == GlobalTargetType.EVERYTHING
-                    or (snooze.target_type == GlobalTargetType.NONCRITICAL and self.priority != PRIORITY_CRITICAL)
-                ):
-                    for recipient in recipients:
-                        if recipient.get(CONF_PERSON) == snooze.recipient:
-                            recipients.remove(recipient)
-                            _LOGGER.info("SUPERNOTIFY Snoozing %s for notification %s", snooze.recipient, self.id)
-
-        return recipients
+        return self.context.snoozer.filter_recipients(
+            recipients, self.priority, delivery_name, delivery_method, self.selected_delivery_names, self.context.deliveries
+        )
 
     def generate_envelopes(self, delivery_name: str, method: DeliveryMethod, recipients: list[dict]) -> list[Envelope]:
         # now the list of recipients determined, resolve this to target addresses or entities
@@ -577,38 +550,6 @@ class Notification(ArchivableObject):
         self.snapshot_image_path = image_path
         return image_path
 
-    def check_for_snoozes(self) -> tuple[bool, list[Snooze]]:
-        inscope_snoozes: list[Snooze] = []
-        if len(self.context.snoozes) == 0:
-            return (False, inscope_snoozes)
-        for snooze in self.context.snoozes.values():
-            if snooze.active():
-                match snooze.target_type:
-                    case GlobalTargetType.EVERYTHING:
-                        inscope_snoozes.append(snooze)
-                        return (True, inscope_snoozes)
-                    case GlobalTargetType.NONCRITICAL:
-                        if self.priority != PRIORITY_CRITICAL:
-                            inscope_snoozes.append(snooze)
-                            return (True, inscope_snoozes)
-                    case QualifiedTargetType.DELIVERY:
-                        if snooze.target in self.selected_delivery_names:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.PRIORITY:
-                        if snooze.target == self.priority:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.METHOD:
-                        if snooze.target in [
-                            self.context.deliveries.get(d, {}).get(CONF_METHOD) for d in self.selected_delivery_names
-                        ]:
-                            inscope_snoozes.append(snooze)
-                    case QualifiedTargetType.CAMERA:
-                        inscope_snoozes.append(snooze)
-                    case _:
-                        _LOGGER.warning("SUPERNOTIFY Unhandled target type %s", snooze.target_type)
-
-        return (False, inscope_snoozes)
-
 
 @dataclass
 class DebugTrace:
@@ -616,4 +557,4 @@ class DebugTrace:
     title: str | None = field(default=None)
     data: dict | None = field(default_factory=lambda: {})
     target: list | str | None = field(default=None)
-    resolved: dict = field(init=False, default_factory=lambda: {})
+    resolved: dict[str, dict] = field(init=False, default_factory=lambda: {})

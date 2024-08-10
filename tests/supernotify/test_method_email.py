@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD, CONF_SERVICE
+from homeassistant.const import CONF_DEFAULT, CONF_EMAIL, CONF_METHOD
 
-from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
+from custom_components.supernotify import ATTR_DATA, ATTR_DELIVERY, CONF_ACTION, CONF_PERSON, CONF_TEMPLATE, METHOD_EMAIL
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
@@ -14,7 +14,7 @@ async def test_deliver(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
     await context.initialize()
     uut = EmailDeliveryMethod(
-        mock_hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}}
+        mock_hass, context, {"plain_email": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp", CONF_DEFAULT: True}}
     )
     await uut.initialize()
     await uut.deliver(
@@ -24,7 +24,7 @@ async def test_deliver(mock_hass) -> None:
                 context,
                 message="hello there",
                 title="testing",
-                service_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}},
+                action_data={ATTR_DELIVERY: {"plain_email": {ATTR_DATA: {"footer": "pytest"}}}},
             ),
             targets=["tester1@assert.com"],
         )
@@ -48,7 +48,7 @@ async def test_deliver_with_template(mock_hass) -> None:
         {
             "default": {
                 CONF_METHOD: METHOD_EMAIL,
-                CONF_SERVICE: "notify.smtp",
+                CONF_ACTION: "notify.smtp",
                 CONF_TEMPLATE: "minimal_test.html.j2",
                 CONF_DEFAULT: True,
             }
@@ -74,7 +74,7 @@ async def test_deliver_with_preformatted_html(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
-        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}}
+        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp", CONF_DEFAULT: True}}
     )
     await uut.initialize()
     notification = Notification(
@@ -82,7 +82,7 @@ async def test_deliver_with_preformatted_html(mock_hass) -> None:
         message="hello there",
         title="testing",
         target=["tester9@assert.com"],
-        service_data={"message_html": "<H3>testing</H3>", "delivery": {"default": {"data": {"footer": ""}}}},
+        action_data={"message_html": "<H3>testing</H3>", "delivery": {"default": {"data": {"footer": ""}}}},
     )
     await notification.initialize()
     await uut.deliver(Envelope("", notification, targets=["tester9@assert.com"]))
@@ -102,7 +102,7 @@ async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:
     context = SupernotificationConfiguration(recipients=[{CONF_PERSON: "person.tester1", CONF_EMAIL: "tester1@assert.com"}])
 
     uut = EmailDeliveryMethod(
-        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp", CONF_DEFAULT: True}}
+        mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp", CONF_DEFAULT: True}}
     )
     await uut.initialize()
     notification = Notification(
@@ -110,7 +110,7 @@ async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:
         message="hello there",
         title="testing",
         target=["tester9@assert.com"],
-        service_data={
+        action_data={
             "message_html": "<H3>testing</H3>",
             "media": {
                 "snapshot_url": "http://mycamera.thing",

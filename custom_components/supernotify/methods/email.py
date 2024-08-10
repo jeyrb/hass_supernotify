@@ -48,35 +48,35 @@ class EmailDeliveryMethod(DeliveryMethod):
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_email: %s %s", envelope.delivery_name, envelope.targets)
 
-        data = envelope.data or {}
+        data: dict[str, Any] = envelope.data or {}
         config = self.delivery_config(envelope.delivery_name)
-        html = data.get("html")
-        template = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
-        addresses = envelope.targets or []
-        snapshot_url = data.get("snapshot_url")
+        html: str | None = data.get("html")
+        template: str = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
+        addresses: list[str] = envelope.targets or []
+        snapshot_url: str | None = data.get("snapshot_url")
         # TODO: centralize in config
         footer_template = data.get("footer")
         footer = footer_template.format(e=envelope) if footer_template else None
 
-        service_data = envelope.core_service_data()
+        action_data: dict[str, Any] = envelope.core_action_data()
 
         if len(addresses) > 0:
-            service_data[ATTR_TARGET] = addresses
+            action_data[ATTR_TARGET] = addresses
             # default to SMTP platform default recipients if no explicit addresses
 
         if data and data.get("data"):
-            service_data[ATTR_DATA] = data.get("data")
+            action_data[ATTR_DATA] = data.get("data")
 
         if not template or not self.template_path:
-            if footer and service_data.get(ATTR_MESSAGE):
-                service_data[ATTR_MESSAGE] = f"{service_data[ATTR_MESSAGE]}\n\n{footer}"
+            if footer and action_data.get(ATTR_MESSAGE):
+                action_data[ATTR_MESSAGE] = f"{action_data[ATTR_MESSAGE]}\n\n{footer}"
 
             image_path: Path | None = await envelope.grab_image()
             if image_path:
-                service_data.setdefault("data", {})
-                service_data["data"]["images"] = [str(image_path)]
+                action_data.setdefault("data", {})
+                action_data["data"]["images"] = [str(image_path)]
             if envelope.message_html:
-                service_data.setdefault("data", {})
+                action_data.setdefault("data", {})
                 html = envelope.message_html
                 if image_path:
                     image_name = image_path.name
@@ -88,27 +88,27 @@ class EmailDeliveryMethod(DeliveryMethod):
                         else:
                             html += f'<div><p><img src="cid:{image_name}"></p></div>'
 
-                service_data["data"]["html"] = html
+                action_data["data"]["html"] = html
         else:
-            html = self.render_template(template, envelope, service_data, snapshot_url, envelope.message_html)
+            html = self.render_template(template, envelope, action_data, snapshot_url, envelope.message_html)
             if html:
-                service_data.setdefault("data", {})
-                service_data["data"]["html"] = html
-        return await self.call_service(envelope, service_data=service_data)
+                action_data.setdefault("data", {})
+                action_data["data"]["html"] = html
+        return await self.call_action(envelope, action_data=action_data)
 
     def render_template(
         self,
         template: str,
         envelope: Envelope,
-        service_data: dict[str, Any],
+        action_data: dict[str, Any],
         snapshot_url: str | None,
         preformatted_html: str | None,
     ) -> str | None:
         alert = {}
         try:
             alert = {
-                "message": service_data.get(ATTR_MESSAGE),
-                "title": service_data.get(ATTR_TITLE),
+                "message": action_data.get(ATTR_MESSAGE),
+                "title": action_data.get(ATTR_TITLE),
                 "envelope": envelope,
                 "subheading": "Home Assistant Notification",
                 "configuration": self.context,

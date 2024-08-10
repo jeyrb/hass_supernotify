@@ -42,3 +42,9 @@ def ensure_dict(v: Any, default: Any = None) -> dict:
     if isinstance(v, set | list):
         return dict.fromkeys(v, default)
     return {v: default}
+
+
+def update_dict_list(target: list[dict[Any, Any]], to_add: list[dict], to_remove: list[dict]) -> list[dict]:
+    updated = [d for d in target if d not in to_remove]
+    updated.extend(to_add)
+    return updated

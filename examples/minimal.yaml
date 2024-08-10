@@ -4,4 +4,4 @@
     delivery:
       email:
         method: email
-        service: notify.smtp
+        action: notify.smtp

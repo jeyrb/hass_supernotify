@@ -1,10 +1,11 @@
 from typing import Any
 from unittest.mock import Mock
 
-from homeassistant.const import CONF_NAME, CONF_SERVICE
+from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify import (
+    CONF_ACTION,
     CONF_METHOD,
     CONF_SELECTION,
     CONF_TARGET,
@@ -20,11 +21,11 @@ from custom_components.supernotify.configuration import SupernotificationConfigu
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 
 DELIVERY: dict[str, Any] = {
-    "email": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
-    "text": {CONF_METHOD: METHOD_SMS, CONF_SERVICE: "notify.sms"},
+    "email": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp"},
+    "text": {CONF_METHOD: METHOD_SMS, CONF_ACTION: "notify.sms"},
     "chime": {CONF_METHOD: METHOD_CHIME, "entities": ["switch.bell_1", "script.siren_2"]},
-    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_SERVICE: "notify.alexa"},
-    "chat": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.my_chat_server"},
+    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_ACTION: "notify.alexa"},
+    "chat": {CONF_METHOD: METHOD_GENERIC, CONF_ACTION: "notify.my_chat_server"},
     "persistent": {CONF_METHOD: METHOD_PERSISTENT, CONF_SELECTION: SELECTION_BY_SCENARIO},
 }
 
@@ -40,18 +41,18 @@ async def test_simple_create(hass: HomeAssistant) -> None:
 
 async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
     context = Mock(SupernotificationConfiguration)
-    context.method_defaults = {METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
+    context.method_defaults = {METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}}
 
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
     await uut.initialize()
     assert uut.valid_deliveries == {d: dc for d, dc in DELIVERY.items() if dc[CONF_METHOD] == METHOD_GENERIC}
-    assert uut.default_delivery == {CONF_SERVICE: "notify.slackity"}
+    assert uut.default_delivery == {CONF_ACTION: "notify.slackity"}
 
 
 async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> None:
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC, CONF_TARGET: ["chan1", "chan2"]}}
     context = SupernotificationConfiguration(
-        deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_SERVICE: "notify.slackity"}}
+        deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}}
     )
     await context.initialize()
     uut = GenericDeliveryMethod(hass, context, delivery)
@@ -60,7 +61,7 @@ async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> 
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
             CONF_NAME: "chatty",
-            CONF_SERVICE: "notify.slackity",
+            CONF_ACTION: "notify.slackity",
             CONF_TARGET: ["chan1", "chan2"],
         }
     }

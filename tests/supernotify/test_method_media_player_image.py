@@ -24,7 +24,7 @@ async def test_notify_media_image(mock_hass) -> None:
             Notification(
                 context,
                 "hello there",
-                service_data={ATTR_DELIVERY: {"alexa_show": {CONF_DATA: {"snapshot_url": "/ftp/pic.jpeg"}}}},
+                action_data={ATTR_DELIVERY: {"alexa_show": {CONF_DATA: {"snapshot_url": "/ftp/pic.jpeg"}}}},
             ),
             targets=["media_player.echo_show_8", "media_player.echo_show_10"],
         )

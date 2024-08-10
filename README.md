@@ -30,7 +30,7 @@ for sending only to people in or out of the property
 * Refactor out repetitive configuration for ease of maintenance
 * Debugging support,
   * Optional archival of message structures
-  * Additional services to pull back live configuration or last known notification details.
+  * Additional actions ( previously known as services ) to pull back live configuration or last known notification details.
 
 ## Installation
 
@@ -46,7 +46,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
 
 ### Minimal
 ```yaml
-  - service: notify.supernotifier
+  - action: notify.supernotifier
     data:
         title: Security Notification
         message: '{{state_attr(sensor,"friendly_name")}} triggered'
@@ -54,7 +54,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
 
 ### More features
 ```yaml
-  - service: notify.supernotifier
+  - action: notify.supernotifier
     data:
         title: Security Notification
         message: '{{state_attr(sensor,"friendly_name")}} triggered'
@@ -79,7 +79,7 @@ fine tuning delivery configurations, or using existing notification blueprints, 
 
 ### Templated
 ```yaml
-  - service: notify.supernotifier
+  - action: notify.supernotifier
     data:
         message:
     data_template:
@@ -102,7 +102,7 @@ Although SuperNotifier will automatically set most useful mobile push options,
 its also possible to directly set them, as in this example:
 
 ```yaml
-  - service: notify.supernotifier
+  - action: notify.supernotifier
     data:
       message: Movement at garden gate
       data:
@@ -129,7 +129,7 @@ its also possible to directly set them, as in this example:
 
 Provide a list of `switch`, `siren`, `media_player` or `script` entities to use for chimes
 and it will call the `switch.turn_on`, `script.turn_on` or `media_player.play_media`
-services automatically for each.
+actions automatically for each.
 
 See https://github.com/alandtse/alexa_media_player/wiki#known-available-sounds for
 a list of known tunes that work with Alexa devices.
@@ -157,7 +157,7 @@ methods:
                 media_player:
                     # resolves to media_player/play_media with sound configured for this path
                     tune: home/amzn_sfx_doorbell_chime_02
-                    # device defaults to `target` of method default or service call
+                    # device defaults to `target` of method default or action call
                 media_player_alt:
                     # Not all the media players are Amazon Alexa based, so override for other flavours
                     domain: media_player
@@ -181,7 +181,7 @@ With this chime config, a doorbell notification can be sent to multiple devices 
 by selecting a tune.
 
 ```yaml
-    - service: notify.supernotify
+    - action: notify.supernotify
       data:
         message: ""
         delivery:
@@ -200,13 +200,13 @@ message on a notification. Otherwise, the combined title/message is sent out.
 
 ### Generic
 
-Use to call any service.
-If service is in `notify` domain, then `message`,`title`,`target` and `data` will be
-passed in the Service Data, otherwise the `data` supplied will be passed directly
-as the Service Data.
+Use to call any action (previously known in Home Assistant as 'service' ).
+If action is in `notify` domain, then `message`,`title`,`target` and `data` will be
+passed in the Action (Service) Data, otherwise the `data` supplied will be passed directly
+as the Action Data.
 
 ```yaml
-    - service: notify.supernotify
+    - action: notify.supernotify
       data:
         title: "My Home Notification"
         message: "Notify via custom chat"
@@ -214,7 +214,7 @@ as the Service Data.
             chat_notify:
                 data:
                     channel: 3456
-    - service: notify.supernotify
+    - action: notify.supernotify
       data:
         delivery:
             mqtt_notify:
@@ -274,20 +274,20 @@ Priority order of application
 
 | Where                                | When            | Notes                                            |
 |--------------------------------------|-----------------|--------------------------------------------------|
-| Service Data                         | Runtime call    |                                                  |
+| Action Data                          | Runtime call    |                                                  |
 | Recipient delivery override          | Runtime call    |                                                  |
 | Scenario delivery override           | Runtime call    | Multiple scenarios applied in no special order   |
-| Delivery definition                  | Startup         | `message` and `title` override Service Data      |
+| Delivery definition                  | Startup         | `message` and `title` override Action Data      |
 | Method defaults                      | Startup         |                                                  |
-| Target notification service defaults | Downstream call |                                                  |
+| Target notification action defaults  | Downstream call |                                                  |
 
 
-1. Service Data passed at runtime call
+1. Action Data passed at runtime call
 2. Recipient delivery override
 3. Scenario delivery override
 4. Delivery definition
 5. Method defaults
-6. Target notification service defaults, e.g. mail recipients ( this isn't applied inside supernotifier )
+6. Target notification action defaults, e.g. mail recipients ( this isn't applied inside supernotifier )
 
 ## Setup
 
@@ -384,16 +384,16 @@ red_alert:
         downstairs_siren:
 ```
 
-Delivery selection can also be passed in the `data` of a service call, in which case it can
+Delivery selection can also be passed in the `data` of an action call, in which case it can
 also be `fixed`, which disables scenarios from enabling or disabling deliveries and leaves it solely
-to defaults or what's listed in the service call.
+to defaults or what's listed in the action call.
 
 Conditions aren't essential for scenarios, since they can also be switched on by a notification.
 For example in this case, where the `home_security` and `garden` scenarios are explicitly
 triggered, and so any overrides declared in those scenarios will be applied.
 
 ```yaml
-  - service: notify.supernotifier
+  - action: notify.supernotifier
     data:
         title: Security Notification
         message: '{{state_attr(sensor,"friendly_name")}} triggered'
@@ -424,7 +424,7 @@ automatically available:
 
 ### Message formatting
 
-To send a glob of html to include in email, set `message_html` in service_data. This will be ignored
+To send a glob of html to include in email, set `message_html` in action data. This will be ignored
 by other delivery methods that don't handle email. This can be also be used to have a notification
 with only a title ( that gets picked up for mobile push, alexa and other brief communications ) with
 a much more detailed body only for email.

@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from homeassistant.const import CONF_EMAIL, CONF_ENTITIES, CONF_METHOD, CONF_SERVICE
+from homeassistant.const import CONF_EMAIL, CONF_ENTITIES, CONF_METHOD
 from pytest_unordered import unordered
 
 from custom_components.supernotify import (
@@ -12,6 +12,7 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_SNAPSHOT_URL,
     ATTR_SCENARIOS_APPLY,
+    CONF_ACTION,
     CONF_DELIVERY,
     CONF_DELIVERY_SELECTION,
     CONF_MEDIA,
@@ -53,7 +54,7 @@ async def test_explicit_delivery(mock_context: SupernotificationConfiguration) -
     uut = Notification(
         mock_context,
         "testing 123",
-        service_data={CONF_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT, CONF_DELIVERY: "mobile"},
+        action_data={CONF_DELIVERY_SELECTION: DELIVERY_SELECTION_EXPLICIT, CONF_DELIVERY: "mobile"},
     )
     await uut.initialize()
     assert uut.delivery_selection == DELIVERY_SELECTION_EXPLICIT
@@ -63,7 +64,7 @@ async def test_explicit_delivery(mock_context: SupernotificationConfiguration) -
 async def test_scenario_delivery(mock_context: SupernotificationConfiguration) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
-    uut = Notification(mock_context, "testing 123", service_data={ATTR_SCENARIOS_APPLY: "Alarm"})
+    uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: "Alarm"})
     await uut.initialize()
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
 
@@ -71,7 +72,7 @@ async def test_scenario_delivery(mock_context: SupernotificationConfiguration) -
 async def test_explicit_list_of_deliveries(mock_context: SupernotificationConfiguration) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
-    uut = Notification(mock_context, "testing 123", service_data={CONF_DELIVERY: "mobile"})
+    uut = Notification(mock_context, "testing 123", action_data={CONF_DELIVERY: "mobile"})
     await uut.initialize()
     assert uut.selected_delivery_names == ["mobile"]
 
@@ -80,7 +81,7 @@ async def test_generate_recipients_from_entities(mock_context: Supernotification
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
-            CONF_SERVICE: "custom.tweak",
+            CONF_ACTION: "custom.tweak",
             CONF_ENTITIES: ["custom.light_1", "custom.switch_2"],
         }
     }
@@ -96,7 +97,7 @@ async def test_generate_recipients_from_recipients(mock_context: Supernotificati
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
-            CONF_SERVICE: "custom.tweak",
+            CONF_ACTION: "custom.tweak",
             CONF_RECIPIENTS: ["custom.light_1", "custom.switch_2"],
         }
     }
@@ -110,8 +111,8 @@ async def test_generate_recipients_from_recipients(mock_context: Supernotificati
 
 async def test_explicit_recipients_only_restricts_people_targets(mock_context: SupernotificationConfiguration) -> None:
     delivery = {
-        "chatty": {CONF_METHOD: METHOD_GENERIC, CONF_SERVICE: "notify.slackity", CONF_TARGET: ["chan1", "chan2"]},
-        "mail": {CONF_METHOD: METHOD_EMAIL, CONF_SERVICE: "notify.smtp"},
+        "chatty": {CONF_METHOD: METHOD_GENERIC, CONF_ACTION: "notify.slackity", CONF_TARGET: ["chan1", "chan2"]},
+        "mail": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp"},
     }
     mock_context.people = {"person.bob": {CONF_EMAIL: "bob@test.com"}, "person.jane": {CONF_EMAIL: "jane@test.com"}}
     mock_context.deliveries = delivery
@@ -158,13 +159,13 @@ async def test_build_targets_for_simple_case(mock_context: SupernotificationConf
 async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(mock_context: SupernotificationConfiguration) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
-    uut = Notification(mock_context, "testing 123", service_data={CONF_DELIVERY: {"mobile": {}}})
+    uut = Notification(mock_context, "testing 123", action_data={CONF_DELIVERY: {"mobile": {}}})
     await uut.initialize()
     assert uut.selected_delivery_names == unordered("plain_email", "mobile")
 
 
 async def test_snapshot_url(mock_context: SupernotificationConfiguration) -> None:
-    uut = Notification(mock_context, "testing 123", service_data={CONF_MEDIA: {ATTR_MEDIA_SNAPSHOT_URL: "/my_local_image"}})
+    uut = Notification(mock_context, "testing 123", action_data={CONF_MEDIA: {ATTR_MEDIA_SNAPSHOT_URL: "/my_local_image"}})
     await uut.initialize()
     original_image_path: Path = Path(tempfile.gettempdir()) / "image_a.jpg"
     with patch(
@@ -181,7 +182,7 @@ async def test_snapshot_url(mock_context: SupernotificationConfiguration) -> Non
 
 
 async def test_camera_entity(mock_context: SupernotificationConfiguration) -> None:
-    uut = Notification(mock_context, "testing 123", service_data={CONF_MEDIA: {ATTR_MEDIA_CAMERA_ENTITY_ID: "camera.lobby"}})
+    uut = Notification(mock_context, "testing 123", action_data={CONF_MEDIA: {ATTR_MEDIA_CAMERA_ENTITY_ID: "camera.lobby"}})
     await uut.initialize()
     original_image_path: Path = Path(tempfile.gettempdir()) / "image_b.jpg"
     with patch("custom_components.supernotify.notification.snap_camera", return_value=original_image_path) as mock_snap_cam:
@@ -204,7 +205,7 @@ async def test_merge(mock_context: SupernotificationConfiguration):
     uut = Notification(
         mock_context,
         "testing 123",
-        service_data={
+        action_data={
             ATTR_SCENARIOS_APPLY: "Alarm",
             ATTR_MEDIA: {ATTR_MEDIA_CAMERA_DELAY: 11, ATTR_MEDIA_SNAPSHOT_URL: "/foo/123"},
         },

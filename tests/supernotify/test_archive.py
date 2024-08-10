@@ -13,7 +13,7 @@ from custom_components.supernotify import (
     CONF_ARCHIVE_PATH,
 )
 from custom_components.supernotify.archive import ArchivableObject, NotificationArchive
-from custom_components.supernotify.notify import SuperNotificationService
+from custom_components.supernotify.notify import SuperNotificationAction
 
 
 class ArchiveCrashDummy(ArchivableObject):
@@ -26,7 +26,7 @@ class ArchiveCrashDummy(ArchivableObject):
 
 async def test_integration_archive(mock_hass: HomeAssistant) -> None:
     with tempfile.TemporaryDirectory() as archive:
-        uut = SuperNotificationService(
+        uut = SuperNotificationAction(
             mock_hass,
             recipients=[],  # recipients will generate mock person_config data and break json
             archive={CONF_ENABLED: True, CONF_ARCHIVE_PATH: archive},

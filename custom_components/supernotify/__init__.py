@@ -1,6 +1,5 @@
 """The SuperNotification integration"""
 
-import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -9,6 +8,7 @@ from homeassistant.components.notify import PLATFORM_SCHEMA
 from homeassistant.const import (
     ATTR_DOMAIN,
     ATTR_SERVICE,
+    CONF_ACTION,
     CONF_ALIAS,
     CONF_CONDITION,
     CONF_DEFAULT,
@@ -20,7 +20,6 @@ from homeassistant.const import (
     CONF_ID,
     CONF_NAME,
     CONF_PLATFORM,
-    CONF_SERVICE,
     CONF_TARGET,
     CONF_URL,
     STATE_HOME,
@@ -29,7 +28,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers import config_validation as cv
 
-from custom_components.supernotify.common import format_timestamp
+from custom_components.supernotify.common import format_timestamp as format_timestamp
 
 DOMAIN = "supernotify"
 
@@ -38,7 +37,6 @@ TEMPLATE_DIR = "/config/templates/supernotify"
 MEDIA_DIR = "supernotify/media"
 
 CONF_ACTIONS = "actions"
-CONF_ACTION = "action"
 CONF_TITLE = "title"
 CONF_URI = "uri"
 CONF_RECIPIENTS = "recipients"
@@ -61,7 +59,7 @@ CONF_DATA: str = "data"
 CONF_OPTIONS: str = "options"
 CONF_MOBILE: str = "mobile"
 CONF_NOTIFY: str = "notify"
-CONF_NOTIFY_SERVICE: str = "notify_service"
+CONF_NOTIFY_ACTION: str = "notify_action"
 CONF_PHONE_NUMBER: str = "phone_number"
 CONF_PRIORITY: str = "priority"
 CONF_OCCUPANCY: str = "occupancy"
@@ -184,7 +182,7 @@ SCENARIO_NULL = "NULL"
 
 RESERVED_DELIVERY_NAMES = ["ALL"]
 RESERVED_SCENARIO_NAMES = [SCENARIO_DEFAULT, SCENARIO_NULL]
-RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE]
+RESERVED_DATA_KEYS = [ATTR_DOMAIN, ATTR_SERVICE, "action"]
 
 CONF_DUPE_CHECK = "dupe_check"
 CONF_DUPE_POLICY = "dupe_policy"
@@ -197,7 +195,7 @@ DATA_SCHEMA = vol.Schema({vol.NotIn(RESERVED_DATA_KEYS): vol.Any(str, int, bool,
 MOBILE_DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_MANUFACTURER): cv.string,
     vol.Optional(CONF_MODEL): cv.string,
-    vol.Optional(CONF_NOTIFY_SERVICE): cv.string,
+    vol.Optional(CONF_NOTIFY_ACTION): cv.string,
     vol.Optional(CONF_DEVICE_TRACKER): cv.entity_id,
 })
 NOTIFICATION_DUPE_SCHEMA = vol.Schema({
@@ -223,7 +221,7 @@ LINK_SCHEMA = vol.Schema({
 METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
-    vol.Optional(CONF_SERVICE): cv.service,
+    vol.Optional(CONF_ACTION): cv.service,
     vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
     vol.Optional(CONF_OPTIONS, default=dict): dict,  # type: ignore
     vol.Optional(CONF_DATA): DATA_SCHEMA,
@@ -260,7 +258,7 @@ MEDIA_SCHEMA = vol.Schema({
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
-    vol.Optional(CONF_SERVICE): cv.service,
+    vol.Optional(CONF_ACTION): cv.service,  # previously 'service:'
     vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,  # type: ignore
@@ -335,7 +333,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_CAMERAS, default=list): vol.All(cv.ensure_list, [CAMERA_SCHEMA]),  # type: ignore
 })
 
-SERVICE_DATA_SCHEMA = vol.Schema(
+ACTION_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
         vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
@@ -353,7 +351,7 @@ SERVICE_DATA_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,  # allow other data, e.g. the android/ios mobile push
 )
 
-STRICT_SERVICE_DATA_SCHEMA = SERVICE_DATA_SCHEMA.extend({}, extra=vol.REMOVE_EXTRA)
+STRICT_ACTION_DATA_SCHEMA = ACTION_DATA_SCHEMA.extend({}, extra=vol.REMOVE_EXTRA)
 
 
 class TargetType(StrEnum):
@@ -375,68 +373,13 @@ class QualifiedTargetType(TargetType):
     DELIVERY = "DELIVERY"
     CAMERA = "CAMERA"
     PRIORITY = "PRIORITY"
+    ACTION = "ACTION"
 
 
 class CommandType(StrEnum):
     SNOOZE = "SNOOZE"
     SILENCE = "SILENCE"
     NORMAL = "NORMAL"
-
-
-class Snooze:
-    target: str | None
-    target_type: TargetType
-    snoozed_at: float
-    snooze_until: float | None = None
-    recipient_type: RecipientType
-    recipient: str | None
-
-    def __init__(
-        self,
-        target_type: TargetType,
-        recipient_type: RecipientType,
-        target: str | None = None,
-        recipient: str | None = None,
-        snooze_for: int | None = None,
-    ) -> None:
-        self.snoozed_at = time.time()
-        self.target = target
-        self.target_type = target_type
-        self.recipient_type = recipient_type
-        self.recipient = recipient
-        if snooze_for:
-            self.snooze_until = self.snoozed_at + snooze_for
-
-    def std_recipient(self) -> str | None:
-        return self.recipient if self.recipient_type == RecipientType.USER else RecipientType.EVERYONE
-
-    def short_key(self) -> str:
-        #  only one GLOBAL can be active at a time
-        target = "GLOBAL" if self.target_type in GlobalTargetType else f"{self.target_type}_{self.target}"
-        return f"{target}_{self.std_recipient()}"
-
-    def __eq__(self, other: object) -> bool:
-        """Check if two snoozes for the same thing"""
-        if not isinstance(other, Snooze):
-            return False
-        return self.short_key() == other.short_key()
-
-    def __repr__(self) -> str:
-        """Return a string representation of the object."""
-        return f"Snooze({self.target_type}, {self.target}, {self.std_recipient()})"
-
-    def active(self) -> bool:
-        return self.snooze_until is None or self.snooze_until > time.time()
-
-    def export(self) -> dict:
-        return {
-            "target_type": self.target_type,
-            "target": self.target,
-            "recipient_type": self.recipient_type,
-            "recipient": self.recipient,
-            "snoozed_at": format_timestamp(self.snoozed_at),
-            "snooze_until": format_timestamp(self.snooze_until),
-        }
 
 
 @dataclass

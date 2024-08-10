@@ -9,20 +9,20 @@ _LOGGER = logging.getLogger(__name__)
 
 class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
-    default_service = "notify.persistent_notification"
+    default_action = "notify.persistent_notification"
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def validate_service(self, service: str | None) -> bool:
-        return service is None
+    def validate_action(self, action: str | None) -> bool:
+        return action is None
 
     async def deliver(self, envelope: Envelope) -> bool:
         data = envelope.data or {}
         config = self.delivery_config(envelope.delivery_name)
 
         notification_id = data.get(ATTR_NOTIFICATION_ID, config.get(ATTR_NOTIFICATION_ID))
-        service_data = envelope.core_service_data()
-        service_data["notification_id"] = notification_id
+        action_data = envelope.core_action_data()
+        action_data["notification_id"] = notification_id
 
-        return await self.call_service(envelope, service_data=service_data)
+        return await self.call_action(envelope, action_data=action_data)

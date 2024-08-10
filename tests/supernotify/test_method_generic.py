@@ -1,7 +1,7 @@
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_SERVICE
+from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_NAME
 
-from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
+from custom_components.supernotify import CONF_ACTION, CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
@@ -17,7 +17,7 @@ async def test_deliver(mock_hass) -> None:
             "teleport": {
                 CONF_METHOD: METHOD_GENERIC,
                 CONF_NAME: "teleport",
-                CONF_SERVICE: "notify.teleportation",
+                CONF_ACTION: "notify.teleportation",
                 CONF_DEFAULT: True,
             }
         },
@@ -30,7 +30,7 @@ async def test_deliver(mock_hass) -> None:
                 context,
                 message="hello there",
                 title="testing",
-                service_data={CONF_DELIVERY: {"teleport": {CONF_DATA: {"cuteness": "very"}}}},
+                action_data={CONF_DELIVERY: {"teleport": {CONF_DATA: {"cuteness": "very"}}}},
             ),
             targets=["weird_generic_1", "weird_generic_2"],
         )
@@ -52,7 +52,7 @@ async def test_not_notify_deliver(mock_hass) -> None:
     uut = GenericDeliveryMethod(
         mock_hass,
         context,
-        {"broker": {CONF_METHOD: METHOD_GENERIC, CONF_NAME: "broker", CONF_SERVICE: "mqtt.publish", CONF_DEFAULT: True}},
+        {"broker": {CONF_METHOD: METHOD_GENERIC, CONF_NAME: "broker", CONF_ACTION: "mqtt.publish", CONF_DEFAULT: True}},
     )
     await uut.initialize()
     await uut.deliver(
@@ -62,7 +62,7 @@ async def test_not_notify_deliver(mock_hass) -> None:
                 context,
                 message="hello there",
                 title="testing",
-                service_data={CONF_DELIVERY: {"broker": {CONF_DATA: {"topic": "testing/123", "payload": "boo"}}}},
+                action_data={CONF_DELIVERY: {"broker": {CONF_DATA: {"topic": "testing/123", "payload": "boo"}}}},
             ),
             targets=["weird_generic_1", "weird_generic_2"],
         )
