@@ -3,7 +3,7 @@
 ``` mermaid
 classDiagram
   Notification "1" *-- "*" Envelope
-  Notification "1" *-- "1" ConfigurationVariables
+  Notification "1" *-- "1" ConditionVariables
   Envelope "1" ..> "1" DeliveryMethod
   SupernotificationConfiguration "1" o-- "0..*" Scenario
   SupernotificationConfiguration "1" o-- "0..*" Snooze
