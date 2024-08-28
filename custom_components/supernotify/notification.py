@@ -2,7 +2,6 @@ import asyncio
 import datetime as dt
 import logging
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
 from traceback import format_exception
 from typing import Any, cast
@@ -63,7 +62,7 @@ from custom_components.supernotify import (
     ConditionVariables,
 )
 from custom_components.supernotify.archive import ArchivableObject
-from custom_components.supernotify.common import safe_extend
+from custom_components.supernotify.common import DebugTrace, safe_extend
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.scenario import Scenario
@@ -317,6 +316,10 @@ class Notification(ArchivableObject):
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
         sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
         sanitized["undelivered_envelopes"] = [e.contents(minimal=minimal) for e in self.undelivered_envelopes]
+        if self.debug_trace:
+            sanitized["debug_trace"] = self.debug_trace.contents()
+        else:
+            del sanitized["debug_trace"]
         return sanitized
 
     def base_filename(self) -> str:
@@ -536,7 +539,7 @@ class Notification(ArchivableObject):
                     self.context.hass,
                     active_camera_entity_id,
                     media_path=self.context.media_path,
-                    timeout=15,
+                    max_camera_wait=15,
                     jpeg_args=jpeg_args,
                 )
                 if camera_ptz_preset and camera_ptz_preset_default:
@@ -549,12 +552,3 @@ class Notification(ArchivableObject):
             return None
         self.snapshot_image_path = image_path
         return image_path
-
-
-@dataclass
-class DebugTrace:
-    message: str | None = field(default=None)
-    title: str | None = field(default=None)
-    data: dict | None = field(default_factory=lambda: {})
-    target: list | str | None = field(default=None)
-    resolved: dict[str, dict] = field(init=False, default_factory=lambda: {})

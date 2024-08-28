@@ -1,6 +1,8 @@
 import logging
 
-from custom_components.supernotify import CONF_ACTION, CONF_DATA, CONF_TARGET, METHOD_GENERIC
+from homeassistant.const import CONF_ACTION, CONF_TARGET  # ATTR_VARIABLES from script.const has import issues
+
+from custom_components.supernotify import CONF_DATA, METHOD_GENERIC
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 

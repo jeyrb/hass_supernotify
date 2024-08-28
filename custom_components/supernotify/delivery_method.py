@@ -12,6 +12,7 @@ from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 
+from custom_components.supernotify.common import CallRecord
 from custom_components.supernotify.configuration import SupernotificationConfiguration
 
 from . import CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
@@ -171,7 +172,7 @@ class DeliveryMethod:
                 domain, service = qualified_action.split(".", 1)
                 start_time = time.time()
                 await self.hass.services.async_call(domain, service, service_data=action_data)
-                envelope.calls.append((domain, service, action_data, time.time() - start_time))
+                envelope.calls.append(CallRecord(time.time() - start_time, domain, service, action_data))
                 envelope.delivered = 1
             else:
                 _LOGGER.debug(
@@ -182,7 +183,7 @@ class DeliveryMethod:
                 envelope.skipped = 1
             return True
         except Exception as e:
-            envelope.failed_calls.append((domain, service, action_data, str(e), time.time() - start_time))
+            envelope.failed_calls.append(CallRecord(time.time() - start_time, domain, service, action_data, exception=str(e)))
             _LOGGER.error("SUPERNOTIFY Failed to notify via %s, data=%s : %s", self.method, action_data, e)
             envelope.errored += 1
             envelope.delivery_error = format_exception(e)

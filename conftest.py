@@ -42,11 +42,13 @@ class MockAction(BaseNotificationService):
         self.calls: list = []
 
     @callback
-    async def async_send_message(self, message="", title=None, target=None, **kwargs):
+    async def async_send_message(
+        self, message: str = "", title: str | None = None, target: str | None = None, **kwargs: dict[str, Any]
+    ):
         self.calls.append([message, title, target, kwargs])
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_hass() -> HomeAssistant:
     hass = Mock(spec=MockableHomeAssistant)
     hass.states = Mock(StateMachine)
@@ -61,7 +63,7 @@ def mock_hass() -> HomeAssistant:
     return hass
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
     context = Mock(spec=SupernotificationConfiguration)
     context.hass = mock_hass
@@ -95,21 +97,21 @@ def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
     return context
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_notify(hass: HomeAssistant) -> MockAction:
     mock_action: MockAction = MockAction()
     hass.services.async_register(DOMAIN, "mock", mock_action, supports_response=SupportsResponse.NONE)  # type: ignore
     return mock_action
 
 
-@pytest.fixture()
+@pytest.fixture
 async def superconfig() -> SupernotificationConfiguration:
     context = SupernotificationConfiguration()
     await context.initialize()
     return context
 
 
-@pytest.fixture()
+@pytest.fixture
 def local_server(httpserver_ssl_context: SSLContext | None, socket_enabled: Any) -> Generator[HTTPServer, None, None]:
     """pytest-socket will fail at fixture creation time, before test that uses it"""
     server = HTTPServer(host="127.0.0.1", port=0, ssl_context=httpserver_ssl_context)

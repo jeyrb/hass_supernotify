@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
@@ -26,6 +26,9 @@ from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.mobile_push import MobilePushDeliveryMethod
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.snoozer import Snooze
+
+if TYPE_CHECKING:
+    from custom_components.supernotify.common import CallRecord
 
 
 async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> None:
@@ -152,7 +155,10 @@ async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, pr
         targets=["mobile_app_test_user_iphone"],
     )
     await uut.deliver(e)
-    assert e.calls[0][2]["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")
+    call: CallRecord = e.calls[0]
+    assert call.action_data is not None
+    assert "data" in call.action_data
+    assert call.action_data["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")  # type: ignore
 
 
 INTEGRATION_CONFIG = {
@@ -186,7 +192,7 @@ async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockAction)
     )
     assert notification is not None
     assert "undelivered_envelopes" in notification  # no android integration in test env
-    assert notification["undelivered_envelopes"][0]["data"]["clickAction"] == "android_something"
+    assert notification["undelivered_envelopes"][0]["data"]["clickAction"] == "android_something"  # type: ignore
 
 
 async def test_action_title(mock_hass: HomeAssistant, superconfig, local_server: HTTPServer) -> None:

@@ -12,6 +12,7 @@ examples/barrsofcloak.yaml
 node_modules/
 package-lock.json
 supernotify/media
+.devcontainer/.venv
 
 
 # C extensions

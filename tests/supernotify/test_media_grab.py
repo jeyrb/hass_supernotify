@@ -26,7 +26,7 @@ JPEG_PATH: Path = Path("tests") / "supernotify" / "fixtures" / "media" / "exampl
 PNG_PATH: Path = Path("tests") / "supernotify" / "fixtures" / "media" / "example_image.png"
 
 
-@pytest.mark.enable_socket()
+@pytest.mark.enable_socket
 async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path: Path = Path(tempfile.mkdtemp())
 
@@ -44,7 +44,7 @@ async def test_snapshot_url_with_abs_path(hass: HomeAssistant, local_server: Blo
     assert diff.getbbox() is None
 
 
-@pytest.mark.enable_socket()
+@pytest.mark.enable_socket
 async def test_snapshot_url_with_jpeg_flags(hass: HomeAssistant, local_server: BlockingHTTPServer) -> None:
     media_path: Path = Path(tempfile.mkdtemp())
 
@@ -79,7 +79,7 @@ async def test_snapshot_url_with_broken_url(hass: HomeAssistant) -> None:
 async def test_snap_camera(mock_hass) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path: Path = Path(tmp_dir)
-        image_path = await snap_camera(mock_hass, "camera.xunit", media_path=tmp_path, timeout=1)
+        image_path = await snap_camera(mock_hass, "camera.xunit", media_path=tmp_path, max_camera_wait=1)
     assert image_path is not None
     mock_hass.services.async_call.assert_awaited_once_with(
         "camera", "snapshot", service_data={"entity_id": "camera.xunit", "filename": image_path}

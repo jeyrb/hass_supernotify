@@ -88,7 +88,7 @@ class Scenario:
     async def trace(self, condition_variables: ConditionVariables | None = None, config: ConfigType | None = None) -> bool:
         """Trace scenario delivery"""
         result = None
-        config = config or {}
+        config = {} if config is None else config
         if DATA_TRACE not in self.hass.data:
             await async_setup(self.hass, config)
         with trace_action(self.hass, f"scenario_{self.name}", config) as scenario_trace:

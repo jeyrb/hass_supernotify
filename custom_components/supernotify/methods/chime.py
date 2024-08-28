@@ -4,9 +4,13 @@ from typing import Any
 
 from homeassistant.components.group import expand_entity_ids
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
-from homeassistant.const import ATTR_ENTITY_ID, CONF_VARIABLES  # ATTR_VARIABLES from script.const has import issues
+from homeassistant.const import (  # ATTR_VARIABLES from script.const has import issues
+    ATTR_ENTITY_ID,
+    CONF_TARGET,
+    CONF_VARIABLES,
+)
 
-from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, CONF_TARGET, METHOD_CHIME
+from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, METHOD_CHIME
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope

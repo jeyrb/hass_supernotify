@@ -9,6 +9,9 @@ from typing import Any
 
 from . import ATTR_TIMESTAMP, CONF_MESSAGE, CONF_TITLE, PRIORITY_MEDIUM
 
+if typing.TYPE_CHECKING:
+    from custom_components.supernotify.common import CallRecord
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -55,8 +58,8 @@ class Envelope:
         self.delivered: int = 0
         self.errored: int = 0
         self.skipped: int = 0
-        self.calls: list = []
-        self.failed_calls: list = []
+        self.calls: list[CallRecord] = []
+        self.failed_calls: list[CallRecord] = []
         self.delivery_error: list[str] | None = None
 
     async def grab_image(self) -> Path | None:
@@ -81,7 +84,10 @@ class Envelope:
         exclude_attrs = ["_notification"]
         if minimal:
             exclude_attrs.extend("resolved")
-        return {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
+        json_ready = {k: v for k, v in self.__dict__.items() if k not in exclude_attrs}
+        json_ready["calls"] = [call.contents() for call in self.calls]
+        json_ready["failedcalls"] = [call.contents() for call in self.failed_calls]
+        return json_ready
 
     def __eq__(self, other: Any | None) -> bool:
         """Specialized equality check for subset of attributesfl"""

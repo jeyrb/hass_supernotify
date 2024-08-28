@@ -3,6 +3,7 @@
 import logging
 
 from homeassistant import config_entries
+from homeassistant.core import ServiceCall, SupportsResponse
 from homeassistant.util import slugify
 
 from custom_components.supernotify.configuration import SupernotificationConfiguration
@@ -45,13 +46,12 @@ async def register_mobile_app(
         )
     if context.hass.services and device_entry and context.hass and context.hass.services:
 
-        def fake_service(*args, **kwargs):
-            _LOGGER.debug("Fake service called with args: %s, kwargs: %s", args, kwargs)
-            return True
+        def fake_service(service: ServiceCall) -> None:
+            _LOGGER.debug("Fake service called with service call: %s", service)
 
         # device.name seems to be derived from title, not the name supplied here
         context.hass.services.async_register(
-            "notify", slugify(f"mobile_app_{title}"), service_func=fake_service, supports_response=False
+            "notify", slugify(f"mobile_app_{title}"), service_func=fake_service, supports_response=SupportsResponse.NONE
         )
     entity_registry = context.entity_registry()
     if entity_registry and device_entry:

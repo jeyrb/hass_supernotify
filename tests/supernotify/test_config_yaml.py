@@ -203,7 +203,8 @@ async def test_delivery_and_scenario(hass: HomeAssistant) -> None:
     assert isinstance(notification["delivered_envelopes"], list)
     delivered_chimes = [e for e in notification["delivered_envelopes"] if e and e.get("delivery_name", "") == "chime_person"]  # type: ignore
     assert len(delivered_chimes) == 1
-    assert delivered_chimes[0]["calls"][0][:3] == (
+
+    assert delivered_chimes[0]["calls"][0][:3] == (  # type: ignore
         "media_player",
         "play_media",
         {"entity_id": "media_player.lobby", "media_content_type": "sound", "media_content_id": "bell_02"},

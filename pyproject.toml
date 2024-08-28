@@ -24,6 +24,7 @@ exclude = [
     ".svn",
     ".tox",
     ".venv",
+    ".devcontainer",
     ".vscode",
     "__pypackages__",
     "_build",
@@ -75,7 +76,7 @@ norecursedirs = [
     "templates",
 ]
 
-xxxaddopts = [
+addopts = [
     "-n 4",
     "--timeout=30",
     "--cov-report=xml:cov.xml",

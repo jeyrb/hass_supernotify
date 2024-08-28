@@ -11,7 +11,7 @@ from cachetools import TTLCache
 from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
-from homeassistant.helpers import condition
+from homeassistant.helpers.condition import async_validate_condition_config
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.json import ExtendedJSONEncoder
 from homeassistant.helpers.reload import async_setup_reload_service
@@ -87,7 +87,7 @@ async def async_get_service(
     for delivery in config.get(CONF_DELIVERY, {}).values():
         if delivery and CONF_CONDITION in delivery:
             try:
-                await condition.async_validate_condition_config(hass, delivery[CONF_CONDITION])
+                await async_validate_condition_config(hass, delivery[CONF_CONDITION])
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY delivery %s fails condition: %s", delivery[CONF_CONDITION], e)
                 raise

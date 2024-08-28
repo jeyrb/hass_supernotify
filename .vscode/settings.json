@@ -21,12 +21,12 @@
     "python.analysis.exclude": [
         ".git",
         ".venv",
+        ".devcontainer",
         "**/__pycache__"
     ],
     "python.analysis.typeCheckingMode": "standard",
     "pythonautovenv.autoInstallVenv": true,
     "ruff.showNotifications": "onError",
-    "ruff.ignoreStandardLibrary": false,
     "python.experiments.enabled": false,
     "python.terminal.activateEnvInCurrentTerminal": true
 }

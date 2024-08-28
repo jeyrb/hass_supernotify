@@ -4,6 +4,7 @@ No dependencies permitted
 """
 
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -48,3 +49,29 @@ def update_dict_list(target: list[dict[Any, Any]], to_add: list[dict], to_remove
     updated = [d for d in target if d not in to_remove]
     updated.extend(to_add)
     return updated
+
+
+@dataclass
+class CallRecord:
+    elapsed: float = field()
+    domain: str | None = field(default=None)
+    service: str | None = field(default=None)
+    action_data: dict | None = field(default=None)
+    exception: str | None = field(default=None)
+
+    def contents(self) -> tuple:
+        if self.exception:
+            return (self.domain, self.service, self.action_data, self.exception, self.elapsed)
+        return (self.domain, self.service, self.action_data, self.elapsed)
+
+
+@dataclass
+class DebugTrace:
+    message: str | None = field(default=None)
+    title: str | None = field(default=None)
+    data: dict | None = field(default_factory=lambda: {})
+    target: list | str | None = field(default=None)
+    resolved: dict[str, dict] = field(init=False, default_factory=lambda: {})
+
+    def contents(self) -> tuple:
+        return (self.message, self.title, self.data, self.target, self.resolved)

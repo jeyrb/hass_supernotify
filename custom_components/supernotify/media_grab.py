@@ -35,7 +35,7 @@ async def snapshot_from_url(
     notification_id: str,
     media_path: Path,
     hass_base_url: str | None,
-    timeout: int = 15,
+    remote_timeout: int = 15,
     jpeg_args: dict | None = None,
 ) -> Path | None:
     hass_base_url = hass_base_url or ""
@@ -48,7 +48,7 @@ async def snapshot_from_url(
         else:
             image_url = f"{hass_base_url}{snapshot_url}"
         websession = async_get_clientsession(hass)
-        r = await websession.get(image_url, timeout=ClientTimeout(total=timeout))
+        r = await websession.get(image_url, timeout=ClientTimeout(total=remote_timeout))
         if r.status != HTTPStatus.OK:
             _LOGGER.warning("SUPERNOTIFY Unable to retrieve %s: %s", image_url, r.status)
         else:
@@ -68,10 +68,10 @@ async def snapshot_from_url(
 
             # TODO: configure image rewrite
             image_path: Path = Path(media_dir) / f"{notification_id}.{media_ext}"
-            image = Image.open(io.BytesIO(await r.content.read()))
+            image: Image.Image = Image.open(io.BytesIO(await r.content.read()))
             # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
             clean_image: Image.Image = Image.new(image.mode, image.size)
-            clean_image.putdata(image.getdata())
+            clean_image.putdata(image.getdata())  # type: ignore
             buffer = BytesIO()
             img_args = {}
             if image_format == "JPEG" and jpeg_args:
@@ -156,7 +156,7 @@ async def snap_image(
 
 
 async def snap_camera(
-    hass: HomeAssistant, camera_entity_id: str, media_path: Path, timeout: int = 20, jpeg_args: dict | None = None
+    hass: HomeAssistant, camera_entity_id: str, media_path: Path, max_camera_wait: int = 20, jpeg_args: dict | None = None
 ) -> Path | None:
     image_path: Path | None = None
     if not camera_entity_id:
@@ -175,7 +175,7 @@ async def snap_camera(
         )
 
         # give async service time
-        cutoff_time = time.time() + timeout
+        cutoff_time = time.time() + max_camera_wait
         while time.time() < cutoff_time and not image_path.exists():
             _LOGGER.info("Image file not available yet at %s, pausing", image_path)
             await asyncio.sleep(1)
