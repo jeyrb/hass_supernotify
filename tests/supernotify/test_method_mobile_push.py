@@ -6,7 +6,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_httpserver import HTTPServer
 
-from conftest import MockAction
 from custom_components.supernotify import (
     ATTR_PRIORITY,
     CONF_METHOD,
@@ -171,7 +170,7 @@ INTEGRATION_CONFIG = {
 }
 
 
-async def test_top_level_data_used(hass: HomeAssistant, mock_notify: MockAction) -> None:
+async def test_top_level_data_used(hass: HomeAssistant) -> None:
     assert await async_setup_component(hass, NOTIFY_DOMAIN, config={NOTIFY_DOMAIN: [INTEGRATION_CONFIG]})
     await hass.async_block_till_done()
 
