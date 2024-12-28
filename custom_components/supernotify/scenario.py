@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from typing import Any
 
-from homeassistant.components.trace import async_setup, async_store_trace
+from homeassistant.components.trace import async_setup, async_store_trace  # type: ignore
 from homeassistant.components.trace.const import DATA_TRACE
 from homeassistant.components.trace.models import ActionTrace
 from homeassistant.const import (
@@ -41,7 +41,7 @@ class Scenario:
         if self.condition:
             try:
                 cond = await condition.async_validate_condition_config(self.hass, self.condition)
-                if not await condition.async_from_config(self.hass, cond):
+                if await condition.async_from_config(self.hass, cond) is None:
                     _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
                     return False
             except Exception as e:
@@ -51,7 +51,7 @@ class Scenario:
 
     def attributes(
         self, include_condition: bool = True, include_trace: bool = False
-    ) -> dict[str, str | None | dict | bool | list[str]]:
+    ) -> dict[str, str | dict | bool | list[str] | None]:
         """Return scenario attributes"""
         attrs = {
             "name": self.name,

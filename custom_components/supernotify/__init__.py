@@ -87,7 +87,6 @@ CONF_PTZ_PRESET_DEFAULT: str = "ptz_default_preset"
 CONF_ALT_CAMERA: str = "alt_camera"
 CONF_CAMERAS: str = "cameras"
 
-
 OCCUPANCY_ANY_IN = "any_in"
 OCCUPANCY_ANY_OUT = "any_out"
 OCCUPANCY_ALL_IN = "all_in"

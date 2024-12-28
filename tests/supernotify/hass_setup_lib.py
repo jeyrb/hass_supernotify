@@ -1,6 +1,7 @@
 """Test fixture support"""
 
 import logging
+from types import MappingProxyType
 
 from homeassistant import config_entries
 from homeassistant.core import ServiceCall, SupportsResponse
@@ -22,7 +23,15 @@ async def register_mobile_app(
     title="Test Device",
 ):
     config_entry = config_entries.ConfigEntry(
-        domain=domain, data={}, version=1, minor_version=1, unique_id=None, options=None, title=title, source=source
+        domain=domain,
+        data={},
+        version=1,
+        minor_version=1,
+        unique_id=None,
+        options=None,
+        title=title,
+        source=source,
+        discovery_keys=MappingProxyType({}),
     )
     if context is None or context.hass is None:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking")
