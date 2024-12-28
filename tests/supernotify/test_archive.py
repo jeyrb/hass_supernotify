@@ -36,7 +36,7 @@ async def test_integration_archive(mock_hass: HomeAssistant) -> None:
         assert uut.last_notification is not None
         obj_path: Path = Path(archive) / f"{uut.last_notification.base_filename()}.json"
         assert obj_path.exists()
-        async with aiofiles.open(obj_path, mode="r") as stream:
+        async with aiofiles.open(obj_path) as stream:
             blob: str = "".join(await stream.readlines())
             reobj = json.loads(blob)
         assert reobj["_message"] == "just a test"
@@ -53,7 +53,7 @@ async def test__archive() -> None:
 
         obj_path: Path = Path(archive).joinpath(f"{msg.base_filename()}.json")
         assert obj_path.exists()
-        async with aiofiles.open(obj_path, mode="r") as stream:
+        async with aiofiles.open(obj_path) as stream:
             blob: str = "".join(await stream.readlines())
             reobj = json.loads(blob)
         assert reobj["a_int"] == 984
