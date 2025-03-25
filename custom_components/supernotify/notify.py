@@ -140,6 +140,9 @@ async def async_get_service(
         trace = call.data.get("trace", False)
         return {"scenarios": await service.enquire_active_scenarios(trace)}
 
+    def supplemental_action_enquire_scenarios(_call: ServiceCall) -> dict:
+        return {"scenarios": service.enquire_scenarios()}
+
     async def supplemental_action_enquire_occupancy(_call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_occupancy()}
 
@@ -181,6 +184,12 @@ async def async_get_service(
         DOMAIN,
         "enquire_active_scenarios",
         supplemental_action_enquire_active_scenarios,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "enquire_scenarios",
+        supplemental_action_enquire_scenarios,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(
@@ -394,6 +403,9 @@ class SuperNotificationAction(BaseNotificationService):
             return results
 
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
+
+    def enquire_scenarios(self) -> dict[str, dict]:
+        return {s.name: s.attributes() for s in self.context.scenarios.values()}
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
         return self.context.snoozer.export()
