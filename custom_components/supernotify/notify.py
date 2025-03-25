@@ -405,7 +405,7 @@ class SuperNotificationAction(BaseNotificationService):
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
 
     def enquire_scenarios(self) -> dict[str, dict]:
-        return {s.name: s.attributes() for s in self.context.scenarios.values()}
+        return {s.name: s.attributes(include_condition=False) for s in self.context.scenarios.values()}
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
         return self.context.snoozer.export()
