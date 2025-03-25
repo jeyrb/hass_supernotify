@@ -117,7 +117,7 @@ async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> Non
     uut = SuperNotificationAction(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
     await uut.initialize()
     dummy: DummyDeliveryMethod = cast(
-        DummyDeliveryMethod, await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
+        "DummyDeliveryMethod", await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
     )
     assert dummy is not None
     await uut.async_send_message(

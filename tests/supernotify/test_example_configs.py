@@ -1,5 +1,3 @@
-import os
-import os.path
 from pathlib import Path
 
 import pytest
@@ -16,7 +14,7 @@ from custom_components.supernotify import CONF_DELIVERY, CONF_NOTIFY, CONF_SELEC
 
 EXAMPLES_ROOT = "examples"
 
-examples = os.listdir(EXAMPLES_ROOT)
+examples = [str(p) for p in Path(EXAMPLES_ROOT).iterdir()]
 
 
 @pytest.mark.parametrize("config_name", examples)

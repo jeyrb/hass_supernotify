@@ -155,7 +155,7 @@ async def test_call_supplemental_actions(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     assert response is not None
     assert "purged" in response
-    assert cast(int, response["purged"]) >= 0
+    assert cast("int", response["purged"]) >= 0
     json.dumps(response)
 
 

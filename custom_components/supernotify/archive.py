@@ -37,7 +37,7 @@ class NotificationArchive:
         if not self.configured_archive_path:
             _LOGGER.warning("SUPERNOTIFY archive path not configured")
             return
-        verify_archive_path: Path = Path(cast(str, self.configured_archive_path))
+        verify_archive_path: Path = Path(cast("str", self.configured_archive_path))
         if verify_archive_path and not verify_archive_path.exists():
             _LOGGER.info("SUPERNOTIFY archive path not found at %s", verify_archive_path)
             try:

@@ -186,7 +186,7 @@ async def test_top_level_data_used(hass: HomeAssistant) -> None:
     )
     await hass.async_block_till_done()
     notification: dict = cast(
-        dict,
+        "dict",
         await hass.services.async_call("supernotify", "enquire_last_notification", None, blocking=True, return_response=True),
     )
     assert notification is not None

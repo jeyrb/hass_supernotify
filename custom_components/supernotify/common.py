@@ -72,6 +72,7 @@ class DebugTrace:
     data: dict | None = field(default_factory=lambda: {})
     target: list | str | None = field(default=None)
     resolved: dict[str, dict] = field(init=False, default_factory=lambda: {})
+    delivery_selection: dict[str, list] = field(default_factory=lambda: {})
 
     def contents(self) -> tuple:
-        return (self.message, self.title, self.data, self.target, self.resolved)
+        return (self.message, self.title, self.data, self.target, self.resolved, self.delivery_selection)

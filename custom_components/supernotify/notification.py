@@ -209,6 +209,13 @@ class Notification(ArchivableObject):
             ]
         all_enabled = list(set(scenario_enable_deliveries + default_enable_deliveries + override_enable_deliveries))
         all_disabled = scenario_disable_deliveries + override_disable_deliveries
+        if self.debug_trace:
+            self.debug_trace.delivery_selection["override_disable_deliveries"] = override_disable_deliveries
+            self.debug_trace.delivery_selection["override_enable_deliveries"] = override_enable_deliveries
+            self.debug_trace.delivery_selection["scenario_enable_deliveries"] = scenario_enable_deliveries
+            self.debug_trace.delivery_selection["default_enable_deliveries"] = default_enable_deliveries
+            self.debug_trace.delivery_selection["scenario_disable_deliveries"] = scenario_disable_deliveries
+
         return [d for d in all_enabled if d not in all_disabled]
 
     def default_media_from_actions(self) -> None:
@@ -332,7 +339,7 @@ class Notification(ArchivableObject):
 
     def delivery_scenarios(self, delivery_name: str) -> dict[str, Scenario]:
         return {
-            k: cast(Scenario, self.context.scenarios.get(k))
+            k: cast("Scenario", self.context.scenarios.get(k))
             for k in self.enabled_scenarios
             if delivery_name in self.context.delivery_by_scenario.get(k, [])
         }
