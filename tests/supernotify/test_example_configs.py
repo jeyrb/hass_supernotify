@@ -14,7 +14,7 @@ from custom_components.supernotify import CONF_DELIVERY, CONF_NOTIFY, CONF_SELEC
 
 EXAMPLES_ROOT = "examples"
 
-examples = [str(p) for p in Path(EXAMPLES_ROOT).iterdir()]
+examples = [str(p.name) for p in Path(EXAMPLES_ROOT).iterdir()]
 
 
 @pytest.mark.parametrize("config_name", examples)
