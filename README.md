@@ -343,7 +343,7 @@ For example, a scenario could be defined by conditions such as alarm panel arm s
 and time to indicate when notifications should be minimized, and then different chime sounds
 could be selected or deliveries switched off.
 
-Scenarios can override specific delivery configurations, general media configuration or
+Scenarios can override specific delivery configurations, general media configuration (such as setting a camera, or specifying which alert sound to use for a mobile push ) or
 the `delivery_selection` basis.
 
 For more on the conditions, see the [ Home Assistant Conditions documentation](https://www.home-assistant.io/docs/scripts/conditions/) since the conditions are all evaluated at time of
@@ -382,6 +382,8 @@ red_alert:
         chime_red_alert:
         upstairs_siren:
         downstairs_siren:
+      media:
+        camera_entity_id: camera.porch
 ```
 
 Delivery selection can also be passed in the `data` of an action call, in which case it can
