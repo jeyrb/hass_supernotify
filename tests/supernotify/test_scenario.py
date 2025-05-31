@@ -2,8 +2,11 @@ import logging
 
 from homeassistant.const import CONF_ALIAS, CONF_CONDITION
 from homeassistant.core import HomeAssistant
+from pytest_unordered import unordered
 
 from custom_components.supernotify import (
+    ATTR_SCENARIOS_APPLY,
+    ATTR_SCENARIOS_CONSTRAIN,
     PLATFORM_SCHEMA,
     PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
@@ -58,11 +61,11 @@ async def test_conditional_create(hass: HomeAssistant) -> None:
     assert await uut.validate()
     assert not uut.default
     assert await uut.validate()
-    assert not await uut.evaluate(ConditionVariables([], [], PRIORITY_MEDIUM, {}))
+    assert not await uut.evaluate(ConditionVariables([], [], [], PRIORITY_MEDIUM, {}))
 
     hass.states.async_set("alarm_control_panel.home_alarm_control", "armed_home")
 
-    assert await uut.evaluate(ConditionVariables([], [], PRIORITY_CRITICAL, {}))
+    assert await uut.evaluate(ConditionVariables([], [], [], PRIORITY_CRITICAL, {}))
 
 
 async def test_select_scenarios(hass: HomeAssistant) -> None:
@@ -109,6 +112,37 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     assert enabled == []
 
 
+async def test_scenario_constraint(mock_context: SupernotificationConfiguration) -> None:
+    mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Mostly": ["siren"], "Alarm": ["chime"]}
+    mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}, "siren": {}}
+    mock_context.scenarios = {
+        "Mostly": Scenario(
+            "Mostly",
+            SCENARIO_SCHEMA({
+                CONF_ALIAS: "test001",
+                CONF_CONDITION: {
+                    "condition": "and",
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": "{{notification_priority not in ['critical']}}",
+                        },
+                    ],
+                },
+            }),
+            mock_context.hass,  # type: ignore
+        )
+    }  # type: ignore
+    uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: ["Alarm"]})
+    await uut.initialize()
+    assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime", "siren")
+    uut = Notification(
+        mock_context, "testing 123", action_data={ATTR_SCENARIOS_CONSTRAIN: ["NULL"], ATTR_SCENARIOS_APPLY: ["Alarm"]}
+    )
+    await uut.initialize()
+    assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
+
+
 async def test_attributes(hass: HomeAssistant) -> None:
     uut = Scenario(
         "testing",
@@ -134,6 +168,8 @@ async def test_attributes(hass: HomeAssistant) -> None:
     assert await uut.validate()
     attrs = uut.attributes()
     assert attrs["delivery_selection"] == "implicit"
+    # type: ignore
+    # type: ignore
     assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
 
 
@@ -146,7 +182,7 @@ async def test_secondary_scenario(hass: HomeAssistant) -> None:
         hass,
     )
     assert await uut.validate()
-    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], PRIORITY_MEDIUM, {})
+    cvars = ConditionVariables(["scenario-no-danger", "sunny"], [], [], PRIORITY_MEDIUM, {})
     assert not uut.default
     assert await uut.validate()
     assert not await uut.evaluate(cvars)
@@ -164,6 +200,6 @@ async def test_trace(hass: HomeAssistant) -> None:
     )
     assert await uut.validate()
     assert not uut.default
-    assert await uut.trace(ConditionVariables(["scenario-alert"], [], PRIORITY_MEDIUM, {"AT_HOME": ["bob"]}))
+    assert await uut.trace(ConditionVariables(["scenario-alert"], [], [], PRIORITY_MEDIUM, {"AT_HOME": ["bob"]}))
     assert uut.last_trace is not None
     _LOGGER.info("trace: %s", uut.last_trace.as_dict())

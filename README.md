@@ -65,6 +65,7 @@ you must set the `allowlist_external_dirs` in main HomeAssistant config to the s
         apply_scenarios:
           - home_security
           - garden
+        constrain_scenarios:
         delivery:
             mobile_push:
                 data:
@@ -393,8 +394,11 @@ also be `fixed`, which disables scenarios from enabling or disabling deliveries 
 to defaults or what's listed in the action call.
 
 Conditions aren't essential for scenarios, since they can also be switched on by a notification.
+
 For example in this case, where the `home_security` and `garden` scenarios are explicitly
-triggered, and so any overrides declared in those scenarios will be applied.
+triggered, and so any overrides declared in those scenarios will be applied. The `constrain_scenarios`
+prevents any scenario other than `unoccupied` or the ones explicitly applied here ( to switch off all
+other scenarios, use `NULL`).
 
 ```yaml
   - action: notify.supernotifier
@@ -405,6 +409,8 @@ triggered, and so any overrides declared in those scenarios will be applied.
         apply_scenarios:
           - home_security
           - garden
+        constrain_scenarios:
+          - unoccupied
 ```
 
 
@@ -421,6 +427,7 @@ automatically available:
 |notification_title             |Title of current notification                                     |
 |applied_scenarios              |Scenarios explicitly selected in current notification call        |
 |required_scenarios             |Scenarios a notification mandates to be enabled or else suppressed|
+|constrain_scenarios            |Restricted list of scenarios                                      |
 |occupancy                      |One or more occupancy states, e.g. ALL_HOME, LONE_HOME            |
 
 

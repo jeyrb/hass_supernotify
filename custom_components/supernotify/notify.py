@@ -405,12 +405,12 @@ class SuperNotificationAction(BaseNotificationService):
 
     async def enquire_active_scenarios(self) -> list[str]:
         occupiers = self.context.determine_occupancy()
-        cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers, None, None)
+        cvars = ConditionVariables([], [], [], PRIORITY_MEDIUM, occupiers, None, None)
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
 
     async def trace_active_scenarios(self) -> tuple:
         occupiers = self.context.determine_occupancy()
-        cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers, None, None)
+        cvars = ConditionVariables([], [], [], PRIORITY_MEDIUM, occupiers, None, None)
 
         def safe_json(v: Any) -> Any:
             return json.loads(json.dumps(v, cls=ExtendedJSONEncoder))

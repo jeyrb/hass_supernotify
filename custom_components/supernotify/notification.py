@@ -58,6 +58,7 @@ from custom_components.supernotify import (
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
     SCENARIO_DEFAULT,
+    SCENARIO_NULL,
     SELECTION_BY_SCENARIO,
     STRICT_ACTION_DATA_SCHEMA,
     ConditionVariables,
@@ -144,14 +145,24 @@ class Notification(ArchivableObject):
 
         self.occupancy = self.context.determine_occupancy()
         self.condition_variables = ConditionVariables(
-            self.applied_scenarios, self.required_scenarios, self.priority, self.occupancy, self._message, self._title
+            self.applied_scenarios,
+            self.required_scenarios,
+            self.constrain_scenarios,
+            self.priority,
+            self.occupancy,
+            self._message,
+            self._title,
         )  # requires occupancy first
 
         self.enabled_scenarios = list(self.applied_scenarios) or []
         self.selected_scenarios = await self.select_scenarios()
         self.enabled_scenarios.extend(self.selected_scenarios)
         if self.constrain_scenarios:
-            self.enabled_scenarios = [s for s in self.enabled_scenarios if s in self.constrain_scenarios]
+            self.enabled_scenarios = [
+                s
+                for s in self.enabled_scenarios
+                if (s in self.constrain_scenarios or s in self.applied_scenarios) and s != SCENARIO_NULL
+            ]
         if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
             _LOGGER.info("SUPERNOTIFY suppressing notification, no required scenarios enabled")
             self.selected_delivery_names = []
