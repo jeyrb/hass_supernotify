@@ -38,7 +38,7 @@ SIMPLE_CONFIG = {
 }
 
 
-async def test_schema():
+def test_schema():
     assert PLATFORM_SCHEMA(SIMPLE_CONFIG)
 
 
@@ -144,11 +144,17 @@ async def test_call_supplemental_actions(hass: HomeAssistant) -> None:
     )
     await hass.async_block_till_done()
     assert response
-    assert isinstance(response["scenarios"], dict)
-    assert isinstance(response["scenarios"]["DISABLED"], list)
-    assert [s["name"] for s in response["scenarios"]["DISABLED"]] == ["simple", "somebody"]  # type: ignore
-    assert response["scenarios"]["ENABLED"] == []
-    assert response["scenarios"]["VARS"]
+    assert isinstance(response["scenarios"], list)
+    assert "trace" in response
+    assert isinstance(response["trace"], tuple)
+    assert len(response["trace"]) == 3
+    enabled, disabled, cvars = response["trace"]
+    assert isinstance(enabled, list)
+    assert isinstance(disabled, list)
+    assert isinstance(cvars, dict)
+    assert [s["name"] for s in disabled] == ["simple", "somebody"]  # type: ignore
+    assert enabled == []
+    assert cvars["notification_priority"] == "medium"
     json.dumps(response)
 
     response = await hass.services.async_call("supernotify", "purge_archive", None, blocking=True, return_response=True)
@@ -201,7 +207,12 @@ async def test_delivery_and_scenario(hass: HomeAssistant) -> None:
     )
     assert notification is not None
     assert isinstance(notification["delivered_envelopes"], list)
-    delivered_chimes = [e for e in notification["delivered_envelopes"] if e and e.get("delivery_name", "") == "chime_person"]  # type: ignore
+
+    delivered_chimes = [
+        e
+        for e in notification["delivered_envelopes"]
+        if e and isinstance(e, dict) and e.get("delivery_name", "") == "chime_person"
+    ]  # type: ignore
     assert len(delivered_chimes) == 1
 
     assert delivered_chimes[0]["calls"][0][:3] == (  # type: ignore

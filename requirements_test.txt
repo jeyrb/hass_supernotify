@@ -6,6 +6,7 @@ pytest-asyncio
 pytest-unordered
 pytest-xdist
 types-aiofiles
+types-cachetools
 pre-commit
 pytest-httpserver>=1.0.10
 ruff

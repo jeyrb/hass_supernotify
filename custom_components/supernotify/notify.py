@@ -138,7 +138,10 @@ async def async_get_service(
 
     async def supplemental_action_enquire_active_scenarios(call: ServiceCall) -> dict:
         trace = call.data.get("trace", False)
-        return {"scenarios": await service.enquire_active_scenarios(trace)}
+        result: dict[str, Any] = {"scenarios": await service.enquire_active_scenarios()}
+        if trace:
+            result["trace"] = await service.trace_active_scenarios()
+        return result
 
     def supplemental_action_enquire_scenarios(_call: ServiceCall) -> dict:
         return {"scenarios": service.enquire_scenarios()}
@@ -146,13 +149,13 @@ async def async_get_service(
     async def supplemental_action_enquire_occupancy(_call: ServiceCall) -> dict:
         return {"scenarios": await service.enquire_occupancy()}
 
-    async def supplemental_action_enquire_snoozes(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_snoozes(_call: ServiceCall) -> dict:
         return {"snoozes": service.enquire_snoozes()}
 
-    async def supplemental_action_clear_snoozes(_call: ServiceCall) -> dict:
+    def supplemental_action_clear_snoozes(_call: ServiceCall) -> dict:
         return {"cleared": service.clear_snoozes()}
 
-    async def supplemental_action_enquire_people(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_people(_call: ServiceCall) -> dict:
         return {"people": service.enquire_people()}
 
     async def supplemental_action_purge_archive(call: ServiceCall) -> dict[str, Any]:
@@ -312,16 +315,30 @@ class SuperNotificationAction(BaseNotificationService):
         _LOGGER.info("SUPERNOTIFY shut down")
 
     def expose_entities(self) -> None:
-        for scenario in self.context.scenarios.values():
-            self.hass.states.async_set(f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes(include_condition=False))
-        for method in self.context.methods.values():
-            self.hass.states.async_set(
-                f"{DOMAIN}.method_{method.method}", str(len(method.valid_deliveries) > 0), method.attributes()
-            )
-        for delivery_name, delivery in self.context._deliveries.items():
-            self.hass.states.async_set(
-                f"{DOMAIN}.delivery_{delivery_name}", str(delivery_name in self.context.deliveries), delivery
-            )
+        self.hass.states.async_set(
+            f"{DOMAIN}.scenarios", "", {k: v.attributes(include_condition=False) for k, v in self.context.scenarios.items()}
+        )
+        self.hass.states.async_set(f"{DOMAIN}.methods", "", {k: v.attributes() for k, v in self.context.methods.items()})
+        self.hass.states.async_set(
+            f"{DOMAIN}.active_methods",
+            "",
+            {k: v.attributes() for k, v in self.context.methods.items() if len(v.valid_deliveries) > 0},
+        )
+        self.hass.states.async_set(f"{DOMAIN}.deliveries", "", self.context.deliveries)
+
+        # for scenario in self.context.scenarios.values():
+        #     self.hass.states.async_set(
+        #         f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes(include_condition=False))
+        # for method in self.context.methods.values():
+        #     self.hass.states.async_set(
+        #         f"{DOMAIN}.method_{method.method}", str(
+        #             len(method.valid_deliveries) > 0), method.attributes()
+        #     )
+        # for delivery_name, delivery in self.context._deliveries.items():
+        #     self.hass.states.async_set(
+        #         f"{DOMAIN}.delivery_{delivery_name}", str(
+        #             delivery_name in self.context.deliveries), delivery
+        #     )
 
     def dupe_check(self, notification: Notification) -> bool:
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
@@ -336,7 +353,7 @@ class SuperNotificationAction(BaseNotificationService):
         if any((notification_hash, p) in self.notification_cache for p in same_or_higher_priority):
             _LOGGER.debug("SUPERNOTIFY Detected dupe notification")
             dupe = True
-        self.notification_cache[(notification_hash, notification.priority)] = notification.id
+        self.notification_cache[notification_hash, notification.priority] = notification.id
         return dupe
 
     async def async_send_message(
@@ -386,23 +403,27 @@ class SuperNotificationAction(BaseNotificationService):
     async def enquire_occupancy(self) -> dict[str, list]:
         return self.context.determine_occupancy()
 
-    async def enquire_active_scenarios(self, trace: bool) -> list[str] | dict:
+    async def enquire_active_scenarios(self) -> list[str]:
+        occupiers = self.context.determine_occupancy()
+        cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers, None, None)
+        return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
+
+    async def trace_active_scenarios(self) -> tuple:
         occupiers = self.context.determine_occupancy()
         cvars = ConditionVariables([], [], PRIORITY_MEDIUM, occupiers, None, None)
 
         def safe_json(v: Any) -> Any:
             return json.loads(json.dumps(v, cls=ExtendedJSONEncoder))
 
-        if trace:
-            results = {"ENABLED": [], "DISABLED": [], "VARS": asdict(cvars)}
-            for s in self.context.scenarios.values():
-                if await s.trace(cvars):
-                    results["ENABLED"].append(safe_json(s.attributes(include_trace=True)))  # type: ignore
-                else:
-                    results["DISABLED"].append(safe_json(s.attributes(include_trace=True)))  # type: ignore
-            return results
-
-        return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
+        enabled = []
+        disabled = []
+        dcvars = asdict(cvars)
+        for s in self.context.scenarios.values():
+            if await s.trace(cvars):
+                enabled.append(safe_json(s.attributes(include_trace=True)))
+            else:
+                disabled.append(safe_json(s.attributes(include_trace=True)))
+        return enabled, disabled, dcvars
 
     def enquire_scenarios(self) -> dict[str, dict]:
         return {s.name: s.attributes(include_condition=False) for s in self.context.scenarios.values()}
