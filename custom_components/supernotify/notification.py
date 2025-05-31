@@ -30,6 +30,7 @@ from custom_components.supernotify import (
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS_APPLY,
     ATTR_SCENARIOS_CONSTRAIN,
+    ATTR_SCENARIOS_REQUIRE,
     CONF_DATA,
     CONF_DELIVERY,
     CONF_MESSAGE,
@@ -106,8 +107,9 @@ class Notification(ArchivableObject):
 
         self.priority: str = action_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html: str | None = action_data.get(ATTR_MESSAGE_HTML)
-        self.required_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
+        self.required_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_REQUIRE))
         self.applied_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
+        self.constrain_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
         self.delivery_selection: str | None = action_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type: str = action_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict = ensure_dict(action_data.get(ATTR_DELIVERY))
@@ -148,6 +150,8 @@ class Notification(ArchivableObject):
         self.enabled_scenarios = list(self.applied_scenarios) or []
         self.selected_scenarios = await self.select_scenarios()
         self.enabled_scenarios.extend(self.selected_scenarios)
+        if self.constrain_scenarios:
+            self.enabled_scenarios = [s for s in self.enabled_scenarios if s in self.constrain_scenarios]
         if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
             _LOGGER.info("SUPERNOTIFY suppressing notification, no required scenarios enabled")
             self.selected_delivery_names = []
@@ -401,7 +405,12 @@ class Notification(ArchivableObject):
             for t in self.target:
                 if t in self.context.people:
                     recipients.append(self.context.people[t])
-                    self.record_resolve(delivery_name, "1a_person_target", self.context.people[t])  # type: ignore
+                    self.record_resolve(
+                        # type: ignore
+                        delivery_name,
+                        "1a_person_target",
+                        t,
+                    )
                 else:
                     recipients.append({ATTR_TARGET: t})
                     self.record_resolve(delivery_name, "1b_non_person_target", t)

@@ -98,8 +98,9 @@ OCCUPANCY_ONLY_OUT = "only_out"
 
 ATTR_PRIORITY = "priority"
 ATTR_ACTION = "action"
-ATTR_SCENARIOS_CONSTRAIN = "require_scenarios"
+ATTR_SCENARIOS_REQUIRE = "require_scenarios"
 ATTR_SCENARIOS_APPLY = "apply_scenarios"
+ATTR_SCENARIOS_CONSTRAIN = "constrain_scenarios"
 ATTR_DELIVERY = "delivery"
 ATTR_DEFAULT = "default"
 ATTR_NOTIFICATION_ID = "notification_id"
@@ -336,8 +337,9 @@ ACTION_DATA_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_DELIVERY): vol.Any(cv.string, [cv.string], {cv.string: vol.Any(None, DELIVERY_CUSTOMIZE_SCHEMA)}),
         vol.Optional(ATTR_PRIORITY): vol.In(PRIORITY_VALUES),
-        vol.Optional(ATTR_SCENARIOS_CONSTRAIN): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_SCENARIOS_REQUIRE): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_SCENARIOS_APPLY): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_SCENARIOS_CONSTRAIN): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_DELIVERY_SELECTION): vol.In(DELIVERY_SELECTION_VALUES),
         vol.Optional(ATTR_RECIPIENTS): vol.All(cv.ensure_list, [cv.entity_id]),
         vol.Optional(ATTR_MEDIA): MEDIA_SCHEMA,
