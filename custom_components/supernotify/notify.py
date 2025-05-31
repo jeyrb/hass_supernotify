@@ -9,7 +9,7 @@ from typing import Any
 
 from cachetools import TTLCache
 from homeassistant.components.notify.legacy import BaseNotificationService
-from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers.condition import async_validate_condition_config
 from homeassistant.helpers.event import async_track_time_change
@@ -315,30 +315,22 @@ class SuperNotificationAction(BaseNotificationService):
         _LOGGER.info("SUPERNOTIFY shut down")
 
     def expose_entities(self) -> None:
-        self.hass.states.async_set(
-            f"{DOMAIN}.scenarios", "", {k: v.attributes(include_condition=False) for k, v in self.context.scenarios.items()}
-        )
-        self.hass.states.async_set(f"{DOMAIN}.methods", "", {k: v.attributes() for k, v in self.context.methods.items()})
-        self.hass.states.async_set(
-            f"{DOMAIN}.active_methods",
-            "",
-            {k: v.attributes() for k, v in self.context.methods.items() if len(v.valid_deliveries) > 0},
-        )
-        self.hass.states.async_set(f"{DOMAIN}.deliveries", "", self.context.deliveries)
-
-        # for scenario in self.context.scenarios.values():
-        #     self.hass.states.async_set(
-        #         f"{DOMAIN}.scenario_{scenario.name}", "", scenario.attributes(include_condition=False))
-        # for method in self.context.methods.values():
-        #     self.hass.states.async_set(
-        #         f"{DOMAIN}.method_{method.method}", str(
-        #             len(method.valid_deliveries) > 0), method.attributes()
-        #     )
-        # for delivery_name, delivery in self.context._deliveries.items():
-        #     self.hass.states.async_set(
-        #         f"{DOMAIN}.delivery_{delivery_name}", str(
-        #             delivery_name in self.context.deliveries), delivery
-        #     )
+        for scenario in self.context.scenarios.values():
+            self.hass.states.async_set(
+                f"{DOMAIN}.scenario_{scenario.name}", STATE_UNKNOWN, scenario.attributes(include_condition=False)
+            )
+        for method in self.context.methods.values():
+            self.hass.states.async_set(
+                f"{DOMAIN}.method_{method.method}",
+                STATE_ON if len(method.valid_deliveries) > 0 else STATE_OFF,
+                method.attributes(),
+            )
+        for delivery_name, delivery in self.context._deliveries.items():
+            self.hass.states.async_set(
+                f"{DOMAIN}.delivery_{delivery_name}",
+                STATE_ON if str(delivery_name in self.context.deliveries) else STATE_OFF,
+                delivery,
+            )
 
     def dupe_check(self, notification: Notification) -> bool:
         policy = self.dupe_check_config.get(CONF_DUPE_POLICY, ATTR_DUPE_POLICY_MTSLP)
