@@ -51,7 +51,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         data: dict[str, Any] = envelope.data or {}
         config = self.delivery_config(envelope.delivery_name)
         html: str | None = data.get("html")
-        template: str = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
+        template: str | None = data.get(CONF_TEMPLATE, config.get(CONF_TEMPLATE))
         addresses: list[str] = envelope.targets or []
         snapshot_url: str | None = data.get("snapshot_url")
         # TODO: centralize in config

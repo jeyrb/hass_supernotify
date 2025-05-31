@@ -52,7 +52,7 @@ async def snapshot_from_url(
         if r.status != HTTPStatus.OK:
             _LOGGER.warning("SUPERNOTIFY Unable to retrieve %s: %s", image_url, r.status)
         else:
-            if r.content_type == "image/jpeg":
+            if r.content_type in ("image/jpeg", "image/jpg"):
                 media_ext = "jpg"
                 image_format = "JPEG"
             elif r.content_type == "image/png":
