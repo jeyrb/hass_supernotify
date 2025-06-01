@@ -1,6 +1,28 @@
 [project]
 name = "supernotify"
+description = "Home Assistant custom component for advanced notifications"
 readme = "README.md"
+dynamic = [ "version" ]
+requires-python = ">=3.13"
+dependencies = [
+    "homeassistant>=2025.5.0",
+]
+
+[tool.poetry]
+package-mode = false
+version = "0.3.1"
+packages = [
+    { include = "custom_components.supernotify" }
+]
+
+[tool.setuptools.packages.find]
+where = ["custom_components"]  # list of folders that contain the packages (["."] by default)
+include = ["supernotify*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["supernotify.tests*"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = true  # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.poetry.group.dev.dependencies]
+homeassistant-stubs = "2025.5.3"
 
 [tool.ruff]
 line-length = 128
@@ -62,8 +84,6 @@ unfixable = ["B"]
 [tool.ruff.format]
 preview = true
 
-[tool.poetry.group.dev.dependencies]
-homeassistant-stubs = "2024.2.2"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -32,6 +32,7 @@ async def register_mobile_app(
         title=title,
         source=source,
         discovery_keys=MappingProxyType({}),
+        subentries_data=None,
     )
     if context is None or context.hass is None:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking")

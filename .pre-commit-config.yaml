@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.12
+  python: python3.13
 exclude: 'custom_components/supernotify/integrations/frigate.py'
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -49,9 +49,9 @@ repos:
           - --show-error-codes
           - --show-error-context
         additional_dependencies:
-          - homeassistant-stubs==2024.12.5
-          - types-python-slugify==8.0.2.20240310
-          - voluptuous-stubs==0.1.1
+          - homeassistant-stubs>=2025.4.0
+          - types-python-slugify>=8.0.2.20240310
+          - voluptuous-stubs>=0.1.1
           - pytest
           - types-cachetools
           - types-requests
