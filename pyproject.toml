@@ -3,7 +3,7 @@ name = "supernotify"
 description = "Home Assistant custom component for advanced notifications"
 readme = "README.md"
 dynamic = [ "version" ]
-requires-python = ">=3.13"
+requires-python = ">=3.13.2"
 dependencies = [
     "homeassistant>=2025.5.0",
 ]
