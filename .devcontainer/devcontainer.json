@@ -1,6 +1,6 @@
 {
     "name": "jeyrb/dev-supernotify",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "python3 -m venv .devcontainer/.venv;./refresh-deps.sh",
     "appPort": [
       "9123:8123"
