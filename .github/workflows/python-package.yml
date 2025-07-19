@@ -43,7 +43,7 @@ jobs:
     - name: Deploy docs
       #uses: mhausenblas/mkdocs-deploy-gh-pages@master
       run:
-        if [ -f requirements_test.txt ]; then pip install -r requirements_test.txt; fi
+        if [ -f requirements_docs.txt ]; then pip install -r requirements_docs.txt; fi
         mkdocs gh-deploy --force --config-file mkdocs.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
