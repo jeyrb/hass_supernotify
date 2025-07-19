@@ -41,7 +41,10 @@ jobs:
         category: "integration"
         ignore: brands
     - name: Deploy docs
-      uses: mhausenblas/mkdocs-deploy-gh-pages@master
+      #uses: mhausenblas/mkdocs-deploy-gh-pages@master
+      run:
+        if [ -f requirements_test.txt ]; then pip install -r requirements_test.txt; fi
+        mkdocs gh-deploy --force --config-file mkdocs.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         REQUIREMENTS: requirements_docs.txt
