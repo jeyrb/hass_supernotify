@@ -9,5 +9,5 @@ mkdocs
 jsonschema-markdown
 mkdocs-gen-files
 homeassistant
-voluptuous-voluptuous
+voluptuous-openapi
 voluptuous
