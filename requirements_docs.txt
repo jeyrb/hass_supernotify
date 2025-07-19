@@ -9,3 +9,5 @@ mkdocs
 jsonschema-markdown
 mkdocs-gen-files
 homeassistant>=2025.7.2
+voluptuous-voluptuous
+voluptuous
