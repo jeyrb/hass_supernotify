@@ -1,7 +1,7 @@
 from homeassistant.const import ATTR_ENTITY_ID, CONF_DEFAULT, CONF_METHOD
 
 from custom_components.supernotify import CONF_DATA, METHOD_CHIME
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
 from custom_components.supernotify.notification import Notification
@@ -9,7 +9,7 @@ from custom_components.supernotify.notification import Notification
 
 async def test_deliver(mock_hass) -> None:
     """Test on_notify_chime"""
-    context = SupernotificationConfiguration()
+    context = Context()
     uut = ChimeDeliveryMethod(
         mock_hass,
         context,
@@ -35,7 +35,7 @@ async def test_deliver(mock_hass) -> None:
 
 async def test_deliver_alias(mock_hass) -> None:
     """Test on_notify_chime"""
-    context = SupernotificationConfiguration(
+    context = Context(
         method_defaults={
             "chime": {
                 "target": ["media_player.kitchen_alexa", "media_player.hall_echo"],

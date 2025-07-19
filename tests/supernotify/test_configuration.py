@@ -2,7 +2,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.supernotify import CONF_PERSON, CONF_RECIPIENTS
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
 
@@ -11,9 +11,7 @@ from .hass_setup_lib import register_mobile_app
 
 
 async def test_default_recipients(mock_hass) -> None:
-    context = SupernotificationConfiguration(
-        mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}]
-    )
+    context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
     await context.register_delivery_methods([dummy], set_as_default=True)
@@ -24,9 +22,7 @@ async def test_default_recipients(mock_hass) -> None:
 
 
 async def test_default_recipients_with_override(mock_hass) -> None:
-    context = SupernotificationConfiguration(
-        mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}]
-    )
+    context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
     await context.register_delivery_methods([dummy], set_as_default=True)
@@ -47,9 +43,7 @@ async def test_delivery_override_method(mock_hass) -> None:
         "regular_alert": {"method": "dummy", "entities": ["switch.pillow_vibrate"], "selection": "explicit"},
         "day_alert": {"method": "dummy", "selection": "explicit"},
     }
-    context = SupernotificationConfiguration(
-        mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config
-    )
+    context = Context(mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config)
     dummy = DummyDeliveryMethod(mock_hass, context, delivery_config)
     await context.initialize()
     await context.register_delivery_methods([dummy], set_as_default=False)
@@ -75,7 +69,7 @@ async def test_delivery_override_method(mock_hass) -> None:
 
 
 async def test_autoresolve_mobile_devices_for_no_devices(hass: HomeAssistant) -> None:
-    uut = SupernotificationConfiguration(hass)
+    uut = Context(hass)
     await uut.initialize()
     assert uut.mobile_devices_for_person("person.test_user") == []
 
@@ -85,7 +79,7 @@ async def test_autoresolve_mobile_devices_for_devices(
     device_registry: device_registry.DeviceRegistry,
     entity_registry: entity_registry.EntityRegistry,
 ) -> None:
-    uut = SupernotificationConfiguration(hass)
+    uut = Context(hass)
     uut._device_registry = device_registry
     uut._entity_registry = entity_registry
     await uut.initialize()

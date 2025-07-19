@@ -17,7 +17,7 @@ from custom_components.supernotify import (
     METHOD_SMS,
     SELECTION_BY_SCENARIO,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 
 DELIVERY: dict[str, Any] = {
@@ -31,7 +31,7 @@ DELIVERY: dict[str, Any] = {
 
 
 async def test_simple_create(hass: HomeAssistant) -> None:
-    context = Mock(SupernotificationConfiguration)
+    context = Mock(Context)
     context.method_defaults = {}
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
     await uut.initialize()
@@ -40,7 +40,7 @@ async def test_simple_create(hass: HomeAssistant) -> None:
 
 
 async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
-    context = Mock(SupernotificationConfiguration)
+    context = Mock(Context)
     context.method_defaults = {METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}}
 
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
@@ -51,9 +51,7 @@ async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
 
 async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> None:
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC, CONF_TARGET: ["chan1", "chan2"]}}
-    context = SupernotificationConfiguration(
-        deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}}
-    )
+    context = Context(deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}})
     await context.initialize()
     uut = GenericDeliveryMethod(hass, context, delivery)
     await uut.initialize()

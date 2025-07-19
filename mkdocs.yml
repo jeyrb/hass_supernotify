@@ -5,10 +5,10 @@ site_description: Advanced, concise, flexible notification upgrade for Home Assi
 repo_name: jeyrb/hass_supernotify
 repo_url: https://github.com/jeyrb/hass_supernotify
 
-
 theme:
   name: material
   highlightjs: true
+  language: en
   features:
     - content.code.copy
     - content.code.select
@@ -16,6 +16,8 @@ theme:
 plugins:
   - search
   - autorefs
+  - minify:
+      minify_html: true
   - coverage:
       page_path: coverage
       html_report_dir: htmlcov
@@ -28,6 +30,10 @@ plugins:
             show_root_heading: true
             summary: true
             docstring_section_style: spacy
+  - gen-files:
+      scripts:
+      - docgen/schema_extractor.py
+
 watch:
   - custom_components/supernotify
 markdown_extensions:

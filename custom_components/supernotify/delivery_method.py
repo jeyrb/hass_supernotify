@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 
 from custom_components.supernotify.common import CallRecord
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 
 from . import CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
 
@@ -25,9 +25,9 @@ class DeliveryMethod:
     default_action: str | None = None
 
     @abstractmethod
-    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None) -> None:
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None) -> None:
         self.hass: HomeAssistant = hass
-        self.context: SupernotificationConfiguration = context
+        self.context: Context = context
         self.default_delivery: dict | None = None
         self.valid_deliveries: dict[str, dict] = {}
         self.method_deliveries: dict[str, dict] = (

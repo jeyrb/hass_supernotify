@@ -7,13 +7,13 @@ from homeassistant import config_entries
 from homeassistant.core import ServiceCall, SupportsResponse
 from homeassistant.util import slugify
 
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def register_mobile_app(
-    context: SupernotificationConfiguration,
+    context: Context,
     person="person.test_user",
     manufacturer="xUnit",
     model="PyTest001",

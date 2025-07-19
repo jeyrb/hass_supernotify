@@ -1,7 +1,10 @@
 mkdocstrings
 mkdocstrings-python>=1.10.5
+mkdocs-minify-plugin
 pymdown-extensions
 mkdocs-material
 mkdocs-autorefs
 mkdocs-coverage
 mkdocs
+jsonschema-markdown
+mkdocs-gen-files

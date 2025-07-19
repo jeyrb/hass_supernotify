@@ -23,7 +23,7 @@ from custom_components.supernotify import (
     METHOD_EMAIL,
     METHOD_GENERIC,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.email import EmailDeliveryMethod
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
@@ -31,7 +31,7 @@ from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
 
 
-async def test_simple_create(mock_context: SupernotificationConfiguration) -> None:
+async def test_simple_create(mock_context: Context) -> None:
     mock_context.deliveries = {"plain_email": {}, "mobile": {"title": "mobile notification"}, "chime": {}}
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
     uut = Notification(mock_context, "testing 123")
@@ -48,7 +48,7 @@ async def test_simple_create(mock_context: SupernotificationConfiguration) -> No
     assert uut.selected_delivery_names == unordered(["plain_email", "mobile"])
 
 
-async def test_explicit_delivery(mock_context: SupernotificationConfiguration) -> None:
+async def test_explicit_delivery(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
     uut = Notification(
@@ -61,7 +61,7 @@ async def test_explicit_delivery(mock_context: SupernotificationConfiguration) -
     assert uut.selected_delivery_names == ["mobile"]
 
 
-async def test_scenario_delivery(mock_context: SupernotificationConfiguration) -> None:
+async def test_scenario_delivery(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
     uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: "Alarm"})
@@ -69,7 +69,7 @@ async def test_scenario_delivery(mock_context: SupernotificationConfiguration) -
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
 
 
-async def test_explicit_list_of_deliveries(mock_context: SupernotificationConfiguration) -> None:
+async def test_explicit_list_of_deliveries(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
     uut = Notification(mock_context, "testing 123", action_data={CONF_DELIVERY: "mobile"})
@@ -77,7 +77,7 @@ async def test_explicit_list_of_deliveries(mock_context: SupernotificationConfig
     assert uut.selected_delivery_names == ["mobile"]
 
 
-async def test_generate_recipients_from_entities(mock_context: SupernotificationConfiguration) -> None:
+async def test_generate_recipients_from_entities(mock_context: Context) -> None:
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
@@ -93,7 +93,7 @@ async def test_generate_recipients_from_entities(mock_context: Supernotification
     assert recipients == [{"target": "custom.light_1"}, {"target": "custom.switch_2"}]
 
 
-async def test_generate_recipients_from_recipients(mock_context: SupernotificationConfiguration) -> None:
+async def test_generate_recipients_from_recipients(mock_context: Context) -> None:
     delivery = {
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
@@ -109,7 +109,7 @@ async def test_generate_recipients_from_recipients(mock_context: Supernotificati
     assert recipients == ["custom.light_1", "custom.switch_2"]
 
 
-async def test_explicit_recipients_only_restricts_people_targets(mock_context: SupernotificationConfiguration) -> None:
+async def test_explicit_recipients_only_restricts_people_targets(mock_context: Context) -> None:
     delivery = {
         "chatty": {CONF_METHOD: METHOD_GENERIC, CONF_ACTION: "notify.slackity", CONF_TARGET: ["chan1", "chan2"]},
         "mail": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp"},
@@ -131,7 +131,7 @@ async def test_explicit_recipients_only_restricts_people_targets(mock_context: S
     assert bundles == [Envelope("mail", uut, targets=["bob@test.com", "jane@test.com"])]
 
 
-async def test_filter_recipients(mock_context: SupernotificationConfiguration) -> None:
+async def test_filter_recipients(mock_context: Context) -> None:
     uut = Notification(mock_context, "testing 123")
     await uut.initialize()
 
@@ -146,7 +146,7 @@ async def test_filter_recipients(mock_context: SupernotificationConfiguration) -
     assert {r["person"] for r in uut.filter_people_by_occupancy("only_in")} == {"person.bidey_in"}
 
 
-async def test_build_targets_for_simple_case(mock_context: SupernotificationConfiguration) -> None:
+async def test_build_targets_for_simple_case(mock_context: Context) -> None:
     method = GenericDeliveryMethod(mock_context.hass, mock_context, {})
     await method.initialize()
     # mock_context.deliveries={'testy':method}
@@ -156,7 +156,7 @@ async def test_build_targets_for_simple_case(mock_context: SupernotificationConf
     assert bundles == [Envelope("", uut)]
 
 
-async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(mock_context: SupernotificationConfiguration) -> None:
+async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
     uut = Notification(mock_context, "testing 123", action_data={CONF_DELIVERY: {"mobile": {}}})
@@ -164,7 +164,7 @@ async def test_dict_of_delivery_tuning_does_not_restrict_deliveries(mock_context
     assert uut.selected_delivery_names == unordered("plain_email", "mobile")
 
 
-async def test_snapshot_url(mock_context: SupernotificationConfiguration) -> None:
+async def test_snapshot_url(mock_context: Context) -> None:
     uut = Notification(mock_context, "testing 123", action_data={CONF_MEDIA: {ATTR_MEDIA_SNAPSHOT_URL: "/my_local_image"}})
     await uut.initialize()
     original_image_path: Path = Path(tempfile.gettempdir()) / "image_a.jpg"
@@ -181,7 +181,7 @@ async def test_snapshot_url(mock_context: SupernotificationConfiguration) -> Non
         mock_snapshot.assert_not_called()
 
 
-async def test_camera_entity(mock_context: SupernotificationConfiguration) -> None:
+async def test_camera_entity(mock_context: Context) -> None:
     uut = Notification(mock_context, "testing 123", action_data={CONF_MEDIA: {ATTR_MEDIA_CAMERA_ENTITY_ID: "camera.lobby"}})
     await uut.initialize()
     original_image_path: Path = Path(tempfile.gettempdir()) / "image_b.jpg"
@@ -196,7 +196,7 @@ async def test_camera_entity(mock_context: SupernotificationConfiguration) -> No
         mock_snap_cam.assert_not_called()
 
 
-async def test_merge(mock_context: SupernotificationConfiguration):
+async def test_merge(mock_context: Context):
     mock_context.scenarios = {
         "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_context.hass)  # type: ignore
     }

@@ -20,7 +20,7 @@ from custom_components.supernotify import (
     QualifiedTargetType,
     RecipientType,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.mobile_push import MobilePushDeliveryMethod
 from custom_components.supernotify.notification import Notification
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
-    context = SupernotificationConfiguration()
+    context = Context()
 
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
     await uut.deliver(
@@ -80,7 +80,7 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
 
 async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
-    context = SupernotificationConfiguration()
+    context = Context()
 
     uut = MobilePushDeliveryMethod(mock_hass, context, {})
     await uut.deliver(
@@ -99,7 +99,7 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssista
 
 async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
-    context = SupernotificationConfiguration(
+    context = Context(
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_action": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
@@ -113,7 +113,7 @@ async def test_on_notify_mobile_push_with_person_derived_targets(mock_hass: Home
 
 async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
-    context = SupernotificationConfiguration(
+    context = Context(
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_action": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
@@ -208,7 +208,7 @@ async def test_action_title(mock_hass: HomeAssistant, superconfig, local_server:
     assert await uut.action_title("http://127.0.0.1/no/such/page") is None
 
 
-async def test_on_notify_mobile_push_with_broken_mobile_targets(mock_context: SupernotificationConfiguration) -> None:
+async def test_on_notify_mobile_push_with_broken_mobile_targets(mock_context: Context) -> None:
     """Test on_notify_mobile_push."""
     uut = MobilePushDeliveryMethod(mock_context.hass, mock_context, {})
     e = Envelope(

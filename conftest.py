@@ -24,7 +24,7 @@ from custom_components.supernotify import (
     CONF_NOTIFY_ACTION,
     CONF_PERSON,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.snoozer import Snoozer
 
 
@@ -64,8 +64,8 @@ def mock_hass() -> HomeAssistant:
 
 
 @pytest.fixture
-def mock_context(mock_hass: HomeAssistant) -> SupernotificationConfiguration:
-    context = Mock(spec=SupernotificationConfiguration)
+def mock_context(mock_hass: HomeAssistant) -> Context:
+    context = Mock(spec=Context)
     context.hass = mock_hass
     context.scenarios = {}
     context.deliveries = {"chime": {}, "gmail": {CONF_METHOD: "email"}}
@@ -105,8 +105,8 @@ def mock_notify(hass: HomeAssistant) -> MockAction:
 
 
 @pytest.fixture
-async def superconfig() -> SupernotificationConfiguration:
-    context = SupernotificationConfiguration()
+async def superconfig() -> Context:
+    context = Context()
     await context.initialize()
     return context
 

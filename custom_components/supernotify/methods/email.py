@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from jinja2 import Environment, FileSystemLoader
 
 from custom_components.supernotify import CONF_TEMPLATE, METHOD_EMAIL
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     method = METHOD_EMAIL
 
-    def __init__(self, hass: HomeAssistant, context: SupernotificationConfiguration, deliveries: dict | None = None) -> None:
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None) -> None:
         super().__init__(hass, context, deliveries)
         self.template_path: Path | None = None
         if self.context.template_path:

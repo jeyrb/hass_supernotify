@@ -70,7 +70,7 @@ from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.scenario import Scenario
 
 from .common import ensure_dict, ensure_list
-from .configuration import SupernotificationConfiguration
+from .configuration import Context
 from .media_grab import move_camera_to_ptz_preset, select_avail_camera, snap_camera, snap_image, snapshot_from_url
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ _LOGGER = logging.getLogger(__name__)
 class Notification(ArchivableObject):
     def __init__(
         self,
-        context: SupernotificationConfiguration,
+        context: Context,
         message: str | None = None,
         title: str | None = None,
         target: list | str | None = None,
@@ -88,7 +88,7 @@ class Notification(ArchivableObject):
         self.created: dt.datetime = dt.datetime.now(tz=dt.UTC)
         self.debug_trace: DebugTrace = DebugTrace(message=message, title=title, data=action_data, target=target)
         self._message: str | None = message
-        self.context: SupernotificationConfiguration = context
+        self.context: Context = context
         action_data = action_data or {}
         self.target: list[str] = ensure_list(target)
         self._title: str | None = title

@@ -21,7 +21,7 @@ from custom_components.supernotify import (
     PTZ_METHOD_FRIGATE,
     PTZ_METHOD_ONVIF,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 
 if TYPE_CHECKING:
     from homeassistant.components.image import ImageEntity
@@ -116,7 +116,7 @@ async def move_camera_to_ptz_preset(
 
 
 async def snap_image(
-    context: SupernotificationConfiguration,
+    context: Context,
     entity_id: str,
     media_path: Path,
     notification_id: str,

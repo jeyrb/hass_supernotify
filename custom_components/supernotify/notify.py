@@ -49,7 +49,7 @@ from . import (
     PRIORITY_VALUES,
     ConditionVariables,
 )
-from .configuration import SupernotificationConfiguration
+from .configuration import Context
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
@@ -254,7 +254,7 @@ class SuperNotificationAction(BaseNotificationService):
         self.failures: int = 0
         self.housekeeping: dict = housekeeping or {}
         self.sent: int = 0
-        self.context = SupernotificationConfiguration(
+        self.context = Context(
             hass,
             deliveries,
             links or [],

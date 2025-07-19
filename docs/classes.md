@@ -1,12 +1,14 @@
 # Core Classes
 
-``` mermaid
+```mermaid
 classDiagram
+
   Notification "1" *-- "*" Envelope
   Notification "1" *-- "1" ConditionVariables
   Envelope "1" ..> "1" DeliveryMethod
-  SupernotificationConfiguration "1" o-- "0..*" Scenario
-  SupernotificationConfiguration "1" o-- "0..*" Snooze
+  Context "1" o-- "0..*" Scenario
+  Context "1" o-- "0..*" Snooze
+  Context "1" *-- "1" Snoozer
 ```
 
 ::: custom_components.supernotify.delivery_method.DeliveryMethod

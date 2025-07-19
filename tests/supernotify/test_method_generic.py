@@ -2,14 +2,14 @@ from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_
 from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_NAME
 
 from custom_components.supernotify import CONF_ACTION, CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 
 async def test_deliver(mock_hass) -> None:
-    context = SupernotificationConfiguration()
+    context = Context()
     uut = GenericDeliveryMethod(
         mock_hass,
         context,
@@ -48,7 +48,7 @@ async def test_deliver(mock_hass) -> None:
 
 
 async def test_not_notify_deliver(mock_hass) -> None:
-    context = SupernotificationConfiguration()
+    context = Context()
     uut = GenericDeliveryMethod(
         mock_hass,
         context,

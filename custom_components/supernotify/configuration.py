@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class SupernotificationConfiguration:
+class Context:
     def __init__(
         self,
         hass: HomeAssistant | None = None,

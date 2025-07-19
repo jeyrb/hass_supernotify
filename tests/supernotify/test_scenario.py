@@ -13,7 +13,7 @@ from custom_components.supernotify import (
     SCENARIO_SCHEMA,
     ConditionVariables,
 )
-from custom_components.supernotify.configuration import SupernotificationConfiguration
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
 
@@ -93,7 +93,7 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
             },
         },
     })
-    context = SupernotificationConfiguration(hass, scenarios=config["scenarios"])
+    context = Context(hass, scenarios=config["scenarios"])
     hass.states.async_set("sensor.outside_temperature", "15")
     await context.initialize()
     assert len(context.scenarios) == 3
@@ -112,7 +112,7 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     assert enabled == []
 
 
-async def test_scenario_constraint(mock_context: SupernotificationConfiguration) -> None:
+async def test_scenario_constraint(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Mostly": ["siren"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}, "siren": {}}
     mock_context.scenarios = {
