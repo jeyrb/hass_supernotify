@@ -2,10 +2,13 @@ import datetime as dt
 import logging
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import aiofiles.os
+import anyio
 import homeassistant.util.dt as dt_util
+from homeassistant.components import mqtt
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.json import save_json
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +27,19 @@ class ArchivableObject:
         pass
 
 
+class ArchiveTopic:
+    def __init__(self, hass: HomeAssistant, topic: str, qos: int = 0, retain: bool = True) -> None:
+        self._hass = hass
+        self.topic = topic
+        self.qos = qos
+        self.retain = retain
+
+    async def publish(self, archive_object: ArchivableObject) -> None:
+        payload = archive_object.contents(minimal=True)
+        _LOGGER.debug("SUPERNOTIFY Publishing notification to %s", self.topic)
+        await mqtt.async_publish(self._hass, self.topic, payload, qos=self.qos, retain=self.retain)
+
+
 class NotificationArchive:
     def __init__(self, archive_path: str | None, archive_days: str | None, purge_minute_interval: str | None = None) -> None:
         self.enabled = False
@@ -37,7 +53,7 @@ class NotificationArchive:
         if not self.configured_archive_path:
             _LOGGER.warning("SUPERNOTIFY archive path not configured")
             return
-        verify_archive_path: Path = Path(cast("str", self.configured_archive_path))
+        verify_archive_path: Path = Path(self.configured_archive_path)
         if verify_archive_path and not verify_archive_path.exists():
             _LOGGER.info("SUPERNOTIFY archive path not found at %s", verify_archive_path)
             try:
@@ -56,7 +72,7 @@ class NotificationArchive:
 
     async def size(self) -> int:
         path = self.archive_path
-        if path and Path(path).exists():
+        if path and await anyio.Path(path).exists():
             return sum(1 for p in await aiofiles.os.listdir(path) if p != WRITE_TEST)
         return 0
 
@@ -72,7 +88,7 @@ class NotificationArchive:
         cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=self.archive_days)
         cutoff = cutoff.astimezone(dt.UTC)
         purged = 0
-        if self.archive_path and Path(self.archive_path).exists():
+        if self.archive_path and await anyio.Path(self.archive_path).exists():
             try:
                 archive = await aiofiles.os.scandir(self.archive_path)
                 for entry in archive:

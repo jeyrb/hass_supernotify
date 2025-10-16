@@ -2,46 +2,45 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_TARGET
+from homeassistant.const import ATTR_ENTITY_ID
 
-from custom_components.supernotify import METHOD_ALEXA_MEDIA_PLAYER
+from custom_components.supernotify import METHOD_ALEXA
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
-
-RE_VALID_ALEXA = r"media_player\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
-    """Notify via Amazon Alexa announcements
+class AlexaDeliveryMethod(DeliveryMethod):
+    """Notify via Home Assistant's built-in Alexa integration
 
     options:
         TITLE_ONLY: true
 
     """
 
-    method = METHOD_ALEXA_MEDIA_PLAYER
+    method = METHOD_ALEXA
+    default_action = "notify.send_message"
     DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
-        return re.fullmatch(RE_VALID_ALEXA, target) is not None
+        return re.fullmatch(r"notify\.[a-z0-9_]+\_(speak|announce)", target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", envelope.message)
 
-        media_players = envelope.targets or []
+        targets = envelope.targets or []
 
-        if not media_players:
+        if not targets:
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
 
         message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
 
-        action_data: dict[str, Any] = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
-        if envelope.data and envelope.data.get("data"):
-            action_data[ATTR_DATA].update(envelope.data.get("data"))
+        action_data: dict[str, Any] = {"message": message or "", ATTR_TARGET: {ATTR_ENTITY_ID: targets}}
+
         return await self.call_action(envelope, action_data=action_data)

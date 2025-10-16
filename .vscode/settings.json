@@ -20,9 +20,10 @@
     "python.analysis.inlayHints.variableTypes": true,
     "python.analysis.exclude": [
         ".git",
-        ".venv",
         ".devcontainer",
-        "**/__pycache__"
+        "**/__pycache__",
+        ".venv/**",
+        "docs/**"
     ],
     "python.analysis.typeCheckingMode": "standard",
     "pythonautovenv.autoInstallVenv": true,

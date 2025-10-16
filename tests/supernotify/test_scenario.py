@@ -132,7 +132,7 @@ async def test_scenario_constraint(mock_context: Context) -> None:
             }),
             mock_context.hass,  # type: ignore
         )
-    }  # type: ignore
+    }
     uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: ["Alarm"]})
     await uut.initialize()
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime", "siren")
@@ -168,8 +168,7 @@ async def test_attributes(hass: HomeAssistant) -> None:
     assert await uut.validate()
     attrs = uut.attributes()
     assert attrs["delivery_selection"] == "implicit"
-    # type: ignore
-    # type: ignore
+
     assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
 
 
@@ -200,6 +199,6 @@ async def test_trace(hass: HomeAssistant) -> None:
     )
     assert await uut.validate()
     assert not uut.default
-    assert await uut.trace(ConditionVariables(["scenario-alert"], [], [], PRIORITY_MEDIUM, {"AT_HOME": ["bob"]}))
+    assert await uut.trace(ConditionVariables(["scenario-alert"], [], [], PRIORITY_MEDIUM, {"AT_HOME": [{"name": "bob"}]}))
     assert uut.last_trace is not None
     _LOGGER.info("trace: %s", uut.last_trace.as_dict())

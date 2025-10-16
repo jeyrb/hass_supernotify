@@ -40,8 +40,8 @@ notify:
           - critical
           - high
       alexa_announce:
-        method: alexa
-        action: notify.alexa
+        method: alexa_media_player
+        action: notify.alexa_media_player
         occupancy: any_in
       mobile_push:
         method: mobile_push
@@ -65,7 +65,7 @@ notify:
         occupancy: any_in
       alexa_red_alert:
         method: generic
-        action: notify.alexa
+        action: notify.alexa_media_player
         selection: scenario
         message: '<audio src="soundbank://soundlibrary/home/scifi/amzn_sfx_scifi_alarm_04"/>'
         data:
@@ -139,13 +139,19 @@ notify:
             progressive: true
             optimize: true
             quality: 50
-      alexa:
+      alexa_media_player:
         target:
           - media_player.kitchen
           - media_player.bedroom
           - media_player.hall_flex
           - media_player.old_kitchen_flex
           - media_player.studio
+        options:
+          title_only: True
+      alexa:
+        target:
+          - notify.kitchen_echo_announce
+          - notify.bedroom_dot_speak
         options:
           title_only: True
       sms:

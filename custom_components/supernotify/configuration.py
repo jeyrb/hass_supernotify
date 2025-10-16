@@ -5,18 +5,30 @@ import socket
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import ATTR_STATE, CONF_DEVICE_ID, CONF_ENABLED, CONF_METHOD, CONF_NAME, STATE_HOME, STATE_NOT_HOME
+from homeassistant.const import (
+    ATTR_STATE,
+    CONF_DEVICE_ID,
+    CONF_ENABLED,
+    CONF_METHOD,
+    CONF_NAME,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
 from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers.config_validation import boolean
 from homeassistant.helpers.network import get_url
 from homeassistant.util import slugify
 
-from custom_components.supernotify.archive import NotificationArchive
+from custom_components.supernotify.archive import ArchiveTopic, NotificationArchive
 from custom_components.supernotify.common import ensure_list, safe_get
 from custom_components.supernotify.snoozer import Snoozer
 
 from . import (
     ATTR_USER_ID,
     CONF_ARCHIVE_DAYS,
+    CONF_ARCHIVE_MQTT_QOS,
+    CONF_ARCHIVE_MQTT_RETAIN,
+    CONF_ARCHIVE_MQTT_TOPIC,
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
     CONF_DEVICE_NAME,
@@ -105,6 +117,17 @@ class Context:
         self.archive: NotificationArchive = NotificationArchive(
             archive_config.get(CONF_ARCHIVE_PATH), archive_config.get(CONF_ARCHIVE_DAYS)
         )
+        archive_topic = archive_config.get(CONF_ARCHIVE_MQTT_TOPIC)
+        self.archive_topic: ArchiveTopic | None = None
+        if archive_topic is not None and self.hass:
+            self.archive_topic = ArchiveTopic(
+                self.hass,
+                archive_topic,
+                int(archive_config.get(CONF_ARCHIVE_MQTT_QOS, 0)),
+                boolean(archive_config.get(CONF_ARCHIVE_MQTT_RETAIN, True)),
+            )
+        else:
+            self.archive_topic = None
         self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
         self.methods: dict[str, DeliveryMethod] = {}
         self.method_defaults: dict = method_defaults or {}
@@ -221,8 +244,8 @@ class Context:
             raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
         return method
 
-    def setup_people(self, recipients: list[dict] | tuple[dict]) -> dict[str, dict]:
-        people: dict[str, dict] = {}
+    def setup_people(self, recipients: list[dict[str, Any]] | tuple[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        people: dict[str, dict[str, Any]] = {}
         for r in recipients:
             if r.get(CONF_MOBILE_DISCOVERY):
                 r[CONF_MOBILE_DEVICES].extend(self.mobile_devices_for_person(r[CONF_PERSON]))
@@ -237,7 +260,7 @@ class Context:
             people[r[CONF_PERSON]] = r
         return people
 
-    def people_state(self) -> list[dict]:
+    def people_state(self) -> list[dict[str, Any]]:
         results = []
         if self.hass:
             for person, person_config in self.people.items():
@@ -253,8 +276,8 @@ class Context:
                 results.append(person_config)
         return results
 
-    def determine_occupancy(self) -> dict[str, list[dict]]:
-        results: dict[str, list[dict]] = {STATE_HOME: [], STATE_NOT_HOME: []}
+    def determine_occupancy(self) -> dict[str, list[dict[str, Any]]]:
+        results: dict[str, list[dict[str, Any]]] = {STATE_HOME: [], STATE_NOT_HOME: []}
         for person_config in self.people_state():
             if person_config.get(ATTR_STATE) in (None, STATE_HOME):
                 # default to at home if unknown tracker

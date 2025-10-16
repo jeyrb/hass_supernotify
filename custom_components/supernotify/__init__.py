@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.notify import PLATFORM_SCHEMA
@@ -47,6 +48,9 @@ CONF_HOUSEKEEPING_TIME = "housekeeping_time"
 CONF_ARCHIVE_PATH = "archive_path"
 CONF_ARCHIVE = "archive"
 CONF_ARCHIVE_DAYS = "archive_days"
+CONF_ARCHIVE_MQTT_TOPIC = "archive_mqtt_topic"
+CONF_ARCHIVE_MQTT_QOS = "archive_mqtt_qos"
+CONF_ARCHIVE_MQTT_RETAIN = "archive_mqtt_retain"
 CONF_TEMPLATE = "template"
 CONF_LINKS = "links"
 CONF_PERSON = "person"
@@ -161,6 +165,7 @@ PRIORITY_VALUES = [PRIORITY_LOW, PRIORITY_MEDIUM, PRIORITY_HIGH, PRIORITY_CRITIC
 METHOD_SMS = "sms"
 METHOD_EMAIL = "email"
 METHOD_ALEXA = "alexa"
+METHOD_ALEXA_MEDIA_PLAYER = "alexa_media_player"
 METHOD_MOBILE_PUSH = "mobile_push"
 METHOD_MEDIA = "media"
 METHOD_CHIME = "chime"
@@ -169,6 +174,7 @@ METHOD_PERSISTENT = "persistent"
 METHOD_VALUES = [
     METHOD_SMS,
     METHOD_ALEXA,
+    METHOD_ALEXA_MEDIA_PLAYER,
     METHOD_MOBILE_PUSH,
     METHOD_CHIME,
     METHOD_EMAIL,
@@ -311,7 +317,10 @@ ACTION_SCHEMA = vol.Schema(
 ARCHIVE_SCHEMA = vol.Schema({
     vol.Optional(CONF_ARCHIVE_PATH): cv.path,
     vol.Optional(CONF_ENABLED, default=False): cv.boolean,  # type: ignore
-    vol.Optional(CONF_ARCHIVE_DAYS, default=3): cv.positive_int,  # type: ignore
+    vol.Optional(CONF_ARCHIVE_DAYS, default=3): cv.positive_int,
+    vol.Optional(CONF_ARCHIVE_MQTT_TOPIC): cv.string,
+    vol.Optional(CONF_ARCHIVE_MQTT_QOS, default=0): cv.positive_int,
+    vol.Optional(CONF_ARCHIVE_MQTT_RETAIN, default=True): cv.boolean,  # type: ignore
 })
 
 HOUSEKEEPING_SCHEMA = vol.Schema({
@@ -346,7 +355,7 @@ ACTION_DATA_SCHEMA = vol.Schema(
         vol.Optional(ATTR_MESSAGE_HTML): cv.string,
         vol.Optional(ATTR_ACTION_GROUPS, default=[]): vol.All(cv.ensure_list, [cv.string]),  # type: ignore
         vol.Optional(ATTR_ACTIONS, default=[]): vol.All(cv.ensure_list, [ACTION_CALL_SCHEMA]),  # type: ignore
-        vol.Optional(ATTR_DEBUG, default=False): cv.boolean,  # type: ignore
+        vol.Optional(ATTR_DEBUG, default=False): cv.boolean,
         vol.Optional(ATTR_DATA): vol.Any(None, DATA_SCHEMA),
     },
     extra=vol.ALLOW_EXTRA,  # allow other data, e.g. the android/ios mobile push
@@ -413,7 +422,7 @@ class ConditionVariables:
         required_scenarios: list[str] | None = None,
         constrain_scenarios: list[str] | None = None,
         delivery_priority: str | None = PRIORITY_MEDIUM,
-        occupiers: dict | None = None,
+        occupiers: dict[str, list[dict[str, Any]]] | None = None,
         message: str | None = None,
         title: str | None = None,
     ) -> None:

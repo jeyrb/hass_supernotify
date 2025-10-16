@@ -98,8 +98,8 @@ async def async_get_service(
         {
             CONF_DELIVERY: config.get(CONF_DELIVERY, {}),
             CONF_LINKS: config.get(CONF_LINKS, ()),
-            CONF_TEMPLATE_PATH: config.get(CONF_TEMPLATE_PATH),
-            CONF_MEDIA_PATH: config.get(CONF_MEDIA_PATH),
+            CONF_TEMPLATE_PATH: config.get(CONF_TEMPLATE_PATH, None),
+            CONF_MEDIA_PATH: config.get(CONF_MEDIA_PATH, None),
             CONF_ARCHIVE: config.get(CONF_ARCHIVE, {}),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
@@ -349,7 +349,7 @@ class SuperNotificationAction(BaseNotificationService):
         return dupe
 
     async def async_send_message(
-        self, message: str = "", title: str | None = None, target: list | str | None = None, **kwargs
+        self, message: str = "", title: str | None = None, target: list | str | None = None, **kwargs: Any
     ) -> None:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
@@ -381,6 +381,8 @@ class SuperNotificationAction(BaseNotificationService):
         if notification is not None:
             self.last_notification = notification
             self.context.archive.archive(notification)
+            if self.context.archive_topic:
+                await self.context.archive_topic.publish(notification)
 
             _LOGGER.debug(
                 "SUPERNOTIFY %s deliveries, %s errors, %s skipped",

@@ -1,6 +1,6 @@
-pytest>=7.4.3
+pytest==8.4.2
 pytest-cov
-pytest-socket>=0.6.0
+pytest-socket>=0.7.0
 pytest-homeassistant-custom-component>=0.13.196
 pytest-asyncio
 pytest-unordered

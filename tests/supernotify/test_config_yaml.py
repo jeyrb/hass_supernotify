@@ -38,7 +38,7 @@ SIMPLE_CONFIG = {
 }
 
 
-def test_schema():
+def test_schema() -> None:
     assert PLATFORM_SCHEMA(SIMPLE_CONFIG)
 
 
@@ -152,7 +152,7 @@ async def test_call_supplemental_actions(hass: HomeAssistant) -> None:
     assert isinstance(enabled, list)
     assert isinstance(disabled, list)
     assert isinstance(cvars, dict)
-    assert [s["name"] for s in disabled] == ["simple", "somebody"]  # type: ignore
+    assert [s["name"] for s in disabled] == ["simple", "somebody"]
     assert enabled == []
     assert cvars["notification_priority"] == "medium"
     json.dumps(response)
@@ -212,11 +212,11 @@ async def test_delivery_and_scenario(hass: HomeAssistant) -> None:
         e
         for e in notification["delivered_envelopes"]
         if e and isinstance(e, dict) and e.get("delivery_name", "") == "chime_person"
-    ]  # type: ignore
+    ]
     assert len(delivered_chimes) == 1
 
     assert delivered_chimes[0]["calls"][0][:3] == (  # type: ignore
         "media_player",
         "play_media",
         {"entity_id": "media_player.lobby", "media_content_type": "sound", "media_content_id": "bell_02"},
-    )  # type: ignore
+    )
