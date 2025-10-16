@@ -236,7 +236,11 @@ end to include any attached images.
 
 Show an image on a media player, e.g. an Alexa Show ( where that actually works, depending on model )
 
-### Alexa Announce
+### Alexa
+
+Announce, or speak, a notification using Home Assistant's built-in *Alexa Devices* integration.
+
+### Alexa Media Player
 
 Announce a message on an Alexa Echo device using the `alexa_media_player` integration
 
