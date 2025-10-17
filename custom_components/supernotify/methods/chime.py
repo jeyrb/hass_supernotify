@@ -30,7 +30,7 @@ DATA_SCHEMA_RESTRICT: dict[str, list[str]] = {
 class ChimeDeliveryMethod(DeliveryMethod):
     method = METHOD_CHIME
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
         self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])

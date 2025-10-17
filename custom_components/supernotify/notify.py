@@ -49,6 +49,7 @@ from . import (
 )
 from . import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 from .configuration import Context
+from .methods.alexa import AlexaDeliveryMethod
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
@@ -66,13 +67,14 @@ SNOOZE_TIME = 60 * 60  # TODO: move to configuration
 METHODS: list[type] = [
     EmailDeliveryMethod,
     SMSDeliveryMethod,
+    AlexaDeliveryMethod,
     AlexaMediaPlayerDeliveryMethod,
     MobilePushDeliveryMethod,
     MediaPlayerImageDeliveryMethod,
     ChimeDeliveryMethod,
     PersistentDeliveryMethod,
     GenericDeliveryMethod,
-]
+]  # No auto-discovery of method plugins so manual class registration required here
 
 
 async def async_get_service(

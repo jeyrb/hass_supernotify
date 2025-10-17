@@ -1,6 +1,7 @@
 import logging
 import re
 import urllib.parse
+from typing import Any
 
 from custom_components.supernotify import METHOD_MEDIA
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -15,7 +16,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
     default_action = "media_player.play_media"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:

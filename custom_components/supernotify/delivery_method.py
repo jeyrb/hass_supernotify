@@ -76,11 +76,13 @@ class DeliveryMethod:
                 _LOGGER.info("SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
             else:
-                _LOGGER.info("SUPERNOTIFY No default delivery or method_definition for method %s", self.method)
+                _LOGGER.debug("SUPERNOTIFY No default delivery or method_definition for method %s", self.method)
 
         if self.default_action is None and self.default_delivery:
             self.default_action = self.default_delivery.get(CONF_ACTION)
             _LOGGER.info("SUPERNOTIFY Setting default action for method %s to %s", self.method, self.default_action)
+        else:
+            _LOGGER.debug("SUPERNOTIFY No default action for method %s", self.method)
 
         _LOGGER.debug(
             "SUPERNOTIFY Validated method %s, default delivery %s, default action %s, valid deliveries: %s",
