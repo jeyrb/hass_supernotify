@@ -513,7 +513,9 @@ class Notification(ArchivableObject):
             targets = [t for t in envelope.targets if method.select_target(t)]
             if len(targets) < pre_filter_count:
                 _LOGGER.warning(
-                    "SUPERNOTIFY %s target list filtered by %s to %s", method.method, pre_filter_count - len(targets), targets
+                    "SUPERNOTIFY %s target list filtered out %s",
+                    method.method,
+                    [t for t in envelope.targets if not method.select_target(t)],
                 )
             if not targets:
                 _LOGGER.debug("SUPERNOTIFY %s No targets resolved out of %s", method.method, pre_filter_count)

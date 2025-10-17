@@ -82,7 +82,7 @@ class DeliveryMethod:
 
         if self.default_action is None and self.default_delivery:
             self.default_action = self.default_delivery.get(CONF_ACTION)
-            _LOGGER.info("SUPERNOTIFY Setting default action for method %s to %s", self.method, self.default_action)
+            _LOGGER.debug("SUPERNOTIFY Setting default action for method %s to %s", self.method, self.default_action)
         else:
             _LOGGER.debug("SUPERNOTIFY No default action for method %s", self.method)
 

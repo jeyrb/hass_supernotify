@@ -30,7 +30,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
     def select_target(self, target: str) -> bool:
         return (
             re.fullmatch(r"notify\.[a-z0-9_]+\_(speak|announce)", target) is not None
-            and re.fullmatch(r"group\.[a-z0-9_]+", target) is not None
+            or re.fullmatch(r"group\.[a-z0-9_]+", target) is not None
         )
 
     async def deliver(self, envelope: Envelope) -> bool:
