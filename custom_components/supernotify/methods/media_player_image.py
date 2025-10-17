@@ -14,9 +14,9 @@ _LOGGER = logging.getLogger(__name__)
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
-    default_action = "media_player.play_media"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["default_action"] = "media_player.play_media"
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
@@ -28,8 +28,8 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
 
-        data: dict = envelope.data or {}
-        media_players: list = envelope.targets or []
+        data: dict[str, Any] = envelope.data or {}
+        media_players: list[str] = envelope.targets or []
         if not media_players:
             _LOGGER.debug("SUPERNOTIFY skipping media show, no targets")
             return False
@@ -41,7 +41,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         # absolutize relative URL for external URl, probably preferred by Alexa Show etc
         snapshot_url = urllib.parse.urljoin(self.context.hass_external_url, snapshot_url)
 
-        action_data: dict[str, str | list | dict] = {
+        action_data: dict[str, Any] = {
             "media_content_id": snapshot_url,
             "media_content_type": "image",
             "entity_id": media_players,

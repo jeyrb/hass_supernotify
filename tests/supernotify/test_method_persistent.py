@@ -14,7 +14,7 @@ async def test_deliver(mock_hass) -> None:
     await uut.initialize()
     await uut.deliver(Envelope("persistent_notification", Notification(context, "hello there", title="testing")))
     mock_hass.services.async_call.assert_called_with(
-        "notify",
         "persistent_notification",
+        "create",
         service_data={ATTR_TITLE: "testing", ATTR_MESSAGE: "hello there", ATTR_NOTIFICATION_ID: None},
     )

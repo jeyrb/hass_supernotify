@@ -104,7 +104,7 @@ class Context:
         if not self.hass_internal_url or not self.hass_internal_url.startswith("http"):
             _LOGGER.warning("SUPERNOTIFY invalid internal hass url %s", self.hass_internal_url)
 
-        self.links: list[str] = ensure_list(links)
+        self.links: list[dict[str, Any]] = ensure_list(links)
         # raw configured deliveries
         self._deliveries: dict[str, Any] = deliveries if isinstance(deliveries, dict) else {}
         # validated deliveries

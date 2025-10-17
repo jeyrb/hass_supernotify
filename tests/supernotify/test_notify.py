@@ -98,8 +98,8 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
         },
     )
     mock_hass.services.async_call.assert_called_with(
-        "notify",
         "persistent_notification",
+        "create",
         service_data={"title": "test_title", "message": "testing 123", "notification_id": None},
     )
 

@@ -22,11 +22,13 @@ _LOGGER = logging.getLogger(__name__)
 
 class DeliveryMethod:
     method: str
-    default_action: str | None = None
 
     @abstractmethod
-    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None, default_action: str | None = None
+    ) -> None:
         self.hass: HomeAssistant = hass
+        self.default_action: str | None = default_action
         self.context: Context = context
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}

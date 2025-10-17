@@ -240,6 +240,9 @@ Show an image on a media player, e.g. an Alexa Show ( where that actually works,
 
 Announce, or speak, a notification using Home Assistant's built-in *Alexa Devices* integration.
 
+*Note* Home Assistant recommend sending multiple notifications to a pre-defined group, rather
+than an explicit list of Alexa devices, to minimize the likelihood of Amazon rate-limiting API calls.
+
 ### Alexa Media Player
 
 Announce a message on an Alexa Echo device using the `alexa_media_player` integration

@@ -6,17 +6,18 @@ from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
+ACTION = "persistent_notification.create"
 
 
 class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
-    default_action = "notify.persistent_notification"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["default_action"] = ACTION
         super().__init__(*args, **kwargs)
 
     def validate_action(self, action: str | None) -> bool:
-        return action is None
+        return action is None or action == ACTION
 
     async def deliver(self, envelope: Envelope) -> bool:
         data = envelope.data or {}

@@ -21,10 +21,10 @@ class AlexaDeliveryMethod(DeliveryMethod):
     """
 
     method = METHOD_ALEXA
-    default_action = "notify.send_message"
     DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["default_action"] = "notify.send_message"
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
