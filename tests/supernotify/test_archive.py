@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import aiofiles
+import anyio
 from homeassistant.const import CONF_ENABLED
 from homeassistant.core import HomeAssistant
 
@@ -34,8 +35,8 @@ async def test_integration_archive(mock_hass: HomeAssistant) -> None:
         await uut.initialize()
         await uut.async_send_message("just a test", target="person.bob")
         assert uut.last_notification is not None
-        obj_path: Path = Path(archive) / f"{uut.last_notification.base_filename()}.json"
-        assert obj_path.exists()
+        obj_path: anyio.Path = anyio.Path(archive) / f"{uut.last_notification.base_filename()}.json"
+        assert await obj_path.exists()
         async with aiofiles.open(obj_path) as stream:
             blob: str = "".join(await stream.readlines())
             reobj = json.loads(blob)
@@ -46,13 +47,13 @@ async def test_integration_archive(mock_hass: HomeAssistant) -> None:
 
 async def test__archive() -> None:
     with tempfile.TemporaryDirectory() as archive:
-        uut = NotificationArchive(archive, "7")
+        uut = NotificationArchive(True, archive, "7")
         uut.initialize()
         msg = ArchiveCrashDummy()
         assert uut.archive(msg)
 
-        obj_path: Path = Path(archive).joinpath(f"{msg.base_filename()}.json")
-        assert obj_path.exists()
+        obj_path: anyio.Path = anyio.Path(archive).joinpath(f"{msg.base_filename()}.json")
+        assert await obj_path.exists()
         async with aiofiles.open(obj_path) as stream:
             blob: str = "".join(await stream.readlines())
             reobj = json.loads(blob)
@@ -61,7 +62,7 @@ async def test__archive() -> None:
 
 async def test_cleanup_archive() -> None:
     archive = "config/archive/test"
-    uut = NotificationArchive(archive, "7")
+    uut = NotificationArchive(True, archive, "7")
     uut.initialize()
     old_time = Mock(return_value=Mock(st_ctime=time.time() - (8 * 24 * 60 * 60)))
     new_time = Mock(return_value=Mock(st_ctime=time.time() - (5 * 24 * 60 * 60)))
@@ -80,9 +81,9 @@ async def test_cleanup_archive() -> None:
     assert first_purge == uut.last_purge
 
 
-async def test_archive_size():
+async def test_archive_size() -> None:
     with tempfile.TemporaryDirectory() as tmp_path:
-        uut = NotificationArchive(tmp_path, "7")
+        uut = NotificationArchive(True, tmp_path, "7")
         uut.initialize()
         assert uut.enabled
         assert await uut.size() == 0

@@ -10,7 +10,7 @@ from typing import Any
 from cachetools import TTLCache
 from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.const import CONF_CONDITION, EVENT_HOMEASSISTANT_STOP, STATE_OFF, STATE_ON, STATE_UNKNOWN
-from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers.condition import async_validate_condition_config
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.json import ExtendedJSONEncoder
@@ -18,7 +18,6 @@ from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from custom_components.supernotify.archive import ARCHIVE_PURGE_MIN_INTERVAL
-from custom_components.supernotify.scenario import Scenario
 
 from . import (
     ATTR_ACTION,
@@ -43,12 +42,12 @@ from . import (
     CONF_TEMPLATE_PATH,
     CONF_TTL,
     DOMAIN,
-    PLATFORM_SCHEMA,
     PLATFORMS,
     PRIORITY_MEDIUM,
     PRIORITY_VALUES,
     ConditionVariables,
 )
+from . import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 from .configuration import Context
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
@@ -103,6 +102,8 @@ async def async_get_service(
             CONF_ARCHIVE: config.get(CONF_ARCHIVE, {}),
             CONF_RECIPIENTS: config.get(CONF_RECIPIENTS, ()),
             CONF_ACTIONS: config.get(CONF_ACTIONS, {}),
+            CONF_HOUSEKEEPING: config.get(CONF_HOUSEKEEPING, {}),
+            CONF_ACTION_GROUPS: config.get(CONF_ACTION_GROUPS, {}),
             CONF_SCENARIOS: list(config.get(CONF_SCENARIOS, {}).keys()),
             CONF_METHODS: config.get(CONF_METHODS, {}),
             CONF_CAMERAS: config.get(CONF_CAMERAS, {}),
@@ -130,37 +131,37 @@ async def async_get_service(
     )
     await service.initialize()
 
-    def supplemental_action_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict[str, Any]:
         return service.enquire_deliveries_by_scenario()
 
-    def supplemental_action_enquire_last_notification(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_last_notification(_call: ServiceCall) -> dict[str, Any]:
         return service.last_notification.contents() if service.last_notification else {}
 
-    async def supplemental_action_enquire_active_scenarios(call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_active_scenarios(call: ServiceCall) -> dict[str, Any]:
         trace = call.data.get("trace", False)
         result: dict[str, Any] = {"scenarios": await service.enquire_active_scenarios()}
         if trace:
             result["trace"] = await service.trace_active_scenarios()
         return result
 
-    def supplemental_action_enquire_scenarios(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_scenarios(_call: ServiceCall) -> dict[str, Any]:
         return {"scenarios": service.enquire_scenarios()}
 
-    async def supplemental_action_enquire_occupancy(_call: ServiceCall) -> dict:
+    async def supplemental_action_enquire_occupancy(_call: ServiceCall) -> dict[str, Any]:
         return {"scenarios": await service.enquire_occupancy()}
 
-    def supplemental_action_enquire_snoozes(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_snoozes(_call: ServiceCall) -> dict[str, Any]:
         return {"snoozes": service.enquire_snoozes()}
 
-    def supplemental_action_clear_snoozes(_call: ServiceCall) -> dict:
+    def supplemental_action_clear_snoozes(_call: ServiceCall) -> dict[str, Any]:
         return {"cleared": service.clear_snoozes()}
 
-    def supplemental_action_enquire_people(_call: ServiceCall) -> dict:
+    def supplemental_action_enquire_people(_call: ServiceCall) -> dict[str, Any]:
         return {"people": service.enquire_people()}
 
     async def supplemental_action_purge_archive(call: ServiceCall) -> dict[str, Any]:
         days = call.data.get("days")
-        if service.context.archive is None:
+        if not service.context.archive.enabled:
             return {"error": "No archive configured"}
         purged = await service.context.archive.cleanup(days=days, force=True)
         arch_size = await service.context.archive.size()
@@ -235,24 +236,24 @@ class SuperNotificationAction(BaseNotificationService):
     def __init__(
         self,
         hass: HomeAssistant,
-        deliveries: dict[str, dict] | None = None,
+        deliveries: dict[str, dict[str, Any]] | None = None,
         template_path: str | None = None,
         media_path: str | None = None,
-        archive: dict | None = None,
-        housekeeping: dict | None = None,
-        recipients: list | None = None,
-        mobile_actions: dict | None = None,
-        scenarios: dict[str, dict] | None = None,
-        links: list | None = None,
-        method_defaults: dict | None = None,
-        cameras: list[dict] | None = None,
-        dupe_check: dict | None = None,
+        archive: dict[str, Any] | None = None,
+        housekeeping: dict[str, Any] | None = None,
+        recipients: list[dict[str, Any]] | None = None,
+        mobile_actions: dict[str, Any] | None = None,
+        scenarios: dict[str, dict[str, Any]] | None = None,
+        links: list[str] | None = None,
+        method_defaults: dict[str, Any] | None = None,
+        cameras: list[dict[str, Any]] | None = None,
+        dupe_check: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the service."""
         self.hass: HomeAssistant = hass
         self.last_notification: Notification | None = None
         self.failures: int = 0
-        self.housekeeping: dict = housekeeping or {}
+        self.housekeeping: dict[str, Any] = housekeeping or {}
         self.sent: int = 0
         self.context = Context(
             hass,
@@ -267,10 +268,10 @@ class SuperNotificationAction(BaseNotificationService):
             method_defaults or {},
             cameras,
         )
-        self.unsubscribes: list = []
+        self.unsubscribes: list[CALLBACK_TYPE] = []
         self.dupe_check_config: dict[str, Any] = dupe_check or {}
         self.last_purge: dt.datetime | None = None
-        self.notification_cache: TTLCache = TTLCache(
+        self.notification_cache: TTLCache[tuple[int, str], str] = TTLCache(
             maxsize=self.dupe_check_config.get(CONF_SIZE, 100), ttl=self.dupe_check_config.get(CONF_TTL, 120)
         )
 
@@ -306,12 +307,11 @@ class SuperNotificationAction(BaseNotificationService):
 
     def shutdown(self) -> None:
         for unsub in self.unsubscribes:
-            if unsub:
-                try:
-                    _LOGGER.debug("SUPERNOTIFY unsubscribing: %s", unsub)
-                    unsub()
-                except Exception as e:
-                    _LOGGER.error("SUPERNOTIFY failed to unsubscribe: %s", e)
+            try:
+                _LOGGER.debug("SUPERNOTIFY unsubscribing: %s", unsub)
+                unsub()
+            except Exception as e:
+                _LOGGER.error("SUPERNOTIFY failed to unsubscribe: %s", e)
         _LOGGER.info("SUPERNOTIFY shut down")
 
     def expose_entities(self) -> None:
@@ -349,7 +349,7 @@ class SuperNotificationAction(BaseNotificationService):
         return dupe
 
     async def async_send_message(
-        self, message: str = "", title: str | None = None, target: list | str | None = None, **kwargs: Any
+        self, message: str = "", title: str | None = None, target: list[str] | str | None = None, **kwargs: Any
     ) -> None:
         """Send a message via chosen method."""
         data = kwargs.get(ATTR_DATA, {})
@@ -391,19 +391,19 @@ class SuperNotificationAction(BaseNotificationService):
                 notification.skipped,
             )
 
-    def enquire_deliveries_by_scenario(self) -> dict[str, list[Scenario]]:
+    def enquire_deliveries_by_scenario(self) -> dict[str, list[str]]:
         return self.context.delivery_by_scenario
 
-    async def enquire_occupancy(self) -> dict[str, list]:
+    async def enquire_occupancy(self) -> dict[str, list[dict[str, Any]]]:
         return self.context.determine_occupancy()
 
     async def enquire_active_scenarios(self) -> list[str]:
-        occupiers = self.context.determine_occupancy()
+        occupiers: dict[str, list[dict[str, Any]]] = self.context.determine_occupancy()
         cvars = ConditionVariables([], [], [], PRIORITY_MEDIUM, occupiers, None, None)
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(cvars)]
 
-    async def trace_active_scenarios(self) -> tuple:
-        occupiers = self.context.determine_occupancy()
+    async def trace_active_scenarios(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+        occupiers: dict[str, list[dict[str, Any]]] = self.context.determine_occupancy()
         cvars = ConditionVariables([], [], [], PRIORITY_MEDIUM, occupiers, None, None)
 
         def safe_json(v: Any) -> Any:
@@ -419,7 +419,7 @@ class SuperNotificationAction(BaseNotificationService):
                 disabled.append(safe_json(s.attributes(include_trace=True)))
         return enabled, disabled, dcvars
 
-    def enquire_scenarios(self) -> dict[str, dict]:
+    def enquire_scenarios(self) -> dict[str, dict[str, Any]]:
         return {s.name: s.attributes(include_condition=False) for s in self.context.scenarios.values()}
 
     def enquire_snoozes(self) -> list[dict[str, Any]]:
@@ -428,7 +428,7 @@ class SuperNotificationAction(BaseNotificationService):
     def clear_snoozes(self) -> int:
         return self.context.snoozer.clear()
 
-    def enquire_people(self) -> list[dict]:
+    def enquire_people(self) -> list[dict[str, Any]]:
         return list(self.context.people.values())
 
     @callback

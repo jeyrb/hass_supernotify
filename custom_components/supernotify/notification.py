@@ -82,8 +82,8 @@ class Notification(ArchivableObject):
         context: Context,
         message: str | None = None,
         title: str | None = None,
-        target: list | str | None = None,
-        action_data: dict | None = None,
+        target: list[str] | str | None = None,
+        action_data: dict[str, Any] | None = None,
     ) -> None:
         self.created: dt.datetime = dt.datetime.now(tz=dt.UTC)
         self.debug_trace: DebugTrace = DebugTrace(message=message, title=title, data=action_data, target=target)
@@ -108,27 +108,27 @@ class Notification(ArchivableObject):
 
         self.priority: str = action_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html: str | None = action_data.get(ATTR_MESSAGE_HTML)
-        self.required_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_REQUIRE))
-        self.applied_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
-        self.constrain_scenarios: list = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
+        self.required_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_REQUIRE))
+        self.applied_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
+        self.constrain_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
         self.delivery_selection: str | None = action_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type: str = action_data.get(ATTR_DELIVERY).__class__.__name__
-        self.delivery_overrides: dict = ensure_dict(action_data.get(ATTR_DELIVERY))
+        self.delivery_overrides: dict[str, Any] = ensure_dict(action_data.get(ATTR_DELIVERY))
         self.action_groups: list[str] | None = action_data.get(ATTR_ACTION_GROUPS)
         self.recipients_override: list[str] | None = action_data.get(ATTR_RECIPIENTS)
         self.data.update(action_data.get(ATTR_DATA, {}))
-        self.media: dict = action_data.get(ATTR_MEDIA) or {}
+        self.media: dict[str, Any] = action_data.get(ATTR_MEDIA) or {}
         self.debug: bool = action_data.get(ATTR_DEBUG, False)
-        self.actions: dict = action_data.get(ATTR_ACTIONS) or {}
-        self.delivery_results: dict = {}
-        self.delivery_errors: dict = {}
+        self.actions: dict[str, Any] = action_data.get(ATTR_ACTIONS) or {}
+        self.delivery_results: dict[str, Any] = {}
+        self.delivery_errors: dict[str, Any] = {}
 
         self.selected_delivery_names: list[str] = []
         self.enabled_scenarios: list[str] = []
         self.selected_scenarios: list[str] = []
-        self.people_by_occupancy: list = []
+        self.people_by_occupancy: list[dict[str, Any]] = []
         self.globally_disabled: bool = False
-        self.occupancy: dict[str, list] = {}
+        self.occupancy: dict[str, list[dict[str, Any]]] = {}
         self.condition_variables: ConditionVariables | None = None
 
     async def initialize(self) -> None:
@@ -173,7 +173,7 @@ class Notification(ArchivableObject):
             self.default_media_from_actions()
             self.apply_enabled_scenarios()
 
-    def validate_action_data(self, action_data: dict) -> None:
+    def validate_action_data(self, action_data: dict[str, Any]) -> None:
         if action_data.get(ATTR_PRIORITY) and action_data.get(ATTR_PRIORITY) not in PRIORITY_VALUES:
             _LOGGER.warning("SUPERNOTIFY invalid priority %s - overriding to medium", action_data.get(ATTR_PRIORITY))
             action_data[ATTR_PRIORITY] = PRIORITY_MEDIUM
@@ -254,11 +254,17 @@ class Notification(ArchivableObject):
 
     def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
+        override = self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
+        if override is None:
+            return None
+        return str(override)
 
     def title(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        return self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
+        override = self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
+        if override is None:
+            return None
+        return str(override)
 
     def suppress(self) -> None:
         self.globally_disabled = True
@@ -348,7 +354,7 @@ class Notification(ArchivableObject):
         """ArchiveableObject implementation"""
         return f"{self.created.isoformat()[:16]}_{self.id}"
 
-    def delivery_data(self, delivery_name: str) -> dict:
+    def delivery_data(self, delivery_name: str) -> dict[str, Any]:
         delivery_override = self.delivery_overrides.get(delivery_name)
         return delivery_override.get(CONF_DATA) if delivery_override else {}
 
@@ -362,9 +368,9 @@ class Notification(ArchivableObject):
     async def select_scenarios(self) -> list[str]:
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(self.condition_variables)]
 
-    def merge(self, attribute: str, delivery_name: str) -> dict:
-        delivery: dict = self.delivery_overrides.get(delivery_name, {})
-        base: dict = delivery.get(attribute, {})
+    def merge(self, attribute: str, delivery_name: str) -> dict[str, Any]:
+        delivery: dict[str, Any] = self.delivery_overrides.get(delivery_name, {})
+        base: dict[str, Any] = delivery.get(attribute, {})
         for scenario_name in self.enabled_scenarios:
             scenario = self.context.scenarios.get(scenario_name)
             if scenario and hasattr(scenario, attribute):
@@ -373,7 +379,7 @@ class Notification(ArchivableObject):
             base.update(getattr(self, attribute))
         return base
 
-    def record_resolve(self, delivery_name: str, category: str, resolved: str | list | None) -> None:
+    def record_resolve(self, delivery_name: str, category: str, resolved: str | list[Any] | None) -> None:
         """Debug support for recording detailed target resolution in archived notification"""
         self.debug_trace.resolved.setdefault(delivery_name, {})
         self.debug_trace.resolved[delivery_name].setdefault(category, [])
@@ -382,7 +388,7 @@ class Notification(ArchivableObject):
         else:
             self.debug_trace.resolved[delivery_name][category].append(resolved)
 
-    def filter_people_by_occupancy(self, occupancy: str) -> list[dict]:
+    def filter_people_by_occupancy(self, occupancy: str) -> list[dict[str, Any]]:
         people = list(self.context.people.values())
         if occupancy == OCCUPANCY_ALL:
             return people
@@ -407,17 +413,16 @@ class Notification(ArchivableObject):
         _LOGGER.warning("SUPERNOTIFY Unknown occupancy tested: %s", occupancy)
         return []
 
-    def generate_recipients(self, delivery_name: str, delivery_method: DeliveryMethod) -> list[dict]:
+    def generate_recipients(self, delivery_name: str, delivery_method: DeliveryMethod) -> list[dict[str, Any]]:
         delivery_config: dict[str, Any] = delivery_method.delivery_config(delivery_name)
 
-        recipients: list[dict] = []
+        recipients: list[dict[str, Any]] = []
         if self.target:
             # first priority is explicit target set on notify call, which overrides everything else
             for t in self.target:
                 if t in self.context.people:
                     recipients.append(self.context.people[t])
                     self.record_resolve(
-                        # type: ignore
                         delivery_name,
                         "1a_person_target",
                         t,
@@ -460,18 +465,20 @@ class Notification(ArchivableObject):
             recipients, self.priority, delivery_name, delivery_method, self.selected_delivery_names, self.context.deliveries
         )
 
-    def generate_envelopes(self, delivery_name: str, method: DeliveryMethod, recipients: list[dict]) -> list[Envelope]:
+    def generate_envelopes(
+        self, delivery_name: str, method: DeliveryMethod, recipients: list[dict[str, Any]]
+    ) -> list[Envelope]:
         # now the list of recipients determined, resolve this to target addresses or entities
 
-        delivery_config: dict = method.delivery_config(delivery_name)
-        default_data: dict = delivery_config.get(CONF_DATA, {})
-        default_targets: list = []
-        custom_envelopes: list = []
+        delivery_config: dict[str, Any] = method.delivery_config(delivery_name)
+        default_data: dict[str, Any] = delivery_config.get(CONF_DATA, {})
+        default_targets: list[str] = []
+        custom_envelopes: list[Envelope] = []
 
         for recipient in recipients:
-            recipient_targets: list = []
+            recipient_targets: list[str] = []
             enabled: bool = True
-            custom_data: dict = {}
+            custom_data: dict[str, Any] = {}
             # reuse standard recipient attributes like email or phone
             safe_extend(recipient_targets, method.recipient_target(recipient))
             # use entities or targets set at a method level for recipient

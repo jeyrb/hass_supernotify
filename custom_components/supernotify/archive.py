@@ -41,8 +41,10 @@ class ArchiveTopic:
 
 
 class NotificationArchive:
-    def __init__(self, archive_path: str | None, archive_days: str | None, purge_minute_interval: str | None = None) -> None:
-        self.enabled = False
+    def __init__(
+        self, enabled: bool, archive_path: str | None, archive_days: str | None, purge_minute_interval: str | None = None
+    ) -> None:
+        self.enabled = enabled
         self.last_purge: dt.datetime | None = None
         self.configured_archive_path: str | None = archive_path
         self.archive_path: Path | None = None
@@ -50,6 +52,9 @@ class NotificationArchive:
         self.purge_minute_interval = int(purge_minute_interval) if purge_minute_interval else ARCHIVE_PURGE_MIN_INTERVAL
 
     def initialize(self) -> None:
+        if not self.enabled:
+            _LOGGER.info("SUPERNOTIFY Archive disabled")
+            return
         if not self.configured_archive_path:
             _LOGGER.warning("SUPERNOTIFY archive path not configured")
             return
@@ -63,12 +68,13 @@ class NotificationArchive:
         if verify_archive_path and verify_archive_path.exists() and verify_archive_path.is_dir():
             try:
                 verify_archive_path.joinpath(WRITE_TEST).touch(exist_ok=True)
-                self.enabled = True
                 self.archive_path = verify_archive_path
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY archive path %s cannot be written: %s", verify_archive_path, e)
+                self.enabled = False
         else:
             _LOGGER.warning("SUPERNOTIFY archive path %s is not a directory or does not exist", verify_archive_path)
+            self.enabled = False
 
     async def size(self) -> int:
         path = self.archive_path

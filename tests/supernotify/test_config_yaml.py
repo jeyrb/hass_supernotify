@@ -12,7 +12,8 @@ from homeassistant.core import HomeAssistant, ServiceResponse
 from homeassistant.helpers.service import async_call_from_config
 from homeassistant.setup import async_setup_component
 
-from custom_components.supernotify import DOMAIN, PLATFORM_SCHEMA, SCENARIO_DEFAULT
+from custom_components.supernotify import DOMAIN, SCENARIO_DEFAULT
+from custom_components.supernotify import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 
 FIXTURE = pathlib.Path(__file__).parent.joinpath("..", "..", "examples", "maximal.yaml")
 
@@ -24,6 +25,7 @@ SIMPLE_CONFIG = {
         "testing": {"method": "generic", "action": "notify.notify"},
         "chime_person": {"method": "chime", "selection": "scenario", "data": {"chime_tune": "person"}},
     },
+    "archive": {"enabled": True},
     "scenarios": {
         "simple": {"delivery_selection": "implicit"},
         "somebody": {"delivery_selection": "explicit", "delivery": {"chime_person": {}}},

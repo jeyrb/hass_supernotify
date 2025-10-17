@@ -253,13 +253,13 @@ class Snoozer:
 
     def filter_recipients(
         self,
-        recipients: list[dict],
+        recipients: list[dict[str, Any]],
         priority: str,
         delivery_name: str,
         delivery_method: "DeliveryMethod",  # type: ignore  # noqa: F821
         all_delivery_names: list[str],
         delivery_definitions: dict[str, Any],
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         inscope_snoozes = self.current_snoozes(priority, all_delivery_names, delivery_definitions)
         for snooze in inscope_snoozes:
             if snooze.recipient_type == RecipientType.USER:
@@ -283,11 +283,11 @@ class Snoozer:
                         recipients.remove(r)
 
                 if snooze.target_type == QualifiedTargetType.ACTION:
-                    to_remove: list[dict] = []
-                    to_add: list[dict] = []
+                    to_remove: list[dict[str, Any]] = []
+                    to_add: list[dict[str, Any]] = []
                     for recipient in recipients:
                         if recipient.get(CONF_PERSON) == snooze.recipient:
-                            alt_mobiles: list[dict] = list(recipient.get(CONF_MOBILE_DEVICES, []))
+                            alt_mobiles: list[dict[str, Any]] = list(recipient.get(CONF_MOBILE_DEVICES, []))
                             md_to_remove = []
                             for md in alt_mobiles:
                                 if md.get(CONF_NOTIFY_ACTION) == snooze.target:

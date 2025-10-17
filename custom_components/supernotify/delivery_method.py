@@ -25,12 +25,12 @@ class DeliveryMethod:
     default_action: str | None = None
 
     @abstractmethod
-    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None) -> None:
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None) -> None:
         self.hass: HomeAssistant = hass
         self.context: Context = context
-        self.default_delivery: dict | None = None
-        self.valid_deliveries: dict[str, dict] = {}
-        self.method_deliveries: dict[str, dict] = (
+        self.default_delivery: dict[str, Any] | None = None
+        self.valid_deliveries: dict[str, dict[str, Any]] = {}
+        self.method_deliveries: dict[str, dict[str, Any]] = (
             {d: dc for d, dc in deliveries.items() if dc.get(CONF_METHOD) == self.method} if deliveries else {}
         )
 
@@ -44,9 +44,9 @@ class DeliveryMethod:
         """Override in subclass if delivery method has fixed action or doesn't require one"""
         return action is not None and action.startswith("notify.")
 
-    async def validate_deliveries(self) -> dict[str, dict]:
+    async def validate_deliveries(self) -> dict[str, dict[str, Any]]:
         """Validate list of deliveries at startup for this method"""
-        valid_deliveries: dict[str, dict] = {}
+        valid_deliveries: dict[str, dict[str, Any]] = {}
         for d, dc in self.method_deliveries.items():
             # don't care about ENABLED here since disabled deliveries can be overridden
             if d in RESERVED_DELIVERY_NAMES:
@@ -91,7 +91,7 @@ class DeliveryMethod:
         )
         return valid_deliveries
 
-    def attributes(self) -> dict[str, str | None | list[str] | dict]:
+    def attributes(self) -> dict[str, str | list[str] | dict[str, Any] | None]:
         return {
             CONF_METHOD: self.method,
             "default_action": self.default_action,
@@ -119,7 +119,7 @@ class DeliveryMethod:
         """
         return True
 
-    def recipient_target(self, recipient: dict) -> list:  # noqa: ARG002
+    def recipient_target(self, recipient: dict[str, Any]) -> list[str]:  # noqa: ARG002
         """Pick out delivery appropriate target from a single person's (recipient) config"""
         return []
 
@@ -132,18 +132,18 @@ class DeliveryMethod:
     def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
         config = self.delivery_config(envelope.delivery_name)
         if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
-            return envelope.title
+            return f"{envelope.title}"
         if envelope.title:
             return f"{envelope.title} {envelope.message}"
-        return envelope.message
+        return f"{envelope.message}"
 
-    def set_action_data(self, action_data: dict, key: str, data: Any | None) -> Any:
+    def set_action_data(self, action_data: dict[str, Any], key: str, data: Any | None) -> Any:
         if data is not None:
             action_data[key] = data
         return action_data
 
     async def evaluate_delivery_conditions(
-        self, delivery_config: dict, condition_variables: ConditionVariables | None
+        self, delivery_config: dict[str, Any], condition_variables: ConditionVariables | None
     ) -> bool | None:
         if CONF_CONDITION not in delivery_config:
             return True
@@ -162,7 +162,7 @@ class DeliveryMethod:
         self,
         envelope: "Envelope",  # noqa: F821 # type: ignore
         qualified_action: str | None = None,
-        action_data: dict | None = None,
+        action_data: dict[str, Any] | None = None,
     ) -> bool:
         action_data = action_data or {}
         start_time = time.time()

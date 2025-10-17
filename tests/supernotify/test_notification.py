@@ -1,8 +1,9 @@
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
-from homeassistant.const import CONF_EMAIL, CONF_ENTITIES, CONF_METHOD
+from homeassistant.const import CONF_ACTION, CONF_EMAIL, CONF_ENTITIES, CONF_METHOD, CONF_TARGET
 from pytest_unordered import unordered
 
 from custom_components.supernotify import (
@@ -12,12 +13,10 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CAMERA_ENTITY_ID,
     ATTR_MEDIA_SNAPSHOT_URL,
     ATTR_SCENARIOS_APPLY,
-    CONF_ACTION,
     CONF_DELIVERY,
     CONF_DELIVERY_SELECTION,
     CONF_MEDIA,
     CONF_RECIPIENTS,
-    CONF_TARGET,
     DELIVERY_SELECTION_EXPLICIT,
     DELIVERY_SELECTION_IMPLICIT,
     METHOD_EMAIL,
@@ -98,15 +97,15 @@ async def test_generate_recipients_from_recipients(mock_context: Context) -> Non
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
             CONF_ACTION: "custom.tweak",
-            CONF_RECIPIENTS: ["custom.light_1", "custom.switch_2"],
+            CONF_RECIPIENTS: [{"target": "custom.light_1"}, {"person": "joey.soapy"}],
         }
     }
     mock_context.deliveries = delivery
     uut = Notification(mock_context, "testing 123")
     generic = GenericDeliveryMethod(mock_context.hass, mock_context, delivery)
     await generic.initialize()
-    recipients = uut.generate_recipients("chatty", generic)
-    assert recipients == ["custom.light_1", "custom.switch_2"]
+    recipients: list[dict[str, Any]] = uut.generate_recipients("chatty", generic)
+    assert recipients == [{"target": "custom.light_1"}, {"person": "joey.soapy"}]
 
 
 async def test_explicit_recipients_only_restricts_people_targets(mock_context: Context) -> None:
@@ -196,7 +195,7 @@ async def test_camera_entity(mock_context: Context) -> None:
         mock_snap_cam.assert_not_called()
 
 
-async def test_merge(mock_context: Context):
+async def test_merge(mock_context: Context) -> None:
     mock_context.scenarios = {
         "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_context.hass)  # type: ignore
     }

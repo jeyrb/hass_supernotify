@@ -22,10 +22,10 @@ class Envelope:
         self,
         delivery_name: str,
         notification: "Notification | None" = None,  # noqa: F821 # type: ignore
-        targets: list | None = None,
-        data: dict | None = None,
+        targets: list[str] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
-        self.targets: list = targets or []
+        self.targets: list[str] = targets or []
         self.delivery_name: str = delivery_name
         self._notification = notification
         self.notification_id = None
@@ -35,9 +35,9 @@ class Envelope:
         self.message: str | None = None
         self.title: str | None = None
         self.message_html: str | None = None
-        self.data: dict = {}
-        self.actions: list[dict] = []
-        delivery_config_data: dict = {}
+        self.data: dict[str, Any] = {}
+        self.actions: list[dict[str, Any]] = []
+        delivery_config_data: dict[str, Any] = {}
         if notification:
             self.notification_id = notification.id
             self.media = notification.media
@@ -64,13 +64,14 @@ class Envelope:
 
     async def grab_image(self) -> Path | None:
         """Grab an image from a camera, snapshot URL, MQTT Image etc"""
+        image_path: Path | None = None
         if self._notification:
-            return await self._notification.grab_image(self.delivery_name)
-        return None
+            image_path = await self._notification.grab_image(self.delivery_name)
+        return image_path
 
-    def core_action_data(self) -> dict:
+    def core_action_data(self) -> dict[str, Any]:
         """Build the core set of `service_data` dict to pass to underlying notify service"""
-        data: dict = {}
+        data: dict[str, Any] = {}
         # message is mandatory for notify platform
         data[CONF_MESSAGE] = self.message or ""
         timestamp = self.data.get(ATTR_TIMESTAMP)
@@ -90,10 +91,10 @@ class Envelope:
         return json_ready
 
     def __eq__(self, other: Any | None) -> bool:
-        """Specialized equality check for subset of attributesfl"""
+        """Specialized equality check for subset of attributes"""
         if other is None or not isinstance(other, Envelope):
             return False
-        return (
+        return bool(
             self.targets == other.targets
             and self.delivery_name == other.delivery_name
             and self.data == other.data

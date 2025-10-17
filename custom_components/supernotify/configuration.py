@@ -61,16 +61,16 @@ class Context:
     def __init__(
         self,
         hass: HomeAssistant | None = None,
-        deliveries: dict | None = None,
-        links: list | None = None,
-        recipients: list | None = None,
-        mobile_actions: dict | None = None,
+        deliveries: dict[str, Any] | None = None,
+        links: list[str] | None = None,
+        recipients: list[dict[str, Any]] | None = None,
+        mobile_actions: dict[str, Any] | None = None,
         template_path: str | None = None,
         media_path: str | None = None,
         archive_config: dict[str, str] | None = None,
-        scenarios: dict[str, dict] | None = None,
-        method_defaults: dict | None = None,
-        cameras: list[dict] | None = None,
+        scenarios: dict[str, dict[str, Any]] | None = None,
+        method_defaults: dict[str, Any] | None = None,
+        cameras: list[dict[str, Any]] | None = None,
     ) -> None:
         self.hass: HomeAssistant | None = None
         self.hass_internal_url: str
@@ -104,18 +104,20 @@ class Context:
         if not self.hass_internal_url or not self.hass_internal_url.startswith("http"):
             _LOGGER.warning("SUPERNOTIFY invalid internal hass url %s", self.hass_internal_url)
 
-        self.links = ensure_list(links)
+        self.links: list[str] = ensure_list(links)
         # raw configured deliveries
         self._deliveries: dict[str, Any] = deliveries if isinstance(deliveries, dict) else {}
         # validated deliveries
         self.deliveries: dict[str, Any] = {}
-        self._recipients: list = ensure_list(recipients)
-        self.mobile_actions: dict = mobile_actions or {}
+        self._recipients: list[dict[str, Any]] = ensure_list(recipients)
+        self.mobile_actions: dict[str, Any] = mobile_actions or {}
         self.template_path: Path | None = Path(template_path) if template_path else None
         self.media_path: Path | None = Path(media_path) if media_path else None
         archive_config = archive_config or {}
         self.archive: NotificationArchive = NotificationArchive(
-            archive_config.get(CONF_ARCHIVE_PATH), archive_config.get(CONF_ARCHIVE_DAYS)
+            bool(archive_config.get(CONF_ENABLED, False)),
+            archive_config.get(CONF_ARCHIVE_PATH),
+            archive_config.get(CONF_ARCHIVE_DAYS),
         )
         archive_topic = archive_config.get(CONF_ARCHIVE_MQTT_TOPIC)
         self.archive_topic: ArchiveTopic | None = None
@@ -130,13 +132,13 @@ class Context:
             self.archive_topic = None
         self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
         self.methods: dict[str, DeliveryMethod] = {}
-        self.method_defaults: dict = method_defaults or {}
+        self.method_defaults: dict[str, Any] = method_defaults or {}
         self.scenarios: dict[str, Scenario] = {}
-        self.people: dict[str, dict] = {}
-        self._config_scenarios: dict = scenarios or {}
-        self.delivery_by_scenario: dict[str, list] = {SCENARIO_DEFAULT: []}
-        self.fallback_on_error: dict = {}
-        self.fallback_by_default: dict = {}
+        self.people: dict[str, dict[str, Any]] = {}
+        self._config_scenarios: dict[str, Any] = scenarios or {}
+        self.delivery_by_scenario: dict[str, list[str]] = {SCENARIO_DEFAULT: []}
+        self.fallback_on_error: dict[str, dict[str, Any]] = {}
+        self.fallback_by_default: dict[str, dict[str, Any]] = {}
         self._entity_registry: entity_registry.EntityRegistry | None = None
         self._device_registry: device_registry.DeviceRegistry | None = None
         self.snoozer = Snoozer()
@@ -165,10 +167,10 @@ class Context:
             _LOGGER.info("SUPERNOTIFY abs media path: %s", self.media_path.absolute())
         if self.archive:
             self.archive.initialize()
-        default_deliveries: dict = self.initialize_deliveries()
+        default_deliveries: dict[str, Any] = self.initialize_deliveries()
         self.initialize_scenarios(default_deliveries)
 
-    def initialize_deliveries(self) -> dict:
+    def initialize_deliveries(self) -> dict[str, Any]:
         default_deliveries = {}
         if self._deliveries:
             for d, dc in self._deliveries.items():
@@ -186,7 +188,7 @@ class Context:
                     self.set_method_default(dc, conf_key.schema)
         return default_deliveries
 
-    def initialize_scenarios(self, default_deliveries: dict) -> None:
+    def initialize_scenarios(self, default_deliveries: dict[str, Any]) -> None:
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])
             if scenario.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
@@ -229,8 +231,8 @@ class Context:
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
 
     def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
-        if attr not in delivery_config:
-            method_default: dict = self.method_defaults.get(delivery_config.get(CONF_METHOD), {})
+        if attr not in delivery_config and CONF_METHOD in delivery_config:
+            method_default: dict[str, Any] = self.method_defaults.get(delivery_config[CONF_METHOD], {})
             if method_default.get(attr):
                 delivery_config[attr] = method_default[attr]
                 _LOGGER.debug(
@@ -312,7 +314,7 @@ class Context:
                 _LOGGER.warning("SUPERNOTIFY Unable to get device registry: %s", e)
         return self._device_registry
 
-    def mobile_devices_for_person(self, person_entity_id: str, validate_targets: bool = False) -> list:
+    def mobile_devices_for_person(self, person_entity_id: str, validate_targets: bool = False) -> list[dict[str, Any]]:
         """Auto detect mobile_app targets for a person.
 
         Targets not currently validated as async registration may not be complete at this stage

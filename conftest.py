@@ -29,7 +29,7 @@ from custom_components.supernotify.snoozer import Snoozer
 
 
 class MockableHomeAssistant(HomeAssistant):
-    config: ConfigEntries = Mock(spec=ConfigEntries)
+    config: ConfigEntries = Mock(spec=ConfigEntries)  # type: ignore
     services: ServiceRegistry = AsyncMock(spec=ServiceRegistry)
     bus: EventBus = Mock(spec=EventBus)
 
@@ -37,15 +37,15 @@ class MockableHomeAssistant(HomeAssistant):
 class MockAction(BaseNotificationService):
     """A test class for notification services."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.calls: list = []
+        self.calls: list[tuple[str, str | None, str | None, dict[str, Any]]] = []
 
     @callback
     async def async_send_message(
         self, message: str = "", title: str | None = None, target: str | None = None, **kwargs: dict[str, Any]
-    ):
-        self.calls.append([message, title, target, kwargs])
+    ) -> None:
+        self.calls.append((message, title, target, kwargs))
 
 
 @pytest.fixture
@@ -117,9 +117,9 @@ def local_server(httpserver_ssl_context: SSLContext | None, socket_enabled: Any)
     server = HTTPServer(host="127.0.0.1", port=0, ssl_context=httpserver_ssl_context)
     server.start()
     yield server
-    server.clear()
+    server.clear()  # type: ignore
     if server.is_running():
-        server.stop()
+        server.stop()  # type: ignore
 
 
 @pytest.fixture(autouse=True)
@@ -134,7 +134,7 @@ def auto_enable_custom_integrations(enable_custom_integrations: Any) -> None:
 
 
 @pytest.fixture(name="skip_notifications", autouse=True)
-def skip_notifications_fixture():
+def skip_notifications_fixture() -> Generator[None, None, None]:
     """Skip notification calls."""
     with (
         patch("homeassistant.components.persistent_notification.async_create"),
