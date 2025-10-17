@@ -28,7 +28,10 @@ class AlexaDeliveryMethod(DeliveryMethod):
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
-        return re.fullmatch(r"notify\.[a-z0-9_]+\_(speak|announce)", target) is not None
+        return (
+            re.fullmatch(r"notify\.[a-z0-9_]+\_(speak|announce)", target) is not None
+            and re.fullmatch(r"group\.[a-z0-9_]+", target) is not None
+        )
 
     async def deliver(self, envelope: Envelope) -> bool:
         _LOGGER.info("SUPERNOTIFY notify_alexa: %s", envelope.message)
