@@ -59,12 +59,13 @@ class CallRecord:
     domain: str | None = field(default=None)
     service: str | None = field(default=None)
     action_data: dict[str, Any] | None = field(default=None)
+    target_data: dict[str, Any] | None = field(default=None)
     exception: str | None = field(default=None)
 
     def contents(self) -> tuple[str | dict[str, Any] | float | None, ...]:
         if self.exception:
-            return (self.domain, self.service, self.action_data, self.exception, self.elapsed)
-        return (self.domain, self.service, self.action_data, self.elapsed)
+            return (self.domain, self.service, self.action_data, self.target_data, self.exception, self.elapsed)
+        return (self.domain, self.service, self.action_data, self.target_data, self.elapsed)
 
 
 @dataclass

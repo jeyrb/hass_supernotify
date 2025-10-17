@@ -44,7 +44,7 @@ class DeliveryMethod:
 
     def validate_action(self, action: str | None) -> bool:
         """Override in subclass if delivery method has fixed action or doesn't require one"""
-        return action is not None and action.startswith("notify.")
+        return action is None or action.startswith("notify.")
 
     async def validate_deliveries(self) -> dict[str, dict[str, Any]]:
         """Validate list of deliveries at startup for this method"""
@@ -167,6 +167,7 @@ class DeliveryMethod:
         envelope: "Envelope",  # noqa: F821 # type: ignore
         qualified_action: str | None = None,
         action_data: dict[str, Any] | None = None,
+        target_data: dict[str, Any] | None = None,
     ) -> bool:
         action_data = action_data or {}
         start_time = time.time()
@@ -178,8 +179,11 @@ class DeliveryMethod:
             if qualified_action and (action_data.get(ATTR_TARGET) or not targets_required):
                 domain, service = qualified_action.split(".", 1)
                 start_time = time.time()
-                await self.hass.services.async_call(domain, service, service_data=action_data)
-                envelope.calls.append(CallRecord(time.time() - start_time, domain, service, action_data))
+                if target_data:
+                    await self.hass.services.async_call(domain, service, service_data=action_data, target=target_data)
+                else:
+                    await self.hass.services.async_call(domain, service, service_data=action_data)
+                envelope.calls.append(CallRecord(time.time() - start_time, domain, service, action_data, target_data))
                 envelope.delivered = 1
             else:
                 _LOGGER.debug(

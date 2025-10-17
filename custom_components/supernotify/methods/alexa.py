@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components.notify.const import ATTR_TARGET
+from homeassistant.components.notify.const import ATTR_MESSAGE
 from homeassistant.const import ATTR_ENTITY_ID
 
 from custom_components.supernotify import METHOD_ALEXA
@@ -10,6 +10,7 @@ from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
+ACTION = "notify.send_message"
 
 
 class AlexaDeliveryMethod(DeliveryMethod):
@@ -24,7 +25,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
     DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs["default_action"] = "notify.send_message"
+        kwargs["default_action"] = ACTION
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
@@ -44,6 +45,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
 
         message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
 
-        action_data: dict[str, Any] = {"message": message or "", ATTR_TARGET: {ATTR_ENTITY_ID: targets}}
+        action_data: dict[str, Any] = {ATTR_MESSAGE: message or ""}
+        target_data: dict[str, Any] = {ATTR_ENTITY_ID: targets}
 
-        return await self.call_action(envelope, action_data=action_data)
+        return await self.call_action(envelope, action_data=action_data, target_data=target_data)

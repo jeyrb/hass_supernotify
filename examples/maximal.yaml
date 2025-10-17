@@ -40,8 +40,7 @@ notify:
           - critical
           - high
       alexa_announce:
-        method: alexa_media_player
-        action: notify.alexa_media_player
+        method: alexa
         occupancy: any_in
       mobile_push:
         method: mobile_push

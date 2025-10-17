@@ -25,9 +25,9 @@ async def test_notify_alexa(mock_hass) -> None:  # type: ignore
     mock_hass.services.async_call.assert_called_with(
         "notify",
         "send_message",
-        service_data={
-            "message": "hello there",
-            "target": {"entity_id": ["notify.bedroom_echo_announce"]},
+        service_data={"message": "hello there"},
+        target={
+            "entity_id": ["notify.bedroom_echo_announce"],
         },
     )
 
