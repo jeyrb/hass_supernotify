@@ -222,7 +222,7 @@ class Context:
 
         for d, dc in self.deliveries.items():
             if dc.get(CONF_METHOD) not in self.methods:
-                _LOGGER.info("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
+                _LOGGER.warning("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
             elif set_as_default and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
                 self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
