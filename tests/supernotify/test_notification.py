@@ -35,7 +35,7 @@ async def test_simple_create(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"]}
     uut = Notification(mock_context, "testing 123")
     await uut.initialize()
-    assert uut.enabled_scenarios == []
+    assert uut.enabled_scenarios == {}
     assert uut.applied_scenario_names == []
     assert uut.target == []
     assert uut.message("plain_email") == "testing 123"

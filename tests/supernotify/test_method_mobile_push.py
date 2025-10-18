@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, LiteralString, cast
 
 import pytest
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
@@ -140,7 +140,7 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
 
 
 @pytest.mark.parametrize("priority", PRIORITY_VALUES)
-async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, priority):
+async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig: Context, priority: LiteralString) -> None:
     priority_map = {
         PRIORITY_CRITICAL: "critical",
         PRIORITY_HIGH: "time-sensitive",
@@ -157,7 +157,7 @@ async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig, pr
     call: CallRecord = e.calls[0]
     assert call.action_data is not None
     assert "data" in call.action_data
-    assert call.action_data["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")  # type: ignore
+    assert call.action_data["data"]["push"]["interruption-level"] == priority_map.get(priority, "active")
 
 
 INTEGRATION_CONFIG = {
@@ -185,21 +185,21 @@ async def test_top_level_data_used(hass: HomeAssistant) -> None:
         blocking=True,
     )
     await hass.async_block_till_done()
-    notification: dict = cast(
-        "dict",
+    notification: dict[str, Any] = cast(
+        "dict[str, Any]",
         await hass.services.async_call("supernotify", "enquire_last_notification", None, blocking=True, return_response=True),
     )
     assert notification is not None
     assert "undelivered_envelopes" in notification  # no android integration in test env
-    assert notification["undelivered_envelopes"][0]["data"]["clickAction"] == "android_something"  # type: ignore
+    assert notification["undelivered_envelopes"][0]["data"]["clickAction"] == "android_something"
 
 
-async def test_action_title(mock_hass: HomeAssistant, superconfig, local_server: HTTPServer) -> None:
+async def test_action_title(mock_hass: HomeAssistant, superconfig: Context, local_server: HTTPServer) -> None:
     uut = MobilePushDeliveryMethod(mock_hass, superconfig, {})
     action_url = local_server.url_for("/action_goes_here")
     local_server.expect_oneshot_request("/action_goes_here").respond_with_data(
         "<html><title>my old action page</title><html>", content_type="text/html"
-    )  # type: ignore
+    )
 
     assert await uut.action_title(action_url) == "my old action page"
     # cached response

@@ -74,6 +74,7 @@ def mock_context(mock_hass: HomeAssistant) -> Context:
     context.delivery_by_scenario = {}
     context.method_defaults = {}
     context.mobile_actions = {}
+    context.content_scenario_templates = {}
     context.hass_internal_url = "http://hass-dev"
     context.hass_external_url = "http://hass-dev.nabu.casa"
     context.media_path = Path("/nosuchpath")

@@ -31,6 +31,7 @@ from . import (
     CONF_ARCHIVE_MQTT_TOPIC,
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
+    CONF_DATA,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
@@ -43,6 +44,7 @@ from . import (
     DELIVERY_SELECTION_IMPLICIT,
     METHOD_DEFAULTS_SCHEMA,
     SCENARIO_DEFAULT,
+    SCENARIO_TEMPLATE_ATTRS,
     SELECTION_DEFAULT,
     SELECTION_FALLBACK,
     SELECTION_FALLBACK_ON_ERROR,
@@ -136,6 +138,7 @@ class Context:
         self.scenarios: dict[str, Scenario] = {}
         self.people: dict[str, dict[str, Any]] = {}
         self._config_scenarios: dict[str, Any] = scenarios or {}
+        self.content_scenario_templates: dict[str, Any] = {}
         self.delivery_by_scenario: dict[str, list[str]] = {SCENARIO_DEFAULT: []}
         self.fallback_on_error: dict[str, dict[str, Any]] = {}
         self.fallback_by_default: dict[str, dict[str, Any]] = {}
@@ -201,6 +204,16 @@ class Context:
             for scenario_delivery in scenario_deliveries:
                 if safe_get(scenario_definition_delivery.get(scenario_delivery), CONF_ENABLED, True):
                     self.delivery_by_scenario[scenario_name].append(scenario_delivery)
+
+                scenario_delivery_config = safe_get(scenario_definition_delivery.get(scenario_delivery), CONF_DATA, {})
+
+                # extract message and title templates per scenario per delivery
+                for template_field in SCENARIO_TEMPLATE_ATTRS:
+                    template_format = scenario_delivery_config.get(template_field)
+                    if template_format is not None:
+                        self.content_scenario_templates.setdefault(template_field, {})
+                        self.content_scenario_templates[template_field].setdefault(scenario_delivery, [])
+                        self.content_scenario_templates[template_field][scenario_delivery].append(scenario_name)
 
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
 
