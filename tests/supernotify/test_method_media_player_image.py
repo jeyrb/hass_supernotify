@@ -7,7 +7,7 @@ from custom_components.supernotify.methods.media_player_image import MediaPlayer
 from custom_components.supernotify.notification import Notification
 
 
-async def test_notify_media_image(mock_hass) -> None:
+async def test_notify_media_image(mock_hass) -> None:  # type: ignore
     """Test on_notify_alexa."""
     context = Context()
     context.hass_external_url = "https://myserver"
@@ -18,6 +18,7 @@ async def test_notify_media_image(mock_hass) -> None:
         {"alexa_show": {CONF_METHOD: METHOD_MEDIA, CONF_NAME: "alexa_show", CONF_DEFAULT: True}},
     )
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
         Envelope(
             "alexa_show",

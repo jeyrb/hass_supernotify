@@ -134,7 +134,7 @@ notify:
         data:
           footer: Delivered by SuperNotify (MsgId:{e.notification_id})
         options:
-          jpeg_args:
+          jpeg_opts:
             progressive: true
             optimize: true
             quality: 50
@@ -146,13 +146,13 @@ notify:
           - media_player.old_kitchen_flex
           - media_player.studio
         options:
-          title_only: True
+          title_handling: combine_message
       alexa:
         target:
           - notify.kitchen_echo_announce
           - notify.bedroom_dot_speak
         options:
-          title_only: True
+          title_handling: replace_message
       sms:
         action: notify.mikrotik_sms
         targets_required: true

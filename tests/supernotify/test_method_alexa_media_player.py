@@ -1,6 +1,6 @@
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD
+from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_METHOD
 
-from custom_components.supernotify import CONF_ACTION, METHOD_ALEXA_MEDIA_PLAYER
+from custom_components.supernotify import METHOD_ALEXA_MEDIA_PLAYER
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
@@ -11,18 +11,21 @@ DELIVERY = {
 }
 
 
-async def test_notify_alexa(mock_hass) -> None:
+async def test_notify_alexa(mock_hass) -> None:  # type: ignore
     """Test on_notify_alexa."""
-    context = Context()
-
+    delivery_config = {
+        "default": {CONF_METHOD: METHOD_ALEXA_MEDIA_PLAYER, CONF_DEFAULT: True, CONF_ACTION: "notify.alexa_media_player"}
+    }
+    context = Context(deliveries=delivery_config)
     uut = AlexaMediaPlayerDeliveryMethod(
         mock_hass,
         context,
-        {"default": {CONF_METHOD: METHOD_ALEXA_MEDIA_PLAYER, CONF_DEFAULT: True, CONF_ACTION: "notify.alexa_media_player"}},
+        delivery_config,
     )
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
-        Envelope("", Notification(context, message="hello there"), targets=["media_player.hall", "media_player.toilet"])
+        Envelope("default", Notification(context, message="hello there"), targets=["media_player.hall", "media_player.toilet"])
     )
     mock_hass.services.async_call.assert_called_with(
         "notify",
@@ -35,7 +38,7 @@ async def test_notify_alexa(mock_hass) -> None:
     )
 
 
-async def test_alexa_method_selects_targets(mock_hass, superconfig) -> None:
+def test_alexa_method_selects_targets(mock_hass, superconfig) -> None:  # type: ignore
     """Test on_notify_alexa."""
     uut = AlexaMediaPlayerDeliveryMethod(mock_hass, superconfig, {"announce": {CONF_METHOD: METHOD_ALEXA_MEDIA_PLAYER}})
     assert uut.select_target("switch.alexa_1") is False

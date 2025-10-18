@@ -4,7 +4,7 @@ from typing import Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 
-from custom_components.supernotify import METHOD_ALEXA_MEDIA_PLAYER
+from custom_components.supernotify import ATTR_MESSAGE_USAGE, METHOD_ALEXA_MEDIA_PLAYER, MessageOnlyPolicy
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -17,14 +17,14 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     """Notify via Amazon Alexa announcements
 
     options:
-        TITLE_ONLY: true
+        message_usage: standard | use_title | combine_title
 
     """
 
     method = METHOD_ALEXA_MEDIA_PLAYER
-    DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
@@ -39,9 +39,11 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
 
-        message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
-
-        action_data: dict[str, Any] = {"message": message or "", ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}
+        action_data: dict[str, Any] = {
+            "message": envelope.message or "",
+            ATTR_DATA: {"type": "announce"},
+            ATTR_TARGET: media_players,
+        }
         if envelope.data and envelope.data.get("data"):
             action_data[ATTR_DATA].update(envelope.data.get("data"))
         return await self.call_action(envelope, action_data=action_data)

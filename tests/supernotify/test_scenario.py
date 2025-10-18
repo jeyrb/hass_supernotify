@@ -7,6 +7,7 @@ from pytest_unordered import unordered
 from custom_components.supernotify import (
     ATTR_SCENARIOS_APPLY,
     ATTR_SCENARIOS_CONSTRAIN,
+    CONF_METHOD,
     PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
     SCENARIO_SCHEMA,
@@ -15,6 +16,7 @@ from custom_components.supernotify import (
 from custom_components.supernotify import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.notification import Notification
+from custom_components.supernotify.notify import METHODS
 from custom_components.supernotify.scenario import Scenario
 
 _LOGGER = logging.getLogger(__name__)
@@ -139,8 +141,11 @@ async def test_scenario_templating(hass: HomeAssistant) -> None:
             },
         },
     })
-    context = Context(hass, scenarios=config["scenarios"])
+    context = Context(
+        hass, scenarios=config["scenarios"], deliveries={"email": {CONF_METHOD: "email"}, "alexa": {CONF_METHOD: "alexa"}}
+    )
     await context.initialize()
+    await context.register_delivery_methods([], METHODS)
     uut = Notification(
         context, message="Hello from Home", title="Home Notification", action_data={"apply_scenarios": ["softly_softly"]}
     )

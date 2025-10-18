@@ -196,8 +196,7 @@ by selecting a tune.
 
 Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS.
 
-The `title_only` option can be sent to restrict content to just title, when both title and
-message on a notification. Otherwise, the combined title/message is sent out.
+The `title_handling` option can be sent to restrict content to use the title in place of the message, or to combine title and messafe into a single outgoing text message.
 
 ### Generic
 
@@ -240,6 +239,8 @@ Show an image on a media player, e.g. an Alexa Show ( where that actually works,
 
 Announce, or speak, a notification using Home Assistant's built-in *Alexa Devices* integration.
 
+The `title_handling` option can be set to `combine_message` or `replace_message` to override the default behaviour of speaking the `message`.
+
 *Note* Home Assistant recommend sending multiple notifications to a pre-defined group, rather
 than an explicit list of Alexa devices, to minimize the likelihood of Amazon rate-limiting API calls.
 
@@ -247,7 +248,7 @@ than an explicit list of Alexa devices, to minimize the likelihood of Amazon rat
 
 Announce a message on an Alexa Echo device using the [`alexa_media_player`](https://github.com/alandtse/alexa_media_player) integration available via [HACS](https://www.hacs.xyz).
 
-The `title_only` option can be set to `False` to override the restriction of content to just title, when both title and message on a notification. Otherwise, only the title is announced.
+The `title_handling` option can be set to `combine_message` or `replace_message` to override the default behaviour of speaking the `message`.
 
 ### Persistent
 
@@ -269,8 +270,24 @@ An optional PTZ preset can also be referenced in `data`, a PTZ delay before snap
 and a choice of `onvif` or `frigate` for the PTZ control. After the snap, an additional PTZ will be commanded to return to the `ptz_default_preset` defined for the camera.This image will taken once and then reused across all supporting delivery methods.
 
 Some cameras, like Hikvision, add JPEG comment blocks which confuse the very simplistic media
-detection in the SMTP integration, and leads to spurious log entries. Supernotify will automatically rewrite JPEGs into simpler standard forms to avoid this, and optionally `JPEG_ARGS`
-can be set, for example to reduce image quality for smaller email attachments.
+detection in the SMTP integration, and leads to spurious log entries. Supernotify will automatically rewrite JPEGs into simpler standard forms to avoid this, and optionally `jpeg_opts` can be set, for example to reduce image quality for smaller email attachments. See the *Saving* section under **JPEG** on the [PIL Image Writer documentation[(https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#)] for the full set of options available.
+
+```yaml
+ - action: notify.supernotify
+      data:
+        title: "My Home Notification"
+        message: "Notify with image snapshot taking close-up of vehicle on driveway"
+        delivery:
+            data:
+                media:
+                    camera_entity_id: camera.driveway
+                    camera_ptz_preset: closeup
+                    camera_delay: 10
+                    jpeg_opts:
+                      progressive: true
+                      optimize: true
+                      quality: 50
+```
 
 ## Flexible Configuration
 
@@ -321,16 +338,16 @@ Use this for additional camera info:
 
 ## Delivery Method Options
 
-All of these set by passing an `options` block in delivery config or method defaults.
+All of these set by passing an `options` block in Delivery config or Method defaults.
 
-|Option         |Methods            |Description                                             |
-|---------------|-------------------|--------------------------------------------------------|
-|chime_aliases  |chime              |Map tunes to device name or config                      |
-|jpeg_flags     |mail               |Tune image grabs                                        |
-|title_only     |sms, alexa         |Suppress message body                                   |
-|timestamp      |all                |Add a timestamp to message.                             |
+|Option         |Methods            |Description                                                  |
+|---------------|-------------------|-------------------------------------------------------------|
+|chime_aliases  |chime              |Map tunes to device name or config                           |
+|jpeg_opts      |mail               |Tune image grabs                                             |
+|title_handling |all                |Use title rather than message, or combined title and message |
+|timestamp      |all                |Add a timestamp to message.                                  |
 
-`jpeg_flags` can also be set per runtime call by passing in the `media` block.
+`jpeg_opts` can also be set per runtime call by passing in the `media` block.
 
 ## Snoozing
 

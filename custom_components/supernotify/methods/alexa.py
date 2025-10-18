@@ -5,7 +5,7 @@ from typing import Any
 from homeassistant.components.notify.const import ATTR_MESSAGE
 from homeassistant.const import ATTR_ENTITY_ID
 
-from custom_components.supernotify import METHOD_ALEXA
+from custom_components.supernotify import ATTR_MESSAGE_USAGE, METHOD_ALEXA, MessageOnlyPolicy
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -17,15 +17,15 @@ class AlexaDeliveryMethod(DeliveryMethod):
     """Notify via Home Assistant's built-in Alexa integration
 
     options:
-        TITLE_ONLY: true
+        message_usage: standard | use_title | combine_title
 
     """
 
     method = METHOD_ALEXA
-    DEFAULT_TITLE_ONLY = True
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs["default_action"] = ACTION
+        kwargs.setdefault("default_action", ACTION)
+        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
@@ -43,9 +43,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
 
-        message = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
-
-        action_data: dict[str, Any] = {ATTR_MESSAGE: message or ""}
+        action_data: dict[str, Any] = {ATTR_MESSAGE: envelope.message or ""}
         target_data: dict[str, Any] = {ATTR_ENTITY_ID: targets}
 
         return await self.call_action(envelope, action_data=action_data, target_data=target_data)

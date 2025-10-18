@@ -33,8 +33,9 @@ if TYPE_CHECKING:
 async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = Context()
-
-    uut = MobilePushDeliveryMethod(mock_hass, context, {})
+    await context.initialize()
+    uut = MobilePushDeliveryMethod(mock_hass, context, {"media_test": {CONF_METHOD: METHOD_MOBILE_PUSH}})
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
         Envelope(
             "media_test",
@@ -81,10 +82,11 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
 async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssistant) -> None:
     """Test on_notify_mobile_push."""
     context = Context()
-
-    uut = MobilePushDeliveryMethod(mock_hass, context, {})
+    await context.initialize()
+    uut = MobilePushDeliveryMethod(mock_hass, context, {"media_test": {CONF_METHOD: METHOD_MOBILE_PUSH}})
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
-        Envelope("", Notification(context, message="hello there", title="testing"), targets=["mobile_app_new_iphone"])
+        Envelope("media_test", Notification(context, message="hello there", title="testing"), targets=["mobile_app_new_iphone"])
     )
     mock_hass.services.async_call.assert_called_with(  # type: ignore
         "notify",
@@ -117,11 +119,12 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
         recipients=[{"person": "person.test_user", "mobile_devices": [{"notify_action": "mobile_app_test_user_iphone"}]}]
     )
     await context.initialize()
-    uut = MobilePushDeliveryMethod(mock_hass, context, {})
+    uut = MobilePushDeliveryMethod(mock_hass, context, {"default": {CONF_METHOD: METHOD_MOBILE_PUSH}})
+    await context.register_delivery_methods([uut], None)
     await uut.initialize()
     await uut.deliver(
         Envelope(
-            "",
+            "default",
             Notification(context, message="hello there", title="testing", action_data={CONF_PRIORITY: PRIORITY_CRITICAL}),
             targets=["mobile_app_test_user_iphone"],
         )
@@ -140,17 +143,20 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
 
 
 @pytest.mark.parametrize("priority", PRIORITY_VALUES)
-async def test_priority_interpretation(mock_hass: HomeAssistant, superconfig: Context, priority: LiteralString) -> None:
+async def test_priority_interpretation(mock_hass: HomeAssistant, priority: LiteralString) -> None:
     priority_map = {
         PRIORITY_CRITICAL: "critical",
         PRIORITY_HIGH: "time-sensitive",
         PRIORITY_LOW: "passive",
         PRIORITY_MEDIUM: "active",
     }
-    uut = MobilePushDeliveryMethod(mock_hass, superconfig, {})
+    context = Context()
+    await context.initialize()
+    uut = MobilePushDeliveryMethod(mock_hass, context, {"default": {CONF_METHOD: METHOD_MOBILE_PUSH}})
+    await context.register_delivery_methods([uut], None)
     e: Envelope = Envelope(
-        "",
-        Notification(superconfig, message="hello there", title="testing", action_data={ATTR_PRIORITY: priority}),
+        "default",
+        Notification(context, message="hello there", title="testing", action_data={ATTR_PRIORITY: priority}),
         targets=["mobile_app_test_user_iphone"],
     )
     await uut.deliver(e)

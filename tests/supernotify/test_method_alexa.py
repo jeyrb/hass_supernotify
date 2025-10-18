@@ -14,14 +14,14 @@ DELIVERY = {
 async def test_notify_alexa(mock_hass) -> None:  # type: ignore
     """Test on_notify_alexa."""
     context = Context()
-
-    uut = AlexaDeliveryMethod(
-        mock_hass,
-        context,
-        {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True, CONF_ACTION: "notify.send_message"}},
-    )
+    delivery_config = {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True}}
+    uut = AlexaDeliveryMethod(mock_hass, context, delivery_config)
+    await context.register_delivery_methods([uut], None)
     await uut.initialize()
-    await uut.deliver(Envelope("", Notification(context, message="hello there"), targets=["notify.bedroom_echo_announce"]))
+
+    await uut.deliver(
+        Envelope("default", Notification(context, message="hello there"), targets=["notify.bedroom_echo_announce"])
+    )
     mock_hass.services.async_call.assert_called_with(
         "notify",
         "send_message",

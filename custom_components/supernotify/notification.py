@@ -20,7 +20,7 @@ from custom_components.supernotify import (
     ATTR_DEBUG,
     ATTR_DELIVERY,
     ATTR_DELIVERY_SELECTION,
-    ATTR_JPEG_FLAGS,
+    ATTR_JPEG_OPTS,
     ATTR_MEDIA,
     ATTR_MEDIA_CAMERA_DELAY,
     ATTR_MEDIA_CAMERA_ENTITY_ID,
@@ -28,6 +28,7 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
     ATTR_MESSAGE_HTML,
+    ATTR_MESSAGE_USAGE,
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS_APPLY,
@@ -64,6 +65,7 @@ from custom_components.supernotify import (
     SELECTION_BY_SCENARIO,
     STRICT_ACTION_DATA_SCHEMA,
     ConditionVariables,
+    MessageOnlyPolicy,
 )
 from custom_components.supernotify.archive import ArchivableObject
 from custom_components.supernotify.common import DebugTrace, safe_extend
@@ -258,7 +260,7 @@ class Notification(ArchivableObject):
                 self.media[ATTR_MEDIA_SNAPSHOT_URL] = url
 
     def _render_scenario_templates(
-        self, original: str, template_field: str, matching_ctx: str, delivery_name: str
+        self, original: str | None, template_field: str, matching_ctx: str, delivery_name: str
     ) -> str | None:
         template_scenario_names = self.context.content_scenario_templates.get(template_field, {}).get(delivery_name, [])
         if not template_scenario_names:
@@ -278,16 +280,33 @@ class Notification(ArchivableObject):
 
     def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        msg = self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
+        delivery_config: dict[str, Any] = self.context.deliveries.get(delivery_name, {})
+        msg: str | None = delivery_config.get(CONF_MESSAGE, self._message)
+        delivery_method: DeliveryMethod = self.context.delivery_method(delivery_name)
+        message_usage: str = delivery_config.get(CONF_OPTIONS, {}).get(ATTR_MESSAGE_USAGE, delivery_method.message_usage)
+        if message_usage.upper() == MessageOnlyPolicy.USE_TITLE:
+            title = self.title(delivery_name, ignore_usage=True)
+            if title:
+                msg = title
+        elif message_usage.upper() == MessageOnlyPolicy.COMBINE_TITLE:
+            title = self.title(delivery_name, ignore_usage=True)
+            if title:
+                msg = f"{title} {msg}"
         msg = self._render_scenario_templates(msg, "message_template", "notification_message", delivery_name)
         if msg is None:  # keep mypy happy
             return None
         return str(msg)
 
-    def title(self, delivery_name: str) -> str | None:
+    def title(self, delivery_name: str, ignore_usage: bool = False) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        title = self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
-        title = self._render_scenario_templates(title, "title_template", "notification_title", delivery_name)
+        delivery_config = self.context.deliveries.get(delivery_name, {})
+        delivery_method: DeliveryMethod = self.context.delivery_method(delivery_name)
+        message_usage = delivery_config.get(CONF_OPTIONS, {}).get(ATTR_MESSAGE_USAGE, delivery_method.message_usage)
+        if not ignore_usage and message_usage.upper() in (MessageOnlyPolicy.USE_TITLE, MessageOnlyPolicy.COMBINE_TITLE):
+            title = None
+        else:
+            title = delivery_config.get(CONF_TITLE, self._title)
+            title = self._render_scenario_templates(title, "title_template", "notification_title", delivery_name)
         if title is None:
             return None
         return str(title)
@@ -556,7 +575,7 @@ class Notification(ArchivableObject):
         snapshot_url = self.media.get(ATTR_MEDIA_SNAPSHOT_URL)
         camera_entity_id = self.media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)
         delivery_config = self.delivery_data(delivery_name)
-        jpeg_args = self.media.get(ATTR_JPEG_FLAGS, delivery_config.get(CONF_OPTIONS, {}).get(ATTR_JPEG_FLAGS))
+        jpeg_opts = self.media.get(ATTR_JPEG_OPTS, delivery_config.get(CONF_OPTIONS, {}).get(ATTR_JPEG_OPTS))
 
         if not snapshot_url and not camera_entity_id:
             return None
@@ -566,15 +585,15 @@ class Notification(ArchivableObject):
             return self.snapshot_image_path
         if snapshot_url and self.context.media_path and self.context.hass:
             image_path = await snapshot_from_url(
-                self.context.hass, snapshot_url, self.id, self.context.media_path, self.context.hass_internal_url, jpeg_args
+                self.context.hass, snapshot_url, self.id, self.context.media_path, self.context.hass_internal_url, jpeg_opts
             )
         elif camera_entity_id and camera_entity_id.startswith("image.") and self.context.hass and self.context.media_path:
-            image_path = await snap_image(self.context, camera_entity_id, self.context.media_path, self.id, jpeg_args)
+            image_path = await snap_image(self.context, camera_entity_id, self.context.media_path, self.id, jpeg_opts)
         elif camera_entity_id:
             if not self.context.hass or not self.context.media_path:
                 _LOGGER.warning("SUPERNOTIFY No homeassistant ref or media path for camera %s", camera_entity_id)
                 return None
-            active_camera_entity_id = await select_avail_camera(self.context.hass, self.context.cameras, camera_entity_id)
+            active_camera_entity_id = select_avail_camera(self.context.hass, self.context.cameras, camera_entity_id)
             if active_camera_entity_id:
                 camera_config = self.context.cameras.get(active_camera_entity_id, {})
                 camera_delay = self.media.get(ATTR_MEDIA_CAMERA_DELAY, camera_config.get(CONF_PTZ_DELAY))
@@ -600,7 +619,7 @@ class Notification(ArchivableObject):
                     active_camera_entity_id,
                     media_path=self.context.media_path,
                     max_camera_wait=15,
-                    jpeg_args=jpeg_args,
+                    jpeg_opts=jpeg_opts,
                 )
                 if camera_ptz_preset and camera_ptz_preset_default:
                     await move_camera_to_ptz_preset(

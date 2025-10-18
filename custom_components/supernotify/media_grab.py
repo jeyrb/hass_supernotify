@@ -5,9 +5,10 @@ import time
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiofiles
+import anyio
 from aiohttp import ClientTimeout
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant
@@ -36,12 +37,12 @@ async def snapshot_from_url(
     media_path: Path,
     hass_base_url: str | None,
     remote_timeout: int = 15,
-    jpeg_args: dict | None = None,
+    jpeg_opts: dict[str, Any] | None = None,
 ) -> Path | None:
     hass_base_url = hass_base_url or ""
     try:
-        media_dir: Path = Path(media_path) / "snapshot"
-        media_dir.mkdir(parents=True, exist_ok=True)
+        media_dir: anyio.Path = anyio.Path(media_path) / "snapshot"
+        await media_dir.mkdir(parents=True, exist_ok=True)
 
         if snapshot_url.startswith("http"):
             image_url = snapshot_url
@@ -71,11 +72,11 @@ async def snapshot_from_url(
             image: Image.Image = Image.open(io.BytesIO(await r.content.read()))
             # rewrite to remove metadata, incl custom CCTV comments that confusie python MIMEImage
             clean_image: Image.Image = Image.new(image.mode, image.size)
-            clean_image.putdata(image.getdata())  # type: ignore
+            clean_image.putdata(image.getdata())
             buffer = BytesIO()
             img_args = {}
-            if image_format == "JPEG" and jpeg_args:
-                img_args.update(jpeg_args)
+            if image_format == "JPEG" and jpeg_opts:
+                img_args.update(jpeg_opts)
             clean_image.save(buffer, image_format, **img_args)
             async with aiofiles.open(image_path, "wb") as file:
                 await file.write(buffer.getbuffer())
@@ -120,10 +121,10 @@ async def snap_image(
     entity_id: str,
     media_path: Path,
     notification_id: str,
-    jpeg_args: dict | None = None,
+    jpeg_opts: dict[str, Any] | None = None,
 ) -> Path | None:
     """Use for any image, including MQTT Image"""
-    image_path: Path | None = None
+    image_path: anyio.Path | None = None
     try:
         image_entity: ImageEntity | None = None
         if context.hass:
@@ -134,40 +135,44 @@ async def snap_image(
                 _LOGGER.warning("SUPERNOTIFY Empty bitmap from image entity %s", entity_id)
             else:
                 image: Image.Image = Image.open(io.BytesIO(bitmap))
-                media_dir: Path = media_path / "image"
-                media_dir.mkdir(parents=True, exist_ok=True)
+                media_dir: anyio.Path = anyio.Path(media_path) / "image"
+                await media_dir.mkdir(parents=True, exist_ok=True)
 
                 media_ext: str = image.format.lower() if image.format else "img"
                 timed: str = str(time.time()).replace(".", "_")
-                image_path = Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
+                image_path = anyio.Path(media_dir) / f"{notification_id}_{timed}.{media_ext}"
                 buffer = BytesIO()
                 img_args = {}
-                if media_ext in ("jpg", "jpeg") and jpeg_args:
-                    img_args.update(jpeg_args)
+                if media_ext in ("jpg", "jpeg") and jpeg_opts:
+                    img_args.update(jpeg_opts)
                 image.save(buffer, image.format, **img_args)
-                async with aiofiles.open(image_path, "wb") as file:
+                async with aiofiles.open(await image_path.resolve(), "wb") as file:
                     await file.write(buffer.getbuffer())
         else:
             _LOGGER.warning("SUPERNOTIFY Unable to find image entity %s", entity_id)
     except Exception as e:
         _LOGGER.warning("SUPERNOTIFY Unable to snap image %s: %s", entity_id, e)
         return None
-    return image_path
+    return Path(await image_path.resolve()) if image_path else None
 
 
 async def snap_camera(
-    hass: HomeAssistant, camera_entity_id: str, media_path: Path, max_camera_wait: int = 20, jpeg_args: dict | None = None
+    hass: HomeAssistant,
+    camera_entity_id: str,
+    media_path: Path,
+    max_camera_wait: int = 20,
+    jpeg_opts: dict[str, Any] | None = None,
 ) -> Path | None:
     image_path: Path | None = None
     if not camera_entity_id:
         _LOGGER.warning("SUPERNOTIFY Empty camera entity id for snap")
         return image_path
-    if jpeg_args:
-        _LOGGER.warning("jpeg_args not yet supported by snap_camera")
+    if jpeg_opts:
+        _LOGGER.warning("jpeg_opts not yet supported by snap_camera")
 
     try:
-        media_dir: Path = media_path / "camera"
-        media_dir.mkdir(parents=True, exist_ok=True)
+        media_dir: anyio.Path = anyio.Path(media_path) / "camera"
+        await media_dir.mkdir(parents=True, exist_ok=True)
         timed = str(time.time()).replace(".", "_")
         image_path = Path(media_dir) / f"{camera_entity_id}_{timed}.jpg"
         await hass.services.async_call(
@@ -187,7 +192,7 @@ async def snap_camera(
     return image_path
 
 
-async def select_avail_camera(hass: HomeAssistant, cameras: dict[str, dict], camera_entity_id: str) -> str | None:
+def select_avail_camera(hass: HomeAssistant, cameras: dict[str, Any], camera_entity_id: str) -> str | None:
     avail_camera_entity_id: str | None = None
 
     try:

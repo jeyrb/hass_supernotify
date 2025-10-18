@@ -7,17 +7,20 @@ from custom_components.supernotify.methods.chime import ChimeDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 
-async def test_deliver(mock_hass) -> None:
+async def test_deliver(mock_hass) -> None:  # type: ignore
     """Test on_notify_chime"""
     context = Context()
+    await context.initialize()
     uut = ChimeDeliveryMethod(
         mock_hass,
         context,
         {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True}},
     )
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
+
     envelope = Envelope(
-        "", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
+        "chimes", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
     )
     await uut.deliver(envelope)
     assert envelope.skipped == 0
@@ -33,8 +36,9 @@ async def test_deliver(mock_hass) -> None:
     )
 
 
-async def test_deliver_alias(mock_hass) -> None:
+async def test_deliver_alias(mock_hass) -> None:  # type: ignore
     """Test on_notify_chime"""
+    delivery_config = {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True, CONF_DATA: {"chime_tune": "doorbell"}}}
     context = Context(
         method_defaults={
             "chime": {
@@ -50,12 +54,11 @@ async def test_deliver_alias(mock_hass) -> None:
             }
         }
     )
-    uut = ChimeDeliveryMethod(
-        mock_hass, context, {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True, CONF_DATA: {"chime_tune": "doorbell"}}}
-    )
+    uut = ChimeDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
     envelope = Envelope(
-        "", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
+        "chimes", Notification(context, message="for script only"), targets=["switch.bell_1", "script.alarm_2", "siren.lobby"]
     )
     await uut.deliver(envelope)
     assert envelope.skipped == 0
@@ -85,31 +88,31 @@ async def test_deliver_alias(mock_hass) -> None:
 
 
 class MockGroup:
-    def __init__(self, entities):
+    def __init__(self, entities: list[str]) -> None:
         self.attributes = {ATTR_ENTITY_ID: entities}
 
 
-async def test_deliver_to_group(mock_hass, superconfig) -> None:
+async def test_deliver_to_group(mock_hass) -> None:  # type: ignore
     """Test on_notify_chime"""
     groups = {
         "group.alexa": MockGroup(["media_player.alexa_1", "media_player.alexa_2"]),
         "group.chime": MockGroup(["switch.bell_1"]),
     }
-
+    delivery_config = {
+        "chimes": {
+            CONF_METHOD: METHOD_CHIME,
+            CONF_DEFAULT: True,
+            CONF_DATA: {"chime_tune": "dive_dive_dive"},
+        }
+    }
+    context = Context()
+    await context.initialize()
     mock_hass.states.get.side_effect = lambda v: groups.get(v)
-    uut = ChimeDeliveryMethod(
-        mock_hass,
-        superconfig,
-        {
-            "chimes": {
-                CONF_METHOD: METHOD_CHIME,
-                CONF_DEFAULT: True,
-                CONF_DATA: {"chime_tune": "dive_dive_dive"},
-            }
-        },
-    )
+    uut = ChimeDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
-    await uut.deliver(Envelope("chimes", Notification(superconfig), targets=["group.alexa", "group.chime", "script.siren_2"]))
+    await context.register_delivery_methods([uut], None)
+
+    await uut.deliver(Envelope("chimes", Notification(context), targets=["group.alexa", "group.chime", "script.siren_2"]))
     mock_hass.services.async_call.assert_any_call(
         "script", "siren_2", service_data={"variables": {"chime_tune": "dive_dive_dive"}}
     )

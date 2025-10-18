@@ -198,7 +198,7 @@ async def test_camera_entity(mock_context: Context) -> None:
 
 async def test_merge(mock_context: Context) -> None:
     mock_context.scenarios = {
-        "Alarm": Scenario("Alarm", {"media": {"jpeg_args": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_context.hass)  # type: ignore
+        "Alarm": Scenario("Alarm", {"media": {"jpeg_opts": {"quality": 30}, "snapshot_url": "/bar/789"}}, mock_context.hass)  # type: ignore
     }
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
@@ -212,7 +212,7 @@ async def test_merge(mock_context: Context) -> None:
     )
     await uut.initialize()
     assert uut.merge(ATTR_MEDIA, "plain_email") == {
-        "jpeg_args": {"quality": 30},
+        "jpeg_opts": {"quality": 30},
         "camera_delay": 11,
         "snapshot_url": "/foo/123",
     }

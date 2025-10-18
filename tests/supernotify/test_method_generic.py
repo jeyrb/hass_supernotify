@@ -1,14 +1,14 @@
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD, CONF_NAME
+from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_METHOD, CONF_NAME
 
-from custom_components.supernotify import CONF_ACTION, CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
+from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 
-async def test_deliver(mock_hass) -> None:
+async def test_deliver(mock_hass) -> None:  # type: ignore
     context = Context()
     uut = GenericDeliveryMethod(
         mock_hass,
@@ -23,6 +23,7 @@ async def test_deliver(mock_hass) -> None:
         },
     )
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
         Envelope(
             "teleport",
@@ -47,14 +48,16 @@ async def test_deliver(mock_hass) -> None:
     )
 
 
-async def test_not_notify_deliver(mock_hass) -> None:
+async def test_not_notify_deliver(mock_hass) -> None:  # type: ignore
     context = Context()
+    await context.initialize()
     uut = GenericDeliveryMethod(
         mock_hass,
         context,
         {"broker": {CONF_METHOD: METHOD_GENERIC, CONF_NAME: "broker", CONF_ACTION: "mqtt.publish", CONF_DEFAULT: True}},
     )
     await uut.initialize()
+    await context.register_delivery_methods([uut], None)
     await uut.deliver(
         Envelope(
             "broker",

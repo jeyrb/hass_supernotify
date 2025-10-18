@@ -15,21 +15,33 @@ from homeassistant.helpers import condition
 from custom_components.supernotify.common import CallRecord
 from custom_components.supernotify.configuration import Context
 
-from . import CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables
+from . import CONF_DATA, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables, MessageOnlyPolicy
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class DeliveryMethod:
+    """Base class for delivery methods.
+
+    Sub classes integrste with Home Assistant notification services
+    or alternative notification mechanisms.
+    """
+
     method: str
 
     @abstractmethod
     def __init__(
-        self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None, default_action: str | None = None
+        self,
+        hass: HomeAssistant,
+        context: Context,
+        deliveries: dict[str, Any] | None = None,
+        default_action: str | None = None,
+        message_usage: str = MessageOnlyPolicy.STANDARD,
     ) -> None:
         self.hass: HomeAssistant = hass
         self.default_action: str | None = default_action
         self.context: Context = context
+        self.message_usage: str = message_usage
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}
         self.method_deliveries: dict[str, dict[str, Any]] = (
@@ -104,7 +116,7 @@ class DeliveryMethod:
         }
 
     @abstractmethod
-    async def deliver(self, envelope: "Envelope") -> bool:  # type: ignore # noqa: F821
+    async def deliver(self, envelope: "Envelope") -> bool:  # noqa: F821 # type: ignore
         """Delivery implementation
 
         Args:
@@ -132,14 +144,6 @@ class DeliveryMethod:
         config = dict(config)
         config[CONF_DATA] = dict(config.get(CONF_DATA) or {})
         return config
-
-    def combined_message(self, envelope: "Envelope", default_title_only: bool = True) -> str | None:  # type: ignore # noqa: F821
-        config = self.delivery_config(envelope.delivery_name)
-        if config.get(CONF_OPTIONS, {}).get("title_only", default_title_only) and envelope.title:
-            return f"{envelope.title}"
-        if envelope.title:
-            return f"{envelope.title} {envelope.message}"
-        return f"{envelope.message}"
 
     def set_action_data(self, action_data: dict[str, Any], key: str, data: Any | None) -> Any:
         if data is not None:

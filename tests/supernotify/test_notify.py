@@ -66,7 +66,7 @@ RECIPIENTS: list[dict] = [
 
 METHOD_DEFAULTS: dict[str, dict] = {
     METHOD_GENERIC: {CONF_ACTION: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
-    METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_args": {"progressive": True}}},
+    METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_opts": {"progressive": True}}},
     "dummy": {CONF_TARGETS_REQUIRED: False},
 }
 

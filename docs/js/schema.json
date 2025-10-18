@@ -108,7 +108,7 @@
         "snapshot_url": {
           "type": "string"
         },
-        "jpeg_flags": {
+        "jpeg_opts": {
           "type": "object",
           "additionalProperties": true
         }

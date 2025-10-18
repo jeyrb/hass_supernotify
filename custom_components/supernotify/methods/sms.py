@@ -4,7 +4,7 @@ from typing import Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 
-from custom_components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS
+from custom_components.supernotify import ATTR_MESSAGE_USAGE, CONF_PHONE_NUMBER, METHOD_SMS, MessageOnlyPolicy
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -15,15 +15,16 @@ _LOGGER = logging.getLogger(__name__)
 
 class SMSDeliveryMethod(DeliveryMethod):
     method = METHOD_SMS
-    DEFAULT_TITLE_ONLY = False
+    MAX_MESSAGE_LENGTH = 158
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.COMBINE_TITLE)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_PHONE, target) is not None
 
-    def recipient_target(self, recipient: dict) -> list[str]:
+    def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
         phone = recipient.get(CONF_PHONE_NUMBER)
         return [phone] if phone else []
 
@@ -33,12 +34,18 @@ class SMSDeliveryMethod(DeliveryMethod):
         data: dict[str, Any] = envelope.data or {}
         mobile_numbers = envelope.targets or []
 
-        message: str | None = self.combined_message(envelope, default_title_only=self.DEFAULT_TITLE_ONLY)
-        if not message:
+        if not envelope.message:
             _LOGGER.warning("SUPERNOTIFY notify_sms: No message to send")
             return False
 
-        action_data = {"message": message[:158], ATTR_TARGET: mobile_numbers}
+        if len(envelope.message) > self.MAX_MESSAGE_LENGTH:
+            _LOGGER.debug(
+                "SUPERNOTIFY notify_sms: Message too long (%d characters), truncating to %d characters",
+                len(envelope.message),
+                self.MAX_MESSAGE_LENGTH,
+            )
+
+        action_data = {"message": envelope.message[: self.MAX_MESSAGE_LENGTH], ATTR_TARGET: mobile_numbers}
         if data and data.get("data"):
             action_data[ATTR_DATA] = data.get("data", {})
 

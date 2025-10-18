@@ -124,7 +124,8 @@ ATTR_ACTION_CATEGORY = "action_category"
 ATTR_ACTION_URL = "action_url"
 ATTR_ACTION_URL_TITLE = "action_url_title"
 ATTR_MESSAGE_HTML = "message_html"
-ATTR_JPEG_FLAGS = "jpeg_flags"
+ATTR_JPEG_OPTS = "jpeg_opts"
+ATTR_MESSAGE_USAGE = "message_usage"
 ATTR_TIMESTAMP = "timestamp"
 ATTR_DEBUG = "debug"
 ATTR_ACTIONS = "actions"
@@ -258,7 +259,7 @@ MEDIA_SCHEMA = vol.Schema({
     # URL fragments allowed
     vol.Optional(ATTR_MEDIA_CLIP_URL): vol.Any(cv.url, cv.string),
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
-    vol.Optional(ATTR_JPEG_FLAGS): dict,
+    vol.Optional(ATTR_JPEG_OPTS): dict,
 })
 DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_ALIAS): cv.string,
@@ -386,6 +387,12 @@ class CommandType(StrEnum):
     SNOOZE = "SNOOZE"
     SILENCE = "SILENCE"
     NORMAL = "NORMAL"
+
+
+class MessageOnlyPolicy(StrEnum):
+    STANDARD = "STANDARD"  # independent title and message
+    USE_TITLE = "USE_TITLE"  # use title in place of message, no title
+    COMBINE_TITLE = "COMBINE_TITLE"  # use combined title and message as message, no title
 
 
 @dataclass

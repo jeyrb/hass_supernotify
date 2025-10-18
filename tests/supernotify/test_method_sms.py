@@ -1,19 +1,22 @@
-from homeassistant.const import CONF_DEFAULT, CONF_METHOD
+from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_METHOD
 
-from custom_components.supernotify import CONF_ACTION, CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
+from custom_components.supernotify import CONF_PERSON, CONF_PHONE_NUMBER, METHOD_SMS
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.methods.sms import SMSDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 
-async def test_deliver(mock_hass) -> None:
+async def test_deliver(mock_hass) -> None:  # type: ignore
     """Test on_notify_email."""
-    context = Context(recipients=[{CONF_PERSON: "person.tester1", CONF_PHONE_NUMBER: "+447979123456"}])
-    await context.initialize()
-    uut = SMSDeliveryMethod(
-        mock_hass, context, {"default": {CONF_METHOD: METHOD_SMS, CONF_ACTION: "notify.smsify", CONF_DEFAULT: True}}
+    delivery_config = {"smsify": {CONF_METHOD: METHOD_SMS, CONF_DEFAULT: True, CONF_ACTION: "notify.smsify"}}
+    context = Context(
+        recipients=[{CONF_PERSON: "person.tester1", CONF_PHONE_NUMBER: "+447979123456"}], deliveries=delivery_config
     )
+    await context.initialize()
+    uut = SMSDeliveryMethod(mock_hass, context, delivery_config)
+    await context.register_delivery_methods([uut], None)
+
     await uut.initialize()
     await uut.deliver(
         Envelope("smsify", Notification(context, message="hello there", title="testing"), targets=["+447979123456"])
