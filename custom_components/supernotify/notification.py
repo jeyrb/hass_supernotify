@@ -264,7 +264,7 @@ class Notification(ArchivableObject):
         if not template_scenario_names:
             return original
         context_vars = self.condition_variables.as_dict() if self.condition_variables else {}
-        rendered = original
+        rendered = original if original is not None else ""
         for scen_obj in [obj for name, obj in self.enabled_scenarios.items() if name in template_scenario_names]:
             context_vars[matching_ctx] = rendered
             try:
