@@ -123,11 +123,11 @@ class NotificationArchive:
             _LOGGER.debug("SUPERNOTIFY Archived notification %s", archive_path)
             return True
         except Exception as e:
-            _LOGGER.warning("SUPERNOTIFY Unable to archived notification: %s", e)
+            _LOGGER.warning("SUPERNOTIFY Unable to archive notification: %s", e)
             try:
                 save_json(archive_path, archive_object.contents(minimal=True))
                 _LOGGER.debug("SUPERNOTIFY Archived minimal notification %s", archive_path)
                 return True
             except Exception as e2:
-                _LOGGER.warning("SUPERNOTIFY Unable to archived minimal notification: %s", e2)
+                _LOGGER.warning("SUPERNOTIFY Unable to archive minimal notification: %s", e2)
         return False

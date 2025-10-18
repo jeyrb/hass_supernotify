@@ -370,6 +370,7 @@ class Notification(ArchivableObject):
         sanitized = {k: v for k, v in self.__dict__.items() if k not in ("context")}
         sanitized["delivered_envelopes"] = [e.contents(minimal=minimal) for e in self.delivered_envelopes]
         sanitized["undelivered_envelopes"] = [e.contents(minimal=minimal) for e in self.undelivered_envelopes]
+        sanitized["enabled_scenarios"] = {k: v.contents(minimal=minimal) for k, v in self.enabled_scenarios.items()}
         if self.debug_trace:
             sanitized["debug_trace"] = self.debug_trace.contents()
         else:

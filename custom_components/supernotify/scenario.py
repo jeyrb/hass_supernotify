@@ -66,6 +66,10 @@ class Scenario:
             attrs["trace"] = self.last_trace.as_extended_dict()
         return attrs
 
+    def contents(self, minimal: bool = False) -> dict[str, Any]:
+        """Archive friendly view of scenario"""
+        return self.attributes(include_condition=not minimal, include_trace=not minimal)
+
     async def evaluate(self, condition_variables: ConditionVariables | None = None) -> bool:
         """Evaluate scenario conditions"""
         if self.condition:
