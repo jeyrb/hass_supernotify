@@ -194,13 +194,16 @@ by selecting a tune.
 
 ### SMS
 
+This can work with any SMS notification integration by setting the `action` value to match, for example `action: notify.mikrotik_sms`
+
 Uses the `phone_number` attribute of recipient, and truncates message to fit in an SMS.
 
-The `title_handling` option can be sent to restrict content to use the title in place of the message, or to combine title and messafe into a single outgoing text message.
+Since SMS sends a single message with no title, by default the message and title are combined into a single string prior to truncation. Use `title_handling` in an `options` section to change the behaviour, either message only or using the title in place of the message.
 
 ### Generic
 
-Use to call any action (previously known in Home Assistant as 'service' ).
+Use to call any 'legacy' Notification action (previously known in Home Assistant as 'service' ), that is one not using the newer `NotifyEntity` model.
+
 If action is in `notify` domain, then `message`,`title`,`target` and `data` will be
 passed in the Action (Service) Data, otherwise the `data` supplied will be passed directly
 as the Action Data.
