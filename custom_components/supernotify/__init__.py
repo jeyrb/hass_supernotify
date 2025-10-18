@@ -437,3 +437,13 @@ class ConditionVariables:
         self.notification_priority = delivery_priority or PRIORITY_MEDIUM
         self.notification_message = message or ""
         self.notification_title = title or ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "applied_scenarios": self.applied_scenarios,
+            "required_scenarios": self.required_scenarios,
+            "constrain_scenarios": self.constrain_scenarios,
+            "notification_message": self.notification_message,
+            "notification_title": self.notification_title,
+            "occupancy": self.occupancy,
+        }

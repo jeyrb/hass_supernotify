@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from typing import Any
 
-from homeassistant.components.trace import async_setup, async_store_trace  # type: ignore
+from homeassistant.components.trace import async_setup, async_store_trace  # type: ignore[attr-defined]
 from homeassistant.components.trace.const import DATA_TRACE
 from homeassistant.components.trace.models import ActionTrace
 from homeassistant.const import (
@@ -23,15 +23,15 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Scenario:
-    def __init__(self, name: str, scenario_definition: dict, hass: HomeAssistant) -> None:
+    def __init__(self, name: str, scenario_definition: dict[str, Any], hass: HomeAssistant) -> None:
         self.hass: HomeAssistant = hass
         self.name: str = name
         self.alias: str | None = scenario_definition.get(CONF_ALIAS)
         self.condition: ConfigType | None = scenario_definition.get(CONF_CONDITION)
-        self.media: dict | None = scenario_definition.get(CONF_MEDIA)
+        self.media: dict[str, Any] | None = scenario_definition.get(CONF_MEDIA)
         self.delivery_selection: str | None = scenario_definition.get(CONF_DELIVERY_SELECTION)
         self.action_groups: list[str] = scenario_definition.get(CONF_ACTION_GROUP_NAMES, [])
-        self.delivery: dict = scenario_definition.get(CONF_DELIVERY) or {}
+        self.delivery: dict[str, Any] = scenario_definition.get(CONF_DELIVERY) or {}
         self.default: bool = self.name == ATTR_DEFAULT
         self.last_trace: ActionTrace | None = None
         self.condition_func = None
@@ -49,9 +49,7 @@ class Scenario:
                 return False
         return True
 
-    def attributes(
-        self, include_condition: bool = True, include_trace: bool = False
-    ) -> dict[str, str | dict | bool | list[str] | None]:
+    def attributes(self, include_condition: bool = True, include_trace: bool = False) -> dict[str, Any]:
         """Return scenario attributes"""
         attrs = {
             "name": self.name,
@@ -82,7 +80,11 @@ class Scenario:
                 if test(self.hass, asdict(condition_variables) if condition_variables else None):
                     return True
             except Exception as e:
-                _LOGGER.error("SUPERNOTIFY Scenario condition eval failed: %s, vars: %s", e, condition_variables)
+                _LOGGER.error(
+                    "SUPERNOTIFY Scenario condition eval failed: %s, vars: %s",
+                    e,
+                    condition_variables.as_dict() if condition_variables else {},
+                )
         return False
 
     async def trace(self, condition_variables: ConditionVariables | None = None, config: ConfigType | None = None) -> bool:
@@ -94,7 +96,7 @@ class Scenario:
         with trace_action(self.hass, f"scenario_{self.name}", config) as scenario_trace:
             scenario_trace.set_trace(trace_get())
             self.last_trace = scenario_trace
-            with trace_path(["condition", "conditions"]) as _tp:  # type: ignore
+            with trace_path(["condition", "conditions"]) as _tp:
                 result = await self.evaluate(condition_variables)
             _LOGGER.info(scenario_trace.as_dict())
         return result

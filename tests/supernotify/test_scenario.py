@@ -7,12 +7,12 @@ from pytest_unordered import unordered
 from custom_components.supernotify import (
     ATTR_SCENARIOS_APPLY,
     ATTR_SCENARIOS_CONSTRAIN,
-    PLATFORM_SCHEMA,
     PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
     SCENARIO_SCHEMA,
     ConditionVariables,
 )
+from custom_components.supernotify import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.scenario import Scenario
@@ -112,10 +112,65 @@ async def test_select_scenarios(hass: HomeAssistant) -> None:
     assert enabled == []
 
 
+async def test_scenario_templating(hass: HomeAssistant) -> None:
+    config = PLATFORM_SCHEMA({
+        "platform": "supernotify",
+        "scenarios": {
+            "softly_softly": {
+                "alias": "Gentle notification",
+                "delivery": {
+                    "alexa": {
+                        "data": {
+                            "message_template": '<amazon:effect name="whispered">{{notification_message}}</amazon:effect>',
+                            "title_template": "",
+                        }
+                    }
+                },
+            },
+            "emotional": {
+                "alias": "emotional",
+                "delivery": {
+                    "alexa": {
+                        "data": {
+                            "message_template": '<amazon:emotion name="excited" intensity="medium">{{notification_message}}</amazon:emotion>'  # noqa: E501
+                        }
+                    }
+                },
+            },
+        },
+    })
+    context = Context(hass, scenarios=config["scenarios"])
+    await context.initialize()
+    uut = Notification(
+        context, message="Hello from Home", title="Home Notification", action_data={"apply_scenarios": ["softly_softly"]}
+    )
+    await uut.initialize()
+    assert uut.message("email") == "Hello from Home"
+    assert uut.title("email") == "Home Notification"
+    assert uut.message("alexa") == '<amazon:effect name="whispered">Hello from Home</amazon:effect>'
+    assert uut.title("alexa") == ""
+
+    uut = Notification(context, message="Please Sir", action_data={"apply_scenarios": ["softly_softly", "emotional"]})
+    await uut.initialize()
+    assert uut.message("email") == "Please Sir"
+    assert (
+        uut.message("alexa")
+        == '<amazon:emotion name="excited" intensity="medium"><amazon:effect name="whispered">Please Sir</amazon:effect></amazon:emotion>'  # noqa: E501
+    )
+
+    uut = Notification(context, message="Please Sir", action_data={"apply_scenarios": ["emotional", "softly_softly"]})
+    await uut.initialize()
+    assert (
+        uut.message("alexa")
+        == '<amazon:effect name="whispered"><amazon:emotion name="excited" intensity="medium">Please Sir</amazon:emotion></amazon:effect>'  # noqa: E501
+    )
+
+
 async def test_scenario_constraint(mock_context: Context) -> None:
     mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Mostly": ["siren"], "Alarm": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}, "siren": {}}
     mock_context.scenarios = {
+        "Alarm": Scenario("Alarm", {}, mock_context.hass),  # type: ignore
         "Mostly": Scenario(
             "Mostly",
             SCENARIO_SCHEMA({
@@ -131,7 +186,7 @@ async def test_scenario_constraint(mock_context: Context) -> None:
                 },
             }),
             mock_context.hass,  # type: ignore
-        )
+        ),
     }
     uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: ["Alarm"]})
     await uut.initialize()
@@ -169,7 +224,7 @@ async def test_attributes(hass: HomeAssistant) -> None:
     attrs = uut.attributes()
     assert attrs["delivery_selection"] == "implicit"
 
-    assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"  # type: ignore
+    assert attrs["delivery"]["doorbell_chime_alexa"]["data"]["amazon_magic_id"] == "a77464"
 
 
 async def test_secondary_scenario(hass: HomeAssistant) -> None:

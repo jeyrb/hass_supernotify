@@ -245,7 +245,7 @@ than an explicit list of Alexa devices, to minimize the likelihood of Amazon rat
 
 ### Alexa Media Player
 
-Announce a message on an Alexa Echo device using the `alexa_media_player` integration
+Announce a message on an Alexa Echo device using the [`alexa_media_player`](https://github.com/alandtse/alexa_media_player) integration available via [HACS](https://www.hacs.xyz).
 
 The `title_only` option can be set to `False` to override the restriction of content to just title, when both title and message on a notification. Otherwise, only the title is announced.
 
@@ -420,6 +420,21 @@ other scenarios, use `NULL`).
           - unoccupied
 ```
 
+Individual deliveries can be overridden, including the content of the messages using `message_template` and `title_template`.
+The templates are regular HomeAssistant `jinja2`, and have the same context variables available as the scenario conditions (see below ). In the example below, Alexa can be made to whisper easily without having to mess with the text of every notification, and this scenario could also have conditions applied, for example to all low priority messages at night.
+
+```yaml
+  scenarios:
+    emotional:
+      delivery:
+        alexa:
+          data:
+            title_template: '<amazon:emotion name="excited" intensity="medium">{{notification_message}}</amazon:emotion>'
+```
+
+Multiple scenarios can be applied, in the order provided, and each template will be applied in turn to the results of the previous template. So in the example below, you could apply both the *whisper* and *emotion* Amazon Alexa markup to the same message, or add in some sound effects based on any of the conditions.
+
+A blank `message_template` or `title_template` can also be used to selectively switch off one of those fields for a particular delivery, for example when sending a notification out via email, push and Alexa announcement.
 
 ### Additional variables for conditions
 
@@ -448,6 +463,8 @@ with only a title ( that gets picked up for mobile push, alexa and other brief c
 a much more detailed body only for email.
 
 Use `data_template` to build the `data` dictionary with Jinja2 logic from automations or scripts.
+
+## Development
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/:user/:repo/:workflow)

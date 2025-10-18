@@ -207,6 +207,17 @@ notify:
             data:
               amazon_magic_id: a77464
           email:
+      softly_softly:
+        delivery:
+          alexa:
+            data:
+              message_template: '<amazon:effect name="whispered">{{notification_message}}</amazon:effect>'
+              title_template: ""
+      emotional:
+        delivery:
+          alexa:
+            data:
+              title_template: '<amazon:emotion name="excited" intensity="medium">{{notification_message}}</amazon:emotion>'
       ordinary_day:
         alias: nothing special
         condition:

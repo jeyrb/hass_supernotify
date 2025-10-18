@@ -105,6 +105,14 @@ def mock_notify(hass: HomeAssistant) -> MockAction:
 
 
 @pytest.fixture
+def mock_scenario() -> AsyncMock:
+    mock_scenario = AsyncMock()
+    mock_scenario.name = "mockery"
+    mock_scenario.media = []
+    return mock_scenario
+
+
+@pytest.fixture
 async def superconfig() -> Context:
     context = Context()
     await context.initialize()

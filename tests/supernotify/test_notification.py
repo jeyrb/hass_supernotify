@@ -36,7 +36,7 @@ async def test_simple_create(mock_context: Context) -> None:
     uut = Notification(mock_context, "testing 123")
     await uut.initialize()
     assert uut.enabled_scenarios == []
-    assert uut.applied_scenarios == []
+    assert uut.applied_scenario_names == []
     assert uut.target == []
     assert uut.message("plain_email") == "testing 123"
     assert uut.title("mobile") == "mobile notification"
@@ -60,10 +60,11 @@ async def test_explicit_delivery(mock_context: Context) -> None:
     assert uut.selected_delivery_names == ["mobile"]
 
 
-async def test_scenario_delivery(mock_context: Context) -> None:
-    mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "Alarm": ["chime"]}
+async def test_scenario_delivery(mock_context: Context, mock_scenario: Scenario) -> None:
+    mock_context.delivery_by_scenario = {"DEFAULT": ["plain_email", "mobile"], "mockery": ["chime"]}
     mock_context.deliveries = {"plain_email": {}, "mobile": {}, "chime": {}}
-    uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: "Alarm"})
+    mock_context.scenarios = {"mockery": mock_scenario}
+    uut = Notification(mock_context, "testing 123", action_data={ATTR_SCENARIOS_APPLY: "mockery"})
     await uut.initialize()
     assert uut.selected_delivery_names == unordered("plain_email", "mobile", "chime")
 

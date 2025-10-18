@@ -4,11 +4,13 @@ import logging
 import uuid
 from pathlib import Path
 from traceback import format_exception
-from typing import Any, cast
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
+from homeassistant.helpers.template import Template
+from jinja2 import TemplateError
 from voluptuous import humanize
 
 from custom_components.supernotify import (
@@ -108,9 +110,9 @@ class Notification(ArchivableObject):
 
         self.priority: str = action_data.get(ATTR_PRIORITY, PRIORITY_MEDIUM)
         self.message_html: str | None = action_data.get(ATTR_MESSAGE_HTML)
-        self.required_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_REQUIRE))
-        self.applied_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
-        self.constrain_scenarios: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
+        self.required_scenario_names: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_REQUIRE))
+        self.applied_scenario_names: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_APPLY))
+        self.constrain_scenario_names: list[str] = ensure_list(action_data.get(ATTR_SCENARIOS_CONSTRAIN))
         self.delivery_selection: str | None = action_data.get(ATTR_DELIVERY_SELECTION)
         self.delivery_overrides_type: str = action_data.get(ATTR_DELIVERY).__class__.__name__
         self.delivery_overrides: dict[str, Any] = ensure_dict(action_data.get(ATTR_DELIVERY))
@@ -124,8 +126,8 @@ class Notification(ArchivableObject):
         self.delivery_errors: dict[str, Any] = {}
 
         self.selected_delivery_names: list[str] = []
-        self.enabled_scenarios: list[str] = []
-        self.selected_scenarios: list[str] = []
+        self.enabled_scenarios: list[Scenario] = []
+        self.selected_scenario_names: list[str] = []
         self.people_by_occupancy: list[dict[str, Any]] = []
         self.globally_disabled: bool = False
         self.occupancy: dict[str, list[dict[str, Any]]] = {}
@@ -145,29 +147,33 @@ class Notification(ArchivableObject):
 
         self.occupancy = self.context.determine_occupancy()
         self.condition_variables = ConditionVariables(
-            self.applied_scenarios,
-            self.required_scenarios,
-            self.constrain_scenarios,
+            self.applied_scenario_names,
+            self.required_scenario_names,
+            self.constrain_scenario_names,
             self.priority,
             self.occupancy,
             self._message,
             self._title,
         )  # requires occupancy first
 
-        self.enabled_scenarios = list(self.applied_scenarios) or []
-        self.selected_scenarios = await self.select_scenarios()
-        self.enabled_scenarios.extend(self.selected_scenarios)
-        if self.constrain_scenarios:
-            self.enabled_scenarios = [
+        enabled_scenario_names: list[str] = list(self.applied_scenario_names) or []
+        self.selected_scenario_names = await self.select_scenarios()
+        enabled_scenario_names.extend(self.selected_scenario_names)
+        if self.constrain_scenario_names:
+            enabled_scenario_names = [
                 s
-                for s in self.enabled_scenarios
-                if (s in self.constrain_scenarios or s in self.applied_scenarios) and s != SCENARIO_NULL
+                for s in enabled_scenario_names
+                if (s in self.constrain_scenario_names or s in self.applied_scenario_names) and s != SCENARIO_NULL
             ]
-        if self.required_scenarios and not any(s in self.enabled_scenarios for s in self.required_scenarios):
+        if self.required_scenario_names and not any(s in enabled_scenario_names for s in self.required_scenario_names):
             _LOGGER.info("SUPERNOTIFY suppressing notification, no required scenarios enabled")
             self.selected_delivery_names = []
             self.globally_disabled = True
+            self.enabled_scenarios = []
         else:
+            self.enabled_scenarios = [
+                o for o in [self.context.scenarios.get(s) for s in enabled_scenario_names] if o is not None
+            ]
             self.selected_delivery_names = self.select_deliveries()
             self.globally_disabled = self.context.snoozer.is_global_snooze(self.priority)
             self.default_media_from_actions()
@@ -186,13 +192,11 @@ class Notification(ArchivableObject):
     def apply_enabled_scenarios(self) -> None:
         """Set media and action_groups from scenario if defined, first come first applied"""
         action_groups: list[str] = []
-        for scenario_name in self.enabled_scenarios:
-            scen_obj = self.context.scenarios.get(scenario_name)
-            if scen_obj:
-                if scen_obj.media and not self.media:
-                    self.media.update(scen_obj.media)
-                if scen_obj.action_groups:
-                    action_groups.extend(ag for ag in scen_obj.action_groups if ag not in action_groups)
+        for scen_obj in self.enabled_scenarios:
+            if scen_obj.media and not self.media:
+                self.media.update(scen_obj.media)
+            if scen_obj.action_groups:
+                action_groups.extend(ag for ag in scen_obj.action_groups if ag not in action_groups)
         if action_groups:
             self.action_groups = action_groups
 
@@ -203,7 +207,7 @@ class Notification(ArchivableObject):
 
         if self.delivery_selection != DELIVERY_SELECTION_FIXED:
             for scenario in self.enabled_scenarios:
-                scenario_enable_deliveries.extend(self.context.delivery_by_scenario.get(scenario, ()))
+                scenario_enable_deliveries.extend(self.context.delivery_by_scenario.get(scenario.name, ()))
             if self.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
                 default_enable_deliveries = self.context.delivery_by_scenario.get(SCENARIO_DEFAULT, [])
 
@@ -252,19 +256,35 @@ class Notification(ArchivableObject):
             ):
                 self.media[ATTR_MEDIA_SNAPSHOT_URL] = url
 
+    def _render_scenario_templates(self, original: str, template_field: str, delivery_name: str) -> str | None:
+        context_vars = self.condition_variables.as_dict() if self.condition_variables else {}
+        rendered = original
+        for scen_obj in self.enabled_scenarios:
+            context_vars["notification_message"] = rendered
+            try:
+                template_format = scen_obj.delivery.get(delivery_name, {}).get(CONF_DATA, {}).get(template_field)
+                if template_format is not None:
+                    template = Template(template_format, self.context.hass)
+                    rendered = template.async_render(variables=context_vars)
+            except TemplateError as e:
+                _LOGGER.warning("SUPERNOTIFIER Rendering template %s for %s failed: %s", template_field, delivery_name, e)
+        return rendered
+
     def message(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        override = self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
-        if override is None:
+        msg = self.context.deliveries.get(delivery_name, {}).get(CONF_MESSAGE, self._message)
+        msg = self._render_scenario_templates(msg, "message_template", delivery_name)
+        if msg is None:  # keep mypy happy
             return None
-        return str(override)
+        return str(msg)
 
     def title(self, delivery_name: str) -> str | None:
         # message and title reverse the usual defaulting, delivery config overrides runtime call
-        override = self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
-        if override is None:
+        title = self.context.deliveries.get(delivery_name, {}).get(CONF_TITLE, self._title)
+        title = self._render_scenario_templates(title, "title_template", delivery_name)
+        if title is None:
             return None
-        return str(override)
+        return str(title)
 
     def suppress(self) -> None:
         self.globally_disabled = True
@@ -359,11 +379,7 @@ class Notification(ArchivableObject):
         return delivery_override.get(CONF_DATA) if delivery_override else {}
 
     def delivery_scenarios(self, delivery_name: str) -> dict[str, Scenario]:
-        return {
-            k: cast("Scenario", self.context.scenarios.get(k))
-            for k in self.enabled_scenarios
-            if delivery_name in self.context.delivery_by_scenario.get(k, [])
-        }
+        return {s.name: s for s in self.enabled_scenarios if delivery_name in self.context.delivery_by_scenario.get(s.name, [])}
 
     async def select_scenarios(self) -> list[str]:
         return [s.name for s in self.context.scenarios.values() if await s.evaluate(self.condition_variables)]
@@ -371,8 +387,7 @@ class Notification(ArchivableObject):
     def merge(self, attribute: str, delivery_name: str) -> dict[str, Any]:
         delivery: dict[str, Any] = self.delivery_overrides.get(delivery_name, {})
         base: dict[str, Any] = delivery.get(attribute, {})
-        for scenario_name in self.enabled_scenarios:
-            scenario = self.context.scenarios.get(scenario_name)
+        for scenario in self.enabled_scenarios:
             if scenario and hasattr(scenario, attribute):
                 base.update(getattr(scenario, attribute))
         if hasattr(self, attribute):
