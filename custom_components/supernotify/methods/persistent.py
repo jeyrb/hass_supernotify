@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from custom_components.supernotify import ATTR_NOTIFICATION_ID, METHOD_PERSISTENT
+from custom_components.supernotify import ATTR_NOTIFICATION_ID, CONF_DEFAULT_ACTION, CONF_TARGETS_REQUIRED, METHOD_PERSISTENT
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -13,7 +13,8 @@ class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs["default_action"] = ACTION
+        kwargs[CONF_DEFAULT_ACTION] = ACTION
+        kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
 
     def validate_action(self, action: str | None) -> bool:

@@ -11,7 +11,7 @@ DELIVERY = {
 }
 
 
-async def test_notify_alexa(mock_hass) -> None:  # type: ignore
+async def test_notify_alexa_media_player(mock_hass) -> None:  # type: ignore
     """Test on_notify_alexa."""
     delivery_config = {
         "default": {CONF_METHOD: METHOD_ALEXA_MEDIA_PLAYER, CONF_DEFAULT: True, CONF_ACTION: "notify.alexa_media_player"}

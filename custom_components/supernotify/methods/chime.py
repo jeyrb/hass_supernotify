@@ -10,7 +10,7 @@ from homeassistant.const import (  # ATTR_VARIABLES from script.const has import
     CONF_VARIABLES,
 )
 
-from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, METHOD_CHIME
+from custom_components.supernotify import ATTR_DATA, CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, METHOD_CHIME
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -31,6 +31,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
     method = METHOD_CHIME
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
         self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
@@ -85,7 +86,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 _LOGGER.error("SUPERNOTIFY Failed to chime %s: %s [%s]", chime_entity_id, action_data, e)
         return chimes > 0
 
-    def prune_data(self, domain: str, data: dict) -> dict:
+    def prune_data(self, domain: str, data: dict[str, Any]) -> dict[str, Any]:
         pruned: dict[str, Any] = {}
         if data and domain in DATA_SCHEMA_RESTRICT:
             restrict: list[str] = DATA_SCHEMA_RESTRICT.get(domain) or []
@@ -94,7 +95,9 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     pruned[key] = data[key]
         return pruned
 
-    def analyze_target(self, target: str, chime_tune: str | None, data: dict) -> tuple[str, str | None, dict[str, Any]]:
+    def analyze_target(
+        self, target: str, chime_tune: str | None, data: dict[str, Any]
+    ) -> tuple[str, str | None, dict[str, Any]]:
         if not target:
             _LOGGER.warning("SUPERNOTIFY Empty chime target")
             return "", None, {}

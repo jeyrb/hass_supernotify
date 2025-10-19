@@ -62,10 +62,18 @@ class CallRecord:
     target_data: dict[str, Any] | None = field(default=None)
     exception: str | None = field(default=None)
 
-    def contents(self) -> tuple[str | dict[str, Any] | float | None, ...]:
-        if self.exception:
-            return (self.domain, self.service, self.action_data, self.target_data, self.exception, self.elapsed)
-        return (self.domain, self.service, self.action_data, self.target_data, self.elapsed)
+    def contents(self) -> dict[str, Any]:
+        result = {
+            "domain": self.domain,
+            "service": self.service,
+            "action_data": self.action_data,
+            "elapsed": self.elapsed,
+        }
+        if self.target_data is not None:
+            result["target_data"] = self.target_data
+        if self.exception is not None:
+            result["exception"] = self.exception
+        return result
 
 
 @dataclass

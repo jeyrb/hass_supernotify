@@ -68,7 +68,7 @@ class Scenario:
 
     def contents(self, minimal: bool = False) -> dict[str, Any]:
         """Archive friendly view of scenario"""
-        return self.attributes(include_condition=not minimal, include_trace=not minimal)
+        return self.attributes(include_condition=False, include_trace=not minimal)
 
     async def evaluate(self, condition_variables: ConditionVariables | None = None) -> bool:
         """Evaluate scenario conditions"""

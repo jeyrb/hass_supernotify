@@ -5,7 +5,7 @@ from typing import Any
 from homeassistant.components.notify.const import ATTR_MESSAGE
 from homeassistant.const import ATTR_ENTITY_ID
 
-from custom_components.supernotify import ATTR_MESSAGE_USAGE, METHOD_ALEXA, MessageOnlyPolicy
+from custom_components.supernotify import ATTR_MESSAGE_USAGE, CONF_DEFAULT_ACTION, METHOD_ALEXA, MessageOnlyPolicy
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -24,7 +24,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
     method = METHOD_ALEXA
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault("default_action", ACTION)
+        kwargs.setdefault(CONF_DEFAULT_ACTION, ACTION)
         kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
         super().__init__(*args, **kwargs)
 

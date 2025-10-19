@@ -2,7 +2,7 @@
 
 import json
 import pathlib
-from typing import cast
+from typing import Any, cast
 from unittest.mock import patch
 
 from homeassistant import config as hass_config
@@ -217,8 +217,10 @@ async def test_delivery_and_scenario(hass: HomeAssistant) -> None:
     ]
     assert len(delivered_chimes) == 1
 
-    assert delivered_chimes[0]["calls"][0][:3] == (  # type: ignore
-        "media_player",
-        "play_media",
-        {"entity_id": "media_player.lobby", "media_content_type": "sound", "media_content_id": "bell_02"},
-    )
+    call_record: dict[str, Any] = delivered_chimes[0]["calls"][0]  # type: ignore
+    del call_record["elapsed"]
+    assert call_record == {
+        "domain": "media_player",
+        "service": "play_media",
+        "action_data": {"entity_id": "media_player.lobby", "media_content_type": "sound", "media_content_id": "bell_02"},
+    }

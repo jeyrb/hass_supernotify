@@ -1,8 +1,9 @@
 import logging
+from typing import Any
 
 from homeassistant.const import CONF_ACTION, CONF_TARGET  # ATTR_VARIABLES from script.const has import issues
 
-from custom_components.supernotify import CONF_DATA, METHOD_GENERIC
+from custom_components.supernotify import CONF_DATA, CONF_TARGETS_REQUIRED, METHOD_GENERIC
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -14,7 +15,8 @@ class GenericDeliveryMethod(DeliveryMethod):
 
     method = METHOD_GENERIC
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
 
     def validate_action(self, action: str | None) -> bool:

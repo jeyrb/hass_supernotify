@@ -17,6 +17,7 @@ from custom_components.supernotify import (
     CONF_MOBILE_DEVICES,
     CONF_NOTIFY_ACTION,
     CONF_PERSON,
+    CONF_TARGETS_REQUIRED,
     METHOD_MOBILE_PUSH,
     CommandType,
     QualifiedTargetType,
@@ -33,7 +34,8 @@ _LOGGER = logging.getLogger(__name__)
 class MobilePushDeliveryMethod(DeliveryMethod):
     method = METHOD_MOBILE_PUSH
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault(CONF_TARGETS_REQUIRED, False)  # notify entities used
         super().__init__(*args, **kwargs)
         self.action_titles: dict[str, str] = {}
 

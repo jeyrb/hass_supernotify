@@ -15,7 +15,14 @@ from homeassistant.helpers import condition
 from custom_components.supernotify.common import CallRecord
 from custom_components.supernotify.configuration import Context
 
-from . import CONF_DATA, CONF_TARGETS_REQUIRED, RESERVED_DELIVERY_NAMES, ConditionVariables, MessageOnlyPolicy
+from . import (
+    CONF_DATA,
+    CONF_DEFAULT_ACTION,
+    CONF_TARGETS_REQUIRED,
+    RESERVED_DELIVERY_NAMES,
+    ConditionVariables,
+    MessageOnlyPolicy,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,11 +44,13 @@ class DeliveryMethod:
         deliveries: dict[str, Any] | None = None,
         default_action: str | None = None,
         message_usage: str = MessageOnlyPolicy.STANDARD,
+        targets_required: bool = True,
     ) -> None:
         self.hass: HomeAssistant = hass
         self.default_action: str | None = default_action
         self.context: Context = context
         self.message_usage: str = message_usage
+        self.targets_required: bool = targets_required
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}
         self.method_deliveries: dict[str, dict[str, Any]] = (
@@ -78,11 +87,10 @@ class DeliveryMethod:
             valid_deliveries[d] = dc
             dc[CONF_NAME] = d
 
-            if dc.get(CONF_DEFAULT):
-                if self.default_delivery:
-                    _LOGGER.warning("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
-                else:
-                    self.default_delivery = dc
+            if dc.get(CONF_DEFAULT) and not self.default_delivery:
+                self.default_delivery = dc
+            elif dc.get(CONF_DEFAULT) and self.default_delivery and dc.get(CONF_NAME) != self.default_delivery.get(CONF_NAME):
+                _LOGGER.debug("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
 
         if not self.default_delivery:
             method_definition = self.context.method_defaults.get(self.method)
@@ -110,7 +118,7 @@ class DeliveryMethod:
     def attributes(self) -> dict[str, str | list[str] | dict[str, Any] | None]:
         return {
             CONF_METHOD: self.method,
-            "default_action": self.default_action,
+            CONF_DEFAULT_ACTION: self.default_action,
             "default_delivery": self.default_delivery,
             "deliveries": list(self.valid_deliveries.keys()),
         }
@@ -179,8 +187,8 @@ class DeliveryMethod:
         config = self.delivery_config(envelope.delivery_name)
         try:
             qualified_action = qualified_action or config.get(CONF_ACTION) or self.default_action
-            targets_required = config.get(CONF_TARGETS_REQUIRED, False)
-            if qualified_action and (action_data.get(ATTR_TARGET) or not targets_required):
+            targets_required: bool = config.get(CONF_TARGETS_REQUIRED, {}).get(CONF_TARGETS_REQUIRED, self.targets_required)
+            if qualified_action and (action_data.get(ATTR_TARGET) or not targets_required or target_data):
                 domain, service = qualified_action.split(".", 1)
                 start_time = time.time()
                 if target_data:
