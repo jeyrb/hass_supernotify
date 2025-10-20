@@ -38,14 +38,15 @@ class SMSDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY notify_sms: No message to send")
             return False
 
-        if len(envelope.message) > self.MAX_MESSAGE_LENGTH:
+        message: str = self.simplify(envelope.message, strip_urls=False) or ""
+        if len(message) > self.MAX_MESSAGE_LENGTH:
             _LOGGER.debug(
                 "SUPERNOTIFY notify_sms: Message too long (%d characters), truncating to %d characters",
-                len(envelope.message),
+                len(message),
                 self.MAX_MESSAGE_LENGTH,
             )
 
-        action_data = {"message": envelope.message[: self.MAX_MESSAGE_LENGTH], ATTR_TARGET: mobile_numbers}
+        action_data = {"message": message[: self.MAX_MESSAGE_LENGTH], ATTR_TARGET: mobile_numbers}
         if data and data.get("data"):
             action_data[ATTR_DATA] = data.get("data", {})
 

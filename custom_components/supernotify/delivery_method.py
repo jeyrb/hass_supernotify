@@ -6,6 +6,7 @@ from abc import abstractmethod
 from dataclasses import asdict
 from traceback import format_exception
 from typing import Any
+from urllib.parse import urlparse
 
 from homeassistant.components.notify.const import ATTR_TARGET
 from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME
@@ -223,3 +224,14 @@ class DeliveryMethod:
                 return base_url + fragment
             return base_url + "/" + fragment
         return None
+
+    def simplify(self, text: str | None, strip_urls: bool = False) -> str | None:
+        """Simplify text for delivery methods with speaking or plain text interfaces"""
+        if not text:
+            return None
+        if strip_urls:
+            words = text.split()
+            text = " ".join(word for word in words if not urlparse(word).scheme)
+        text = text.translate(str.maketrans("_", " ", "()£$<>"))
+        _LOGGER.debug("SUPERNOTIFY Simplified text to: %s", text)
+        return text

@@ -63,3 +63,18 @@ async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> 
             CONF_TARGET: ["chan1", "chan2"],
         }
     }
+
+
+def test_simplify_text() -> None:
+    from custom_components.supernotify.methods.generic import GenericDeliveryMethod
+
+    uut = GenericDeliveryMethod(None, None, {})
+    assert (
+        uut.simplify("Hello_world! Visit https://example.com (it's great) £100 <test>", strip_urls=True)
+        == "Hello world! Visit it's great 100 test"
+    )
+    assert (
+        uut.simplify("Hello_world! Visit https://example.com (it's great) £100 <test>")
+        == "Hello world! Visit https://example.com it's great 100 test"
+    )
+    assert uut.simplify("NoSpecialChars123") == "NoSpecialChars123"
