@@ -48,7 +48,7 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
             return False
 
         action_data: dict[str, Any] = {
-            "message": self.simplify(envelope.message, strip_urls=True) or "",
+            "message": envelope.message,
             ATTR_DATA: {"type": "announce"},
             ATTR_TARGET: media_players,
         }

@@ -46,7 +46,7 @@ class SMSDeliveryMethod(DeliveryMethod):
             _LOGGER.warning("SUPERNOTIFY notify_sms: No message to send")
             return False
 
-        message: str = self.simplify(envelope.message, strip_urls=False) or ""
+        message: str = envelope.message or ""
         if len(message) > self.MAX_MESSAGE_LENGTH:
             _LOGGER.debug(
                 "SUPERNOTIFY notify_sms: Message too long (%d characters), truncating to %d characters",

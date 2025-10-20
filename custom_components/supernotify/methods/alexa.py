@@ -51,7 +51,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
             _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
             return False
 
-        action_data: dict[str, Any] = {ATTR_MESSAGE: self.simplify(envelope.message, strip_urls=True) or ""}
+        action_data: dict[str, Any] = {ATTR_MESSAGE: envelope.message or ""}
         target_data: dict[str, Any] = {ATTR_ENTITY_ID: targets}
 
         return await self.call_action(envelope, action_data=action_data, target_data=target_data)
