@@ -4,8 +4,13 @@ from typing import Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 
-from custom_components.supernotify import ATTR_MESSAGE_USAGE, METHOD_ALEXA_MEDIA_PLAYER, MessageOnlyPolicy
-from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify import METHOD_ALEXA_MEDIA_PLAYER, MessageOnlyPolicy
+from custom_components.supernotify.delivery_method import (
+    OPTION_MESSAGE_USAGE,
+    OPTION_SIMPLIFY_TEXT,
+    OPTION_STRIP_URLS,
+    DeliveryMethod,
+)
 from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_ALEXA = r"media_player\.[A-Za-z0-9_]+"
@@ -24,7 +29,10 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
     method = METHOD_ALEXA_MEDIA_PLAYER
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
+        kwargs.setdefault("default_options", {})
+        kwargs["default_options"].setdefault(OPTION_SIMPLIFY_TEXT, True)
+        kwargs["default_options"].setdefault(OPTION_STRIP_URLS, True)
+        kwargs["default_options"].setdefault(OPTION_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:

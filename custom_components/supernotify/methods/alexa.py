@@ -5,8 +5,13 @@ from typing import Any
 from homeassistant.components.notify.const import ATTR_MESSAGE
 from homeassistant.const import ATTR_ENTITY_ID
 
-from custom_components.supernotify import ATTR_MESSAGE_USAGE, CONF_DEFAULT_ACTION, METHOD_ALEXA, MessageOnlyPolicy
-from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify import CONF_DEFAULT_ACTION, METHOD_ALEXA, MessageOnlyPolicy
+from custom_components.supernotify.delivery_method import (
+    OPTION_MESSAGE_USAGE,
+    OPTION_SIMPLIFY_TEXT,
+    OPTION_STRIP_URLS,
+    DeliveryMethod,
+)
 from custom_components.supernotify.envelope import Envelope
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,7 +30,10 @@ class AlexaDeliveryMethod(DeliveryMethod):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault(CONF_DEFAULT_ACTION, ACTION)
-        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
+        kwargs.setdefault("default_options", {})
+        kwargs["default_options"].setdefault(OPTION_SIMPLIFY_TEXT, True)
+        kwargs["default_options"].setdefault(OPTION_STRIP_URLS, True)
+        kwargs["default_options"].setdefault(OPTION_MESSAGE_USAGE, MessageOnlyPolicy.STANDARD)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:

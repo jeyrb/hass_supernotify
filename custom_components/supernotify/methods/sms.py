@@ -4,8 +4,13 @@ from typing import Any
 
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
 
-from custom_components.supernotify import ATTR_MESSAGE_USAGE, CONF_PHONE_NUMBER, METHOD_SMS, MessageOnlyPolicy
-from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify import CONF_PHONE_NUMBER, METHOD_SMS, MessageOnlyPolicy
+from custom_components.supernotify.delivery_method import (
+    OPTION_MESSAGE_USAGE,
+    OPTION_SIMPLIFY_TEXT,
+    OPTION_STRIP_URLS,
+    DeliveryMethod,
+)
 from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_PHONE = r"^(\+\d{1,3})?\s?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"
@@ -18,7 +23,10 @@ class SMSDeliveryMethod(DeliveryMethod):
     MAX_MESSAGE_LENGTH = 158
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault(ATTR_MESSAGE_USAGE, MessageOnlyPolicy.COMBINE_TITLE)
+        kwargs.setdefault("default_options", {})
+        kwargs["default_options"].setdefault(OPTION_SIMPLIFY_TEXT, True)
+        kwargs["default_options"].setdefault(OPTION_STRIP_URLS, True)
+        kwargs["default_options"].setdefault(OPTION_MESSAGE_USAGE, MessageOnlyPolicy.COMBINE_TITLE)
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:

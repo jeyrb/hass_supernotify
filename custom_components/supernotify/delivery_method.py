@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from homeassistant.components.notify.const import ATTR_TARGET
-from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME
+from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_OPTIONS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 
@@ -26,6 +26,15 @@ from . import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+OPTION_SIMPLIFY_TEXT = "simplify_text"
+OPTION_STRIP_URLS = "strip_urls"
+OPTION_MESSAGE_USAGE = "message_usage"
+OPTIONS_WITH_DEFAULTS: dict[str, str | bool] = {
+    OPTION_SIMPLIFY_TEXT: False,
+    OPTION_STRIP_URLS: False,
+    OPTION_MESSAGE_USAGE: MessageOnlyPolicy.STANDARD,
+}
 
 
 class DeliveryMethod:
@@ -44,13 +53,13 @@ class DeliveryMethod:
         context: Context,
         deliveries: dict[str, Any] | None = None,
         default_action: str | None = None,
-        message_usage: str = MessageOnlyPolicy.STANDARD,
+        default_options: dict[str, Any] | None = None,
         targets_required: bool = True,
     ) -> None:
         self.hass: HomeAssistant = hass
         self.default_action: str | None = default_action
         self.context: Context = context
-        self.message_usage: str = message_usage
+        self.default_options: dict[str, Any] = default_options or {}
         self.targets_required: bool = targets_required
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}
@@ -158,6 +167,26 @@ class DeliveryMethod:
         if data is not None:
             action_data[key] = data
         return action_data
+
+    def option(self, option_name: str, delivery_config: dict[str, Any]) -> str | bool:
+        """Get an option value from delivery config or method default options"""
+        opt: str | bool | None = None
+        if CONF_OPTIONS in delivery_config and option_name in delivery_config[CONF_OPTIONS]:
+            opt = delivery_config[CONF_OPTIONS][option_name]
+        if opt is None:
+            opt = self.default_options.get(option_name)
+        if opt is None:
+            opt = OPTIONS_WITH_DEFAULTS.get(option_name)
+        if opt is None:
+            _LOGGER.warning("SUPERNOTIFY No default for option %s, setting to empty string", option_name)
+            opt = ""
+        return opt
+
+    def option_bool(self, option_name: str, delivery_config: dict[str, Any]) -> bool:
+        return bool(self.option(option_name, delivery_config))
+
+    def option_str(self, option_name: str, delivery_config: dict[str, Any]) -> str:
+        return str(self.option(option_name, delivery_config))
 
     async def evaluate_delivery_conditions(
         self, delivery_config: dict[str, Any], condition_variables: ConditionVariables | None

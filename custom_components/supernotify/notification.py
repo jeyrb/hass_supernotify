@@ -28,7 +28,6 @@ from custom_components.supernotify import (
     ATTR_MEDIA_CLIP_URL,
     ATTR_MEDIA_SNAPSHOT_URL,
     ATTR_MESSAGE_HTML,
-    ATTR_MESSAGE_USAGE,
     ATTR_PRIORITY,
     ATTR_RECIPIENTS,
     ATTR_SCENARIOS_APPLY,
@@ -69,7 +68,12 @@ from custom_components.supernotify import (
 )
 from custom_components.supernotify.archive import ArchivableObject
 from custom_components.supernotify.common import DebugTrace, safe_extend
-from custom_components.supernotify.delivery_method import DeliveryMethod
+from custom_components.supernotify.delivery_method import (
+    OPTION_MESSAGE_USAGE,
+    OPTION_SIMPLIFY_TEXT,
+    OPTION_STRIP_URLS,
+    DeliveryMethod,
+)
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.scenario import Scenario
 
@@ -283,7 +287,7 @@ class Notification(ArchivableObject):
         delivery_config: dict[str, Any] = self.context.deliveries.get(delivery_name, {})
         msg: str | None = delivery_config.get(CONF_MESSAGE, self._message)
         delivery_method: DeliveryMethod = self.context.delivery_method(delivery_name)
-        message_usage: str = delivery_config.get(CONF_OPTIONS, {}).get(ATTR_MESSAGE_USAGE, delivery_method.message_usage)
+        message_usage: str = str(delivery_method.option_str(OPTION_MESSAGE_USAGE, delivery_config))
         if message_usage.upper() == MessageOnlyPolicy.USE_TITLE:
             title = self.title(delivery_name, ignore_usage=True)
             if title:
@@ -292,6 +296,11 @@ class Notification(ArchivableObject):
             title = self.title(delivery_name, ignore_usage=True)
             if title:
                 msg = f"{title} {msg}"
+        if delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) or delivery_method.option_bool(
+            OPTION_STRIP_URLS, delivery_config
+        ):
+            msg = delivery_method.simplify(msg, strip_urls=delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config))
+
         msg = self._render_scenario_templates(msg, "message_template", "notification_message", delivery_name)
         if msg is None:  # keep mypy happy
             return None
@@ -301,11 +310,17 @@ class Notification(ArchivableObject):
         # message and title reverse the usual defaulting, delivery config overrides runtime call
         delivery_config = self.context.deliveries.get(delivery_name, {})
         delivery_method: DeliveryMethod = self.context.delivery_method(delivery_name)
-        message_usage = delivery_config.get(CONF_OPTIONS, {}).get(ATTR_MESSAGE_USAGE, delivery_method.message_usage)
+        message_usage = delivery_method.option_str(OPTION_MESSAGE_USAGE, delivery_config)
         if not ignore_usage and message_usage.upper() in (MessageOnlyPolicy.USE_TITLE, MessageOnlyPolicy.COMBINE_TITLE):
             title = None
         else:
             title = delivery_config.get(CONF_TITLE, self._title)
+            if delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) or delivery_method.option_bool(
+                OPTION_STRIP_URLS, delivery_config
+            ):
+                title = delivery_method.simplify(
+                    title, strip_urls=delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config)
+                )
             title = self._render_scenario_templates(title, "title_template", "notification_title", delivery_name)
         if title is None:
             return None
