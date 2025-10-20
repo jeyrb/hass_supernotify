@@ -25,7 +25,7 @@ class SMSDeliveryMethod(DeliveryMethod):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("default_options", {})
         kwargs["default_options"].setdefault(OPTION_SIMPLIFY_TEXT, True)
-        kwargs["default_options"].setdefault(OPTION_STRIP_URLS, True)
+        kwargs["default_options"].setdefault(OPTION_STRIP_URLS, False)
         kwargs["default_options"].setdefault(OPTION_MESSAGE_USAGE, MessageOnlyPolicy.COMBINE_TITLE)
         super().__init__(*args, **kwargs)
 
