@@ -296,8 +296,9 @@ class Notification(ArchivableObject):
             title = self.title(delivery_name, ignore_usage=True)
             if title:
                 msg = f"{title} {msg}"
-        if delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) or delivery_method.option_bool(
-            OPTION_STRIP_URLS, delivery_config
+        if (
+            delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) is True
+            or delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config) is True
         ):
             msg = delivery_method.simplify(msg, strip_urls=delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config))
 
@@ -315,8 +316,9 @@ class Notification(ArchivableObject):
             title = None
         else:
             title = delivery_config.get(CONF_TITLE, self._title)
-            if delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) or delivery_method.option_bool(
-                OPTION_STRIP_URLS, delivery_config
+            if (
+                delivery_method.option_bool(OPTION_SIMPLIFY_TEXT, delivery_config) is True
+                or delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config) is True
             ):
                 title = delivery_method.simplify(
                     title, strip_urls=delivery_method.option_bool(OPTION_STRIP_URLS, delivery_config)
