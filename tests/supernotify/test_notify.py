@@ -109,7 +109,7 @@ async def inject_dummy_delivery_method(
 ) -> DeliveryMethod:
     dm = delivery_method_class(hass, uut.context, deliveries=delivery_config)
     await dm.initialize()
-    await uut.context.register_delivery_methods([dm], set_as_default=True)
+    await uut.context.register_delivery_methods([dm])
     return dm
 
 

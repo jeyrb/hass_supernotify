@@ -12,9 +12,10 @@ from .hass_setup_lib import register_mobile_app
 
 async def test_default_recipients(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
-    await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
-    await context.register_delivery_methods([dummy], set_as_default=True)
+    await context.initialize(additional_methods=[dummy], create_default_scenario=True)
+
+    # await context.register_delivery_methods([dummy], set_as_default=True)
     uut = Notification(context)
     await uut.initialize()
     await uut.deliver()
@@ -23,9 +24,9 @@ async def test_default_recipients(mock_hass) -> None:  # type: ignore
 
 async def test_default_recipients_with_override(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
-    await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
-    await context.register_delivery_methods([dummy], set_as_default=True)
+    await context.initialize(additional_methods=[dummy], create_default_scenario=True)
+
     uut = Notification(context, "testing", action_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.initialize()
     await uut.deliver()
@@ -36,31 +37,35 @@ async def test_delivery_override_method(mock_hass) -> None:  # type: ignore
     delivery_config = {
         "quiet_alert": {
             "method": "dummy",
-            "entities": ["switch.pillow_vibrate"],
-            "target": None,
+            "target": ["switch.pillow_vibrate"],
             "selection": "explicit",
         },
-        "regular_alert": {"method": "dummy", "entities": ["switch.pillow_vibrate"], "selection": "explicit"},
+        "regular_alert": {"method": "dummy", "target": ["switch.pillow_vibrate"], "selection": "explicit"},
         "day_alert": {"method": "dummy", "selection": "explicit"},
     }
     context = Context(mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config)
     dummy = DummyDeliveryMethod(mock_hass, context, delivery_config)
-    await context.initialize()
-    await context.register_delivery_methods([dummy], set_as_default=False)
-    uut = Notification(context, "testing", action_data={"delivery": ["regular_alert"]})
+    await context.initialize(additional_methods=[dummy])
+
+    uut = Notification(
+        context,
+        "testing explicit target in notification call",
+        action_data={"delivery": ["regular_alert"]},
+        target=["switch.gong"],
+    )
     await uut.initialize()
     await uut.deliver()
     envelope = uut.delivered_envelopes[0]
-    assert envelope.targets == ["switch.pillow_vibrate", "media_player.hall"]
+    assert envelope.targets == ["switch.gong"]
 
-    uut = Notification(context, "testing", action_data={"delivery": ["quiet_alert"]})
+    uut = Notification(context, "testing target specified in delivery config", action_data={"delivery": ["quiet_alert"]})
     await uut.initialize()
 
     await uut.deliver()
     envelope = uut.delivered_envelopes[0]
     assert envelope.targets == ["switch.pillow_vibrate"]
 
-    uut = Notification(context, "testing", action_data={"delivery": ["day_alert"]})
+    uut = Notification(context, "testing defaulting to method defaults", action_data={"delivery": ["day_alert"]})
     await uut.initialize()
 
     await uut.deliver()

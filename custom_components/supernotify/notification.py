@@ -8,7 +8,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_TARGET
-from homeassistant.const import CONF_ENABLED, CONF_ENTITIES, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
+from homeassistant.const import CONF_ENABLED, CONF_NAME, CONF_TARGET, STATE_HOME, STATE_NOT_HOME
 from homeassistant.helpers.template import Template
 from jinja2 import TemplateError
 from voluptuous import humanize
@@ -492,12 +492,7 @@ class Notification(ArchivableObject):
                     self.record_resolve(delivery_name, "1b_non_person_target", t)
             _LOGGER.debug("SUPERNOTIFY %s Overriding with explicit targets: %s", __name__, recipients)
         else:
-            # second priority is explicit entities on delivery
-            if delivery_config and CONF_ENTITIES in delivery_config and delivery_config[CONF_ENTITIES]:
-                recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_ENTITIES, []))
-                self.record_resolve(delivery_name, "2a_delivery_config_entity", delivery_config.get(CONF_ENTITIES))
-                _LOGGER.debug("SUPERNOTIFY %s Using delivery config entities: %s", __name__, recipients)
-            # third priority is explicit target on delivery
+            # second priority is explicit target on delivery
             if delivery_config and CONF_TARGET in delivery_config and delivery_config[CONF_TARGET]:
                 recipients.extend({ATTR_TARGET: e} for e in delivery_config.get(CONF_TARGET, []))
                 self.record_resolve(delivery_name, "2b_delivery_config_target", delivery_config.get(CONF_TARGET))
@@ -510,7 +505,7 @@ class Notification(ArchivableObject):
                 _LOGGER.debug("SUPERNOTIFY %s Using overridden recipients: %s", delivery_name, recipients)
 
             # If target not specified on service call or delivery, then default to std list of recipients
-            elif not delivery_config or (CONF_TARGET not in delivery_config and CONF_ENTITIES not in delivery_config):
+            elif not delivery_config or CONF_TARGET not in delivery_config:
                 recipients = self.filter_people_by_occupancy(delivery_config.get(CONF_OCCUPANCY, OCCUPANCY_ALL))
                 self.record_resolve(delivery_name, "2d_recipients_by_occupancy", recipients)
                 recipients = [
@@ -544,7 +539,6 @@ class Notification(ArchivableObject):
             # use entities or targets set at a method level for recipient
             if CONF_DELIVERY in recipient and delivery_config[CONF_NAME] in recipient.get(CONF_DELIVERY, {}):
                 recp_meth_cust = recipient.get(CONF_DELIVERY, {}).get(delivery_config[CONF_NAME], {})
-                safe_extend(recipient_targets, recp_meth_cust.get(CONF_ENTITIES, []))
                 safe_extend(recipient_targets, recp_meth_cust.get(CONF_TARGET, []))
                 custom_data = recp_meth_cust.get(CONF_DATA)
                 enabled = recp_meth_cust.get(CONF_ENABLED, True)

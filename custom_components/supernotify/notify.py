@@ -18,6 +18,7 @@ from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from custom_components.supernotify.archive import ARCHIVE_PURGE_MIN_INTERVAL
+from custom_components.supernotify.delivery_method import DeliveryMethod
 
 from . import (
     ATTR_ACTION,
@@ -64,7 +65,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SNOOZE_TIME = 60 * 60  # TODO: move to configuration
 
-METHODS: list[type] = [
+METHODS: list[type[DeliveryMethod]] = [
     EmailDeliveryMethod,
     SMSDeliveryMethod,
     AlexaDeliveryMethod,
@@ -269,6 +270,7 @@ class SuperNotificationAction(BaseNotificationService):
             scenarios,
             method_defaults or {},
             cameras,
+            METHODS,
         )
         self.unsubscribes: list[CALLBACK_TYPE] = []
         self.dupe_check_config: dict[str, Any] = dupe_check or {}
@@ -279,7 +281,6 @@ class SuperNotificationAction(BaseNotificationService):
 
     async def initialize(self) -> None:
         await self.context.initialize()
-        await self.context.register_delivery_methods(delivery_method_classes=METHODS)
 
         self.expose_entities()
         self.unsubscribes.append(self.hass.bus.async_listen("mobile_app_notification_action", self.on_mobile_action))

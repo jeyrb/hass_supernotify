@@ -241,7 +241,7 @@ methods:
                         - media_player.hall_custom
                 switch:
                     # resolves to switch/turn_on with entity id switch.ding_dong
-                    entity_id: switch.chime_ding_dong
+                    target: switch.chime_ding_dong
                 siren_except_bedroom:
                     # resolves to siren/turn_on with tune bleep and default volume/duration
                     tune: bleep

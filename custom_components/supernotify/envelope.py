@@ -100,3 +100,14 @@ class Envelope:
             and self.data == other.data
             and self.notification_id == other.notification_id
         )
+
+    def __repr__(self) -> str:
+        """Return a concise string representation of the Envelope.
+
+        The returned string includes the envelope's message, title, and delivery name
+        in the form: Envelope(message=<message>,title=<title>,delivery=<delivery_name>).
+
+        Primarily intended for debugging and logging; note that attribute values are
+        inserted directly and may not be quoted or escaped.
+        """
+        return f"Envelope(message={self.message},title={self.title},delivery={self.delivery_name})"

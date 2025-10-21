@@ -142,10 +142,12 @@ async def test_scenario_templating(hass: HomeAssistant) -> None:
         },
     })
     context = Context(
-        hass, scenarios=config["scenarios"], deliveries={"email": {CONF_METHOD: "email"}, "alexa": {CONF_METHOD: "alexa"}}
+        hass,
+        scenarios=config["scenarios"],
+        deliveries={"email": {CONF_METHOD: "email"}, "alexa": {CONF_METHOD: "alexa"}},
+        method_types=METHODS,
     )
     await context.initialize()
-    await context.register_delivery_methods([], METHODS)
     uut = Notification(
         context, message="Hello from Home", title="Home Notification", action_data={"apply_scenarios": ["softly_softly"]}
     )

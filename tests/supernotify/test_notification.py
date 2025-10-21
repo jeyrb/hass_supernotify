@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from homeassistant.const import CONF_ACTION, CONF_EMAIL, CONF_ENTITIES, CONF_METHOD, CONF_TARGET
+from homeassistant.const import CONF_ACTION, CONF_EMAIL, CONF_METHOD, CONF_TARGET
 from pytest_unordered import unordered
 
 from custom_components.supernotify import (
@@ -82,7 +82,7 @@ async def test_generate_recipients_from_entities(mock_context: Context) -> None:
         "chatty": {
             CONF_METHOD: METHOD_GENERIC,
             CONF_ACTION: "custom.tweak",
-            CONF_ENTITIES: ["custom.light_1", "custom.switch_2"],
+            CONF_TARGET: ["custom.light_1", "custom.switch_2"],
         }
     }
     mock_context.deliveries = delivery

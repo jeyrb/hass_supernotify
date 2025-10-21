@@ -73,6 +73,7 @@ class Context:
         scenarios: dict[str, dict[str, Any]] | None = None,
         method_defaults: dict[str, Any] | None = None,
         cameras: list[dict[str, Any]] | None = None,
+        method_types: list[type[DeliveryMethod]] | None = None,
     ) -> None:
         self.hass: HomeAssistant | None = None
         self.hass_internal_url: str
@@ -144,9 +145,14 @@ class Context:
         self.fallback_by_default: dict[str, dict[str, Any]] = {}
         self._entity_registry: entity_registry.EntityRegistry | None = None
         self._device_registry: device_registry.DeviceRegistry | None = None
+        self._method_types: list[type[DeliveryMethod]] = method_types or []
         self.snoozer = Snoozer()
 
-    async def initialize(self) -> None:
+    async def initialize(
+        self, additional_methods: list[DeliveryMethod] | None = None, create_default_scenario: bool = False
+    ) -> None:
+        await self.register_delivery_methods(delivery_methods=additional_methods, delivery_method_classes=self._method_types)
+
         self.people = self.setup_people(self._recipients)
 
         if self._config_scenarios and self.hass:
@@ -171,7 +177,7 @@ class Context:
         if self.archive:
             self.archive.initialize()
         default_deliveries: dict[str, Any] = self.initialize_deliveries()
-        self.initialize_scenarios(default_deliveries)
+        self.initialize_scenarios(default_deliveries, default_scenario=create_default_scenario)
 
     def initialize_deliveries(self) -> dict[str, Any]:
         default_deliveries = {}
@@ -187,11 +193,15 @@ class Context:
 
                 if not dc.get(CONF_NAME):
                     dc[CONF_NAME] = d  # for minimal tests
-                for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
-                    self.set_method_default(dc, conf_key.schema)
+                method = self.methods.get(dc[CONF_METHOD])
+                if method:
+                    for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
+                        self.set_method_default(dc, conf_key.schema)
+                else:
+                    _LOGGER.warning(f"SUPERNOTIFY Unknown method {method} for delivery {d}")
         return default_deliveries
 
-    def initialize_scenarios(self, default_deliveries: dict[str, Any]) -> None:
+    def initialize_scenarios(self, default_deliveries: dict[str, Any], default_scenario: bool = False) -> None:
         for scenario_name, scenario in self.scenarios.items():
             self.delivery_by_scenario.setdefault(scenario_name, [])
             if scenario.delivery_selection == DELIVERY_SELECTION_IMPLICIT:
@@ -216,12 +226,17 @@ class Context:
                         self.content_scenario_templates[template_field][scenario_delivery].append(scenario_name)
 
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
+        if default_scenario:
+            for d, dc in self.deliveries.items():
+                if dc.get(CONF_METHOD) not in self.methods:
+                    _LOGGER.warning("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
+                elif d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
+                    self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
     async def register_delivery_methods(
         self,
         delivery_methods: list[DeliveryMethod] | None = None,
         delivery_method_classes: list[type[DeliveryMethod]] | None = None,
-        set_as_default: bool = False,
     ) -> None:
         """Available directly for test fixtures supplying class or instance"""
         if delivery_methods:
@@ -234,12 +249,6 @@ class Context:
                 self.methods[delivery_method_class.method] = delivery_method_class(self.hass, self, self._deliveries)
                 await self.methods[delivery_method_class.method].initialize()
                 self.deliveries.update(self.methods[delivery_method_class.method].valid_deliveries)
-
-        for d, dc in self.deliveries.items():
-            if dc.get(CONF_METHOD) not in self.methods:
-                _LOGGER.warning("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
-            elif set_as_default and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
-                self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
 
@@ -258,6 +267,18 @@ class Context:
         if not method:
             raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
         return method
+
+    def discover_devices(self, discover_domain: str) -> list[str]:
+        devices: list[str] = []
+        dev_reg = self.device_registry()
+        if dev_reg is None:
+            return []
+        for dev in dev_reg.devices.values():
+            for domain, domain_id in dev.identifiers:
+                if domain == discover_domain:
+                    _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s:%s", dev.name, domain, domain_id)
+                    devices.append(dev.id)
+        return devices
 
     def setup_people(self, recipients: list[dict[str, Any]] | tuple[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         people: dict[str, dict[str, Any]] = {}

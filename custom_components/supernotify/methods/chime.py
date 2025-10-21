@@ -81,7 +81,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
         self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
-        self.chime_entities = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
+        self.chime_targets = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
 
     def validate_action(self, action: str | None) -> bool:
         return action is None
@@ -252,7 +252,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     # bulk apply to all known target devices of this domain
                     bulk_apply = {
                         dev: ChimeTargetConfig(target=dev, **alias_config)
-                        for dev in self.chime_entities
+                        for dev in self.chime_targets
                         if ChimeTargetConfig.is_device(dev)
                         and dev not in entity_configs  # don't overwrite existing specific targets
                     }
@@ -261,7 +261,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                     # bulk apply to all known target entities of this domain
                     bulk_apply = {
                         ent: ChimeTargetConfig(target=ent, **alias_config)
-                        for ent in self.chime_entities
+                        for ent in self.chime_targets
                         if ent.startswith(f"{alias_config['domain']}.")
                         and ent not in entity_configs  # don't overwrite existing specific targets
                     }

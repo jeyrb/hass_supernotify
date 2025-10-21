@@ -16,7 +16,6 @@ from homeassistant.const import (
     CONF_DESCRIPTION,
     CONF_EMAIL,
     CONF_ENABLED,
-    CONF_ENTITIES,
     CONF_ICON,
     CONF_ID,
     CONF_NAME,
@@ -69,6 +68,7 @@ CONF_PRIORITY: str = "priority"
 CONF_OCCUPANCY: str = "occupancy"
 CONF_SCENARIOS: str = "scenarios"
 CONF_MANUFACTURER: str = "manufacturer"
+CONF_DEVICE_DISCOVERY: str = "device_discovery"
 CONF_DEVICE_TRACKER: str = "device_tracker"
 CONF_DEVICE_NAME: str = "device_name"
 CONF_DEVICE_LABELS: str = "device_labels"
@@ -213,7 +213,6 @@ NOTIFICATION_DUPE_SCHEMA = vol.Schema({
 })
 DELIVERY_CUSTOMIZE_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
     vol.Optional(CONF_DATA): DATA_SCHEMA,
 })
@@ -226,11 +225,11 @@ LINK_SCHEMA = vol.Schema({
 })
 METHOD_DEFAULTS_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_ACTION): cv.service,
     vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
     vol.Optional(CONF_OPTIONS, default=dict): dict,
     vol.Optional(CONF_DATA): DATA_SCHEMA,
+    vol.Optional(CONF_DEVICE_DISCOVERY): vol.All(cv.ensure_list, [cv.string]),
 })
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
@@ -270,7 +269,6 @@ DELIVERY_SCHEMA = vol.Schema({
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
     vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ENTITIES): vol.All(cv.ensure_list, [cv.entity_id]),
     vol.Optional(CONF_MESSAGE): vol.Any(None, cv.string),
     vol.Optional(CONF_TITLE): vol.Any(None, cv.string),
     vol.Optional(CONF_DATA): DATA_SCHEMA,
