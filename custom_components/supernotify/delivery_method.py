@@ -81,8 +81,9 @@ class DeliveryMethod:
         if self.device_discovery:
             for domain in self.device_domain:
                 self.default.setdefault(CONF_TARGET, [])
-                device_ids = self.context.discover_devices(domain)
-                self.default[CONF_TARGET].extend(device_ids)
+                for d in self.context.discover_devices(domain):
+                    _LOGGER.info(f"SUPERNOTIFY Discovered device {d.name} for {domain}, id {d.id}")
+                    self.default[CONF_TARGET].append(d.id)
 
     def validate_action(self, action: str | None) -> bool:
         """Override in subclass if delivery method has fixed action or doesn't require one"""

@@ -56,6 +56,7 @@ from .scenario import Scenario
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant, State
+    from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
 
     from custom_components.supernotify.delivery_method import DeliveryMethod
 
@@ -281,16 +282,17 @@ class Context:
             raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
         return method
 
-    def discover_devices(self, discover_domain: str) -> list[str]:
-        devices: list[str] = []
-        dev_reg = self.device_registry()
+    def discover_devices(self, discover_domain: str) -> list[DeviceEntry]:
+        devices: list[DeviceEntry] = []
+        dev_reg: DeviceRegistry | None = self.device_registry()
         if dev_reg is None:
             return []
         for dev in dev_reg.devices.values():
-            for domain, domain_id in dev.identifiers:
-                if domain == discover_domain:
-                    _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s:%s", dev.name, domain, domain_id)
-                    devices.append(dev.id)
+            if not dev.disabled:
+                for domain, domain_id in dev.identifiers:
+                    if domain == discover_domain:
+                        _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s:%s", dev.name, domain, domain_id)
+                        devices.append(dev)
         return devices
 
     def setup_people(self, recipients: list[dict[str, Any]] | tuple[dict[str, Any]]) -> dict[str, dict[str, Any]]:
