@@ -1,5 +1,7 @@
 Use a scenario with a condition to identify when in a date range.
 
+The speech markup requires use of the `speak` rather than `announce` entities provided by Alexa Devices integration.
+
 ```yaml
 scenarios:
     xmas:
@@ -7,8 +9,12 @@ scenarios:
       condition:
         condition: or
         conditions:
-          - "{{ (12,1) <= (now().month, now().day) <= (12,31) }}"
-          - "{{ (1,1) <= (now().month, now().day) <= (1,7) }}"
+          - "{{ (12,24) <= (now().month, now().day) <= (12,31) }}"
+          - "{{ (1,1) <= (now().month, now().day) <= (1,1) }}"
+       alexa:
+            data:
+              message_template: '{{notification_message}}<break time="1s"><say-as interpret-as="interjection">bah humbug</say-as>'
+
     halloween:
       alias: Spooky season
       condition:
@@ -18,7 +24,7 @@ scenarios:
       delivery:
           alexa:
             data:
-              message_template: '<amazon:effect name="whispered">{{notification_message}}</amazon:effect>'
+              message_template: '{{notification_message}}<break time="1s"><audio src="soundbank://soundlibrary/horror/horror_04"/>'
 
     birthdays:
       alias: Family birthdays
@@ -27,5 +33,9 @@ scenarios:
         conditions:
           - "{{ (5,23) == (now().month, now().day) }}"
           - "{{ (11,9) == (now().month, now().day) }}"
+       alexa:
+            data:
+              message_template: '{{notification_message}}<break time="1s"><say-as interpret-as="interjection">hip hip hooray</say-as>'
+
 
 ```
