@@ -28,7 +28,6 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
         {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True}},
     )
     await uut.initialize()
-    # await context.register_delivery_methods([uut], None)
 
     envelope = Envelope(
         "chimes",
@@ -114,7 +113,9 @@ async def test_deliver_alias(mock_hass) -> None:  # type: ignore
     )
     uut = ChimeDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
+
     envelope = Envelope("chimes", Notification(context, message="for script only"))
     await uut.deliver(envelope)
     assert envelope.skipped == 0
@@ -189,7 +190,8 @@ async def test_deliver_to_group(mock_hass) -> None:  # type: ignore
     mock_hass.states.get.side_effect = lambda v: groups.get(v)
     uut = ChimeDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
 
     await uut.deliver(Envelope("chimes", Notification(context), targets=["group.alexa", "group.chime", "script.siren_2"]))
     mock_hass.services.async_call.assert_has_calls(

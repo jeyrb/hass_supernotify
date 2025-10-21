@@ -23,7 +23,8 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
         },
     )
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope(
             "teleport",
@@ -57,7 +58,8 @@ async def test_not_notify_deliver(mock_hass) -> None:  # type: ignore
         {"broker": {CONF_METHOD: METHOD_GENERIC, CONF_NAME: "broker", CONF_ACTION: "mqtt.publish", CONF_DEFAULT: True}},
     )
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope(
             "broker",

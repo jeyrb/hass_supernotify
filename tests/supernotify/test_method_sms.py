@@ -15,7 +15,8 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
     )
     await context.initialize()
     uut = SMSDeliveryMethod(mock_hass, context, delivery_config)
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
 
     await uut.initialize()
     await uut.deliver(

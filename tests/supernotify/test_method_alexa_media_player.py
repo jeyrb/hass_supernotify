@@ -23,7 +23,8 @@ async def test_notify_alexa_media_player(mock_hass) -> None:  # type: ignore
         delivery_config,
     )
     await uut.initialize()
-    await context.initialize(additional_methods=[uut])
+    context.configure_for_tests(method_instances=[uut])
+    await context.initialize()
     await uut.deliver(
         Envelope("default", Notification(context, message="hello there"), targets=["media_player.hall", "media_player.toilet"])
     )

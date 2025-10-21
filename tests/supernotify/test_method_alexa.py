@@ -16,7 +16,8 @@ async def test_notify_alexa(mock_hass) -> None:  # type: ignore
     context = Context()
     delivery_config = {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True}}
     uut = AlexaDeliveryMethod(mock_hass, context, delivery_config)
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.initialize()
 
     await uut.deliver(

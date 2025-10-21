@@ -53,7 +53,8 @@ async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> 
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC, CONF_TARGET: ["chan1", "chan2"]}}
     context = Context(deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_ACTION: "notify.slackity"}})
     uut = GenericDeliveryMethod(hass, context, delivery)
-    await context.initialize(additional_methods=[uut])
+    context.configure_for_tests(method_instances=[uut])
+    await context.initialize()
 
     await uut.initialize()
     assert uut.valid_deliveries == {

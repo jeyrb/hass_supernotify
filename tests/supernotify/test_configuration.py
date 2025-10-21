@@ -13,9 +13,9 @@ from .hass_setup_lib import register_mobile_app
 async def test_default_recipients(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     dummy = DummyDeliveryMethod(mock_hass, context, {})
-    await context.initialize(additional_methods=[dummy], create_default_scenario=True)
+    context.configure_for_tests(method_instances=[dummy], create_default_scenario=True)
+    await context.initialize()
 
-    # await context.register_delivery_methods([dummy], set_as_default=True)
     uut = Notification(context)
     await uut.initialize()
     await uut.deliver()
@@ -25,7 +25,8 @@ async def test_default_recipients(mock_hass) -> None:  # type: ignore
 async def test_default_recipients_with_override(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     dummy = DummyDeliveryMethod(mock_hass, context, {})
-    await context.initialize(additional_methods=[dummy], create_default_scenario=True)
+    context.configure_for_tests(method_instances=[dummy], create_default_scenario=True)
+    await context.initialize()
 
     uut = Notification(context, "testing", action_data={CONF_RECIPIENTS: ["person.new_home_owner"]})
     await uut.initialize()
@@ -45,7 +46,8 @@ async def test_delivery_override_method(mock_hass) -> None:  # type: ignore
     }
     context = Context(mock_hass, method_defaults={"dummy": {"target": ["media_player.hall"]}}, deliveries=delivery_config)
     dummy = DummyDeliveryMethod(mock_hass, context, delivery_config)
-    await context.initialize(additional_methods=[dummy])
+    context.configure_for_tests(method_instances=[dummy], create_default_scenario=True)
+    await context.initialize()
 
     uut = Notification(
         context,

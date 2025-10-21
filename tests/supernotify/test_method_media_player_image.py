@@ -18,7 +18,8 @@ async def test_notify_media_image(mock_hass) -> None:  # type: ignore
         {"alexa_show": {CONF_METHOD: METHOD_MEDIA, CONF_NAME: "alexa_show", CONF_DEFAULT: True}},
     )
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope(
             "alexa_show",

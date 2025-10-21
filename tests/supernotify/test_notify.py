@@ -1,4 +1,3 @@
-from typing import cast
 from unittest.mock import Mock
 
 from homeassistant.const import CONF_CONDITION, CONF_CONDITIONS, CONF_ENTITY_ID, CONF_STATE
@@ -32,7 +31,6 @@ from custom_components.supernotify import (
     SELECTION_FALLBACK,
 )
 from custom_components.supernotify.configuration import Context
-from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 from custom_components.supernotify.notification import Notification
 from custom_components.supernotify.notify import SuperNotificationAction
@@ -104,21 +102,12 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
     )
 
 
-async def inject_dummy_delivery_method(
-    hass: HomeAssistant, uut: SuperNotificationAction, delivery_method_class: type, delivery_config=None
-) -> DeliveryMethod:
-    dm = delivery_method_class(hass, uut.context, deliveries=delivery_config)
-    await dm.initialize()
-    await uut.context.register_delivery_methods([dm])
-    return dm
-
-
 async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> None:
     uut = SuperNotificationAction(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
+    dummy = DummyDeliveryMethod(mock_hass, uut.context, {})
+    uut.context.configure_for_tests(method_instances=[dummy])
     await uut.initialize()
-    dummy: DummyDeliveryMethod = cast(
-        "DummyDeliveryMethod", await inject_dummy_delivery_method(mock_hass, uut, DummyDeliveryMethod)
-    )
+
     assert dummy is not None
     await uut.async_send_message(
         title="test_title",
@@ -136,8 +125,10 @@ async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> Non
 async def test_broken_delivery(mock_hass: HomeAssistant) -> None:
     delivery_config = {"broken": {CONF_METHOD: "broken"}}
     uut = SuperNotificationAction(mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
+    broken = BrokenDeliveryMethod(mock_hass, uut.context, delivery_config)
+    uut.context.configure_for_tests(method_instances=[broken])
     await uut.initialize()
-    await inject_dummy_delivery_method(mock_hass, uut, BrokenDeliveryMethod, delivery_config=delivery_config)
+
     await uut.async_send_message(
         title="test_title",
         message="testing 123",

@@ -13,7 +13,8 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
     context = Context()
     await context.initialize()
     uut = PersistentDeliveryMethod(mock_hass, context, {"pn": {CONF_METHOD: METHOD_PERSISTENT, CONF_DEFAULT: True}})
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.initialize()
     await uut.deliver(Envelope("pn", Notification(context, "hello there", title="testing")))
     mock_hass.services.async_call.assert_called_with(

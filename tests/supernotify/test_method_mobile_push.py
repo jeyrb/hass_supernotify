@@ -35,7 +35,8 @@ async def test_on_notify_mobile_push_with_media(mock_hass: HomeAssistant) -> Non
     context = Context()
     await context.initialize()
     uut = MobilePushDeliveryMethod(mock_hass, context, {"media_test": {CONF_METHOD: METHOD_MOBILE_PUSH}})
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope(
             "media_test",
@@ -84,7 +85,8 @@ async def test_on_notify_mobile_push_with_explicit_target(mock_hass: HomeAssista
     context = Context()
     await context.initialize()
     uut = MobilePushDeliveryMethod(mock_hass, context, {"media_test": {CONF_METHOD: METHOD_MOBILE_PUSH}})
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope("media_test", Notification(context, message="hello there", title="testing"), targets=["mobile_app_new_iphone"])
     )
@@ -120,7 +122,8 @@ async def test_on_notify_mobile_push_with_critical_priority(mock_hass: HomeAssis
     )
     await context.initialize()
     uut = MobilePushDeliveryMethod(mock_hass, context, {"default": {CONF_METHOD: METHOD_MOBILE_PUSH}})
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.initialize()
     await uut.deliver(
         Envelope(
@@ -153,7 +156,8 @@ async def test_priority_interpretation(mock_hass: HomeAssistant, priority: Liter
     context = Context()
     await context.initialize()
     uut = MobilePushDeliveryMethod(mock_hass, context, {"default": {CONF_METHOD: METHOD_MOBILE_PUSH}})
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     e: Envelope = Envelope(
         "default",
         Notification(context, message="hello there", title="testing", action_data={ATTR_PRIORITY: priority}),

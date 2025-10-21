@@ -147,11 +147,14 @@ class Context:
         self._device_registry: device_registry.DeviceRegistry | None = None
         self._method_types: list[type[DeliveryMethod]] = method_types or []
         self.snoozer = Snoozer()
+        # test harness support
+        self._create_default_scenario: bool = False
+        self._method_instances: list[DeliveryMethod] | None = None
 
-    async def initialize(
-        self, additional_methods: list[DeliveryMethod] | None = None, create_default_scenario: bool = False
-    ) -> None:
-        await self.register_delivery_methods(delivery_methods=additional_methods, delivery_method_classes=self._method_types)
+    async def initialize(self) -> None:
+        await self._register_delivery_methods(
+            delivery_methods=self._method_instances, delivery_method_classes=self._method_types
+        )
 
         self.people = self.setup_people(self._recipients)
 
@@ -177,7 +180,13 @@ class Context:
         if self.archive:
             self.archive.initialize()
         default_deliveries: dict[str, Any] = self.initialize_deliveries()
-        self.initialize_scenarios(default_deliveries, default_scenario=create_default_scenario)
+        self.initialize_scenarios(default_deliveries, default_scenario=self._create_default_scenario)
+
+    def configure_for_tests(
+        self, method_instances: list[DeliveryMethod] | None = None, create_default_scenario: bool = False
+    ) -> None:
+        self._create_default_scenario = create_default_scenario
+        self._method_instances = method_instances
 
     def initialize_deliveries(self) -> dict[str, Any]:
         default_deliveries = {}
@@ -233,12 +242,12 @@ class Context:
                 elif d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
                     self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
-    async def register_delivery_methods(
+    async def _register_delivery_methods(
         self,
         delivery_methods: list[DeliveryMethod] | None = None,
         delivery_method_classes: list[type[DeliveryMethod]] | None = None,
     ) -> None:
-        """Available directly for test fixtures supplying class or instance"""
+        """Use configure_for_tests() to set delivery_methods to mocks or manually created fixtures"""
         if delivery_methods:
             for delivery_method in delivery_methods:
                 self.methods[delivery_method.method] = delivery_method

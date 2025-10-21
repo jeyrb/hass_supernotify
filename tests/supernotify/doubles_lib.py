@@ -38,6 +38,9 @@ class DummyDeliveryMethod(DeliveryMethod):
 class BrokenDeliveryMethod(DeliveryMethod):
     method = "broken"
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super.__init__(*args, **kwargs)
+
     def validate_action(self, action: str | None) -> bool:
         return True
 

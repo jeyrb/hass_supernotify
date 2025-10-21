@@ -16,7 +16,9 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
     await context.initialize()
     uut = EmailDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
+
     await uut.deliver(
         Envelope(
             "plain_email",
@@ -51,7 +53,8 @@ async def test_deliver_with_template(mock_hass) -> None:  # type: ignore
     }
     uut = EmailDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     await uut.deliver(
         Envelope("default", Notification(context, message="hello there", title="testing"), targets=["tester9@assert.com"])
     )
@@ -74,7 +77,8 @@ async def test_deliver_with_preformatted_html(mock_hass) -> None:  # type: ignor
         mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp", CONF_DEFAULT: True}}
     )
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     notification = Notification(
         context,
         message="hello there",
@@ -103,7 +107,8 @@ async def test_deliver_with_preformatted_html_and_image(mock_hass) -> None:  # t
         mock_hass, context, {"default": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp", CONF_DEFAULT: True}}
     )
     await uut.initialize()
-    await context.register_delivery_methods([uut], None)
+    context.configure_for_tests([uut])
+    await context.initialize()
     notification = Notification(
         context,
         message="hello there",
