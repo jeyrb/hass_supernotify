@@ -34,6 +34,7 @@ from . import (
     CONF_CAMERA,
     CONF_DATA,
     CONF_DEVICE_DISCOVERY,
+    CONF_DEVICE_DOMAIN,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
@@ -264,7 +265,8 @@ class Context:
                     self,
                     self._deliveries,
                     default=method_config.get(CONF_DEFAULT, {}),
-                    device_discovery=method_config.get(CONF_DEVICE_DISCOVERY, []),
+                    device_domain=method_config.get(CONF_DEVICE_DOMAIN, []),
+                    device_discovery=method_config.get(CONF_DEVICE_DISCOVERY, False),
                     targets_required=method_config.get(CONF_TARGETS_REQUIRED, False),
                 )
                 await self.methods[delivery_method_class.method].initialize()

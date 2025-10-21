@@ -10,7 +10,14 @@ from homeassistant.const import (  # ATTR_VARIABLES from script.const has import
     CONF_VARIABLES,
 )
 
-from custom_components.supernotify import ATTR_DATA, ATTR_PRIORITY, CONF_DATA, CONF_TARGETS_REQUIRED, METHOD_CHIME
+from custom_components.supernotify import (
+    ATTR_DATA,
+    ATTR_PRIORITY,
+    CONF_DATA,
+    CONF_DEVICE_DOMAIN,
+    CONF_TARGETS_REQUIRED,
+    METHOD_CHIME,
+)
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -79,6 +86,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
+        # support optional auto discovery
+        kwargs.setdefault(CONF_DEVICE_DOMAIN, DEVICE_DOMAINS)
         super().__init__(*args, **kwargs)
         self.chime_aliases = self.default_options.get("chime_aliases", {})
         self.chime_targets = self.default.get(CONF_TARGET, [])

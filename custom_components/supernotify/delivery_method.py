@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from homeassistant.components.notify.const import ATTR_TARGET
-from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_OPTIONS
+from homeassistant.const import CONF_ACTION, CONF_CONDITION, CONF_DEFAULT, CONF_METHOD, CONF_NAME, CONF_OPTIONS, CONF_TARGET
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import condition
 
@@ -18,7 +18,8 @@ from custom_components.supernotify.configuration import Context
 
 from . import (
     CONF_DATA,
-    CONF_DEFAULT_ACTION,
+    CONF_DEVICE_DISCOVERY,
+    CONF_DEVICE_DOMAIN,
     CONF_TARGETS_REQUIRED,
     RESERVED_DELIVERY_NAMES,
     ConditionVariables,
@@ -54,7 +55,8 @@ class DeliveryMethod:
         deliveries: dict[str, Any] | None = None,
         default: dict[str, Any] | None = None,
         targets_required: bool = True,
-        device_discovery: list[str] | None = None,
+        device_domain: list[str] | None = None,
+        device_discovery: bool = False,
     ) -> None:
         self.hass: HomeAssistant = hass
         self.context: Context = context
@@ -62,7 +64,8 @@ class DeliveryMethod:
         self.default_options: dict[str, Any] = self.default.get(CONF_OPTIONS) or {}
         self.default_action: str | None = self.default.get(CONF_ACTION)
         self.targets_required: bool = targets_required
-        self.device_discovery: list[str] = device_discovery or []
+        self.device_domain: list[str] = device_domain or []
+        self.device_discovery: bool = device_discovery
 
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}
@@ -75,6 +78,11 @@ class DeliveryMethod:
         if self.method is None:
             raise OSError("No delivery method configured")
         self.valid_deliveries = await self.validate_deliveries()
+        if self.device_discovery:
+            for domain in self.device_domain:
+                self.default.setdefault(CONF_TARGET, [])
+                device_ids = self.context.discover_devices(domain)
+                self.default[CONF_TARGET].extend(device_ids)
 
     def validate_action(self, action: str | None) -> bool:
         """Override in subclass if delivery method has fixed action or doesn't require one"""
@@ -129,10 +137,13 @@ class DeliveryMethod:
         )
         return valid_deliveries
 
-    def attributes(self) -> dict[str, str | list[str] | dict[str, Any] | None]:
+    def attributes(self) -> dict[str, Any]:
         return {
             CONF_METHOD: self.method,
-            CONF_DEFAULT_ACTION: self.default_action,
+            CONF_TARGETS_REQUIRED: self.targets_required,
+            CONF_DEVICE_DOMAIN: self.device_domain,
+            CONF_DEVICE_DISCOVERY: self.device_discovery,
+            CONF_DEFAULT: self.default,
             "default_delivery": self.default_delivery,
             "deliveries": list(self.valid_deliveries.keys()),
         }

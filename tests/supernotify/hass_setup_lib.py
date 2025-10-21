@@ -68,3 +68,40 @@ def register_mobile_app(
     if entity_registry and device_entry:
         entity_registry.async_get_or_create("device_tracker", "mobile_app", device_name, device_id=device_entry.id)
     return device_entry
+
+
+def register_device(
+    context: Context,
+    device_id: str = "00001111222233334444555566667777",
+    domain: str = "unit_testing",
+    domain_id: str = "test_01",
+    title: str = "test fixture",
+) -> DeviceEntry | None:
+    config_entry = config_entries.ConfigEntry(
+        domain=domain,
+        data={},
+        version=1,
+        minor_version=1,
+        unique_id=device_id,
+        options=None,
+        title=title,
+        source="",
+        discovery_keys=MappingProxyType({}),
+        subentries_data=None,
+    )
+    if context is None or context.hass is None:
+        _LOGGER.warning("Unable to mess with HASS config entries for device registry")
+        return None
+    try:
+        context.hass.config_entries._entries[config_entry.entry_id] = config_entry
+        context.hass.config_entries._entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)
+    except Exception as e:
+        _LOGGER.warning("Unable to mess with HASS config entries for device registry: %s", e)
+    device_registry = context.device_registry()
+    device_entry = None
+    if device_registry:
+        device_entry = device_registry.async_get_or_create(
+            config_entry_id=config_entry.entry_id,
+            identifiers={(domain, f"{domain_id}")},
+        )
+    return device_entry

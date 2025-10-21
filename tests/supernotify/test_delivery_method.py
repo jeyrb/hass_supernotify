@@ -1,9 +1,11 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
 
 from homeassistant.const import CONF_ACTION, CONF_NAME, CONF_TARGET
 from homeassistant.core import HomeAssistant
 
+if TYPE_CHECKING:
+    from homeassistant.helpers.device_registry import DeviceEntry
 from custom_components.supernotify import (
     CONF_METHOD,
     CONF_SELECTION,
@@ -18,6 +20,8 @@ from custom_components.supernotify import (
 )
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.methods.generic import GenericDeliveryMethod
+
+from .hass_setup_lib import register_device
 
 DELIVERY: dict[str, Any] = {
     "email": {CONF_METHOD: METHOD_EMAIL, CONF_ACTION: "notify.smtp"},
@@ -78,3 +82,16 @@ def test_simplify_text() -> None:
         == "Hello world! Visit https://example.com it's great 100 test"
     )
     assert uut.simplify("NoSpecialChars123") == "NoSpecialChars123"
+
+
+async def test_device_discovery(hass: HomeAssistant) -> None:
+    ctx = Context(hass)
+    uut = GenericDeliveryMethod(hass, ctx, {}, device_domain=["unit_testing"], device_discovery=True)
+    await uut.initialize()
+    assert uut.default[CONF_TARGET] == []
+
+    dev: DeviceEntry | None = register_device(ctx)
+    assert dev is not None
+    uut = GenericDeliveryMethod(hass, ctx, {}, device_domain=["unit_testing"], device_discovery=True)
+    await uut.initialize()
+    assert uut.default[CONF_TARGET] == [dev.id]

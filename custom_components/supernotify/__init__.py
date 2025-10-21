@@ -71,6 +71,7 @@ CONF_DEVICE_DISCOVERY: str = "device_discovery"
 CONF_DEVICE_TRACKER: str = "device_tracker"
 CONF_DEVICE_NAME: str = "device_name"
 CONF_DEVICE_LABELS: str = "device_labels"
+CONF_DEVICE_DOMAIN: str = "device_domain"
 CONF_MODEL: str = "model"
 CONF_MESSAGE: str = "message"
 CONF_TARGETS_REQUIRED: str = "targets_required"
@@ -232,7 +233,8 @@ DELIVERY_CONFIG_SCHEMA = vol.Schema({
 })
 METHOD_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
-    vol.Optional(CONF_DEVICE_DISCOVERY): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_DEVICE_DOMAIN): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_DEVICE_DISCOVERY): cv.boolean,
     vol.Optional(CONF_DEFAULT): DELIVERY_CONFIG_SCHEMA,
 })
 RECIPIENT_SCHEMA = vol.Schema({

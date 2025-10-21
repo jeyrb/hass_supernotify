@@ -212,14 +212,15 @@ The list of sounds can be found on the [Alexa API](https://alexa.amazon.com/api/
 One oddity of this integration is that although it generates traditional entity IDs for notifying Alexa devices,
 sending a sound ( or command ) requires a long and obscure `device_id` (a 32 character random hexadecimal pseudo-UUID).
 The easiest way to get these is from the *Devices* section of the *Alexa Devices* integration config, or using the *Action*
-feature of *Developer Tools* and switching to yaml mode.
-
+feature of *Developer Tools* and switching to yaml mode, or automatically register all Alexa devices by using `device_discovery: True`
+on the method configuration.
 
 #### Example
 
 ```yaml
 methods:
   chime:
+    device_discovery: True
     target:
       - media_player.kitchen_echo
       - media_player.bedroom
