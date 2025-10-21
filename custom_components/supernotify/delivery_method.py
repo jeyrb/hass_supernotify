@@ -98,6 +98,7 @@ class DeliveryMethod:
             dc[CONF_NAME] = d
 
             if dc.get(CONF_DEFAULT) and not self.default_delivery:
+                # pick the first delivery with default flag set as the default
                 self.default_delivery = dc
             elif dc.get(CONF_DEFAULT) and self.default_delivery and dc.get(CONF_NAME) != self.default_delivery.get(CONF_NAME):
                 _LOGGER.debug("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
@@ -217,7 +218,7 @@ class DeliveryMethod:
         config = self.delivery_config(envelope.delivery_name)
         try:
             qualified_action = qualified_action or config.get(CONF_ACTION) or self.default_action
-            targets_required: bool = config.get(CONF_TARGETS_REQUIRED, {}).get(CONF_TARGETS_REQUIRED, self.targets_required)
+            targets_required: bool = config.get(CONF_TARGETS_REQUIRED, self.targets_required)
             if qualified_action and (action_data.get(ATTR_TARGET) or not targets_required or target_data):
                 domain, service = qualified_action.split(".", 1)
                 start_time = time.time()

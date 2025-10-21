@@ -19,7 +19,6 @@ from homeassistant.const import (
     CONF_ICON,
     CONF_ID,
     CONF_NAME,
-    CONF_PLATFORM,
     CONF_TARGET,
     CONF_URL,
     STATE_HOME,
@@ -223,13 +222,18 @@ LINK_SCHEMA = vol.Schema({
     vol.Required(CONF_DESCRIPTION): cv.string,
     vol.Optional(CONF_NAME): cv.string,
 })
-METHOD_DEFAULTS_SCHEMA = vol.Schema({
+DELIVERY_CONFIG_SCHEMA = vol.Schema({
     vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
-    vol.Optional(CONF_ACTION): cv.service,
-    vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
+    vol.Optional(CONF_ACTION): cv.service,  # previously 'service:'
     vol.Optional(CONF_OPTIONS, default=dict): dict,
     vol.Optional(CONF_DATA): DATA_SCHEMA,
+    vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
+    vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES): vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
+})
+METHOD_SCHEMA = vol.Schema({
+    vol.Optional(CONF_TARGETS_REQUIRED): cv.boolean,
     vol.Optional(CONF_DEVICE_DISCOVERY): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_DEFAULT): DELIVERY_CONFIG_SCHEMA,
 })
 RECIPIENT_SCHEMA = vol.Schema({
     vol.Required(CONF_PERSON): cv.entity_id,
@@ -260,21 +264,15 @@ MEDIA_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MEDIA_SNAPSHOT_URL): vol.Any(cv.url, cv.string),
     vol.Optional(ATTR_JPEG_OPTS): dict,
 })
-DELIVERY_SCHEMA = vol.Schema({
+
+DELIVERY_SCHEMA = DELIVERY_CONFIG_SCHEMA.extend({
     vol.Optional(CONF_ALIAS): cv.string,
     vol.Required(CONF_METHOD): vol.In(METHOD_VALUES),
-    vol.Optional(CONF_ACTION): cv.service,  # previously 'service:'
-    vol.Optional(CONF_PLATFORM): cv.string,
     vol.Optional(CONF_TEMPLATE): cv.string,
     vol.Optional(CONF_DEFAULT, default=False): cv.boolean,
-    vol.Optional(CONF_SELECTION, default=[SELECTION_DEFAULT]): vol.All(cv.ensure_list, [vol.In(SELECTION_VALUES)]),
-    vol.Optional(CONF_TARGET): vol.All(cv.ensure_list, [cv.string]),
     vol.Optional(CONF_MESSAGE): vol.Any(None, cv.string),
     vol.Optional(CONF_TITLE): vol.Any(None, cv.string),
-    vol.Optional(CONF_DATA): DATA_SCHEMA,
     vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-    vol.Optional(CONF_OPTIONS, default=dict): dict,
-    vol.Optional(CONF_PRIORITY, default=PRIORITY_VALUES): vol.All(cv.ensure_list, [vol.In(PRIORITY_VALUES)]),
     vol.Optional(CONF_OCCUPANCY, default=OCCUPANCY_ALL): vol.In(OCCUPANCY_VALUES),
     vol.Optional(CONF_CONDITION): cv.CONDITION_SCHEMA,
 })
@@ -332,7 +330,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_RECIPIENTS, default=list): vol.All(cv.ensure_list, [RECIPIENT_SCHEMA]),
     vol.Optional(CONF_LINKS, default=list): vol.All(cv.ensure_list, [LINK_SCHEMA]),
     vol.Optional(CONF_SCENARIOS, default=dict): {cv.string: SCENARIO_SCHEMA},
-    vol.Optional(CONF_METHODS, default=dict): {cv.string: METHOD_DEFAULTS_SCHEMA},
+    vol.Optional(CONF_METHODS, default=dict): {cv.string: METHOD_SCHEMA},
     vol.Optional(CONF_CAMERAS, default=list): vol.All(cv.ensure_list, [CAMERA_SCHEMA]),
 })
 SUPERNOTIFY_SCHEMA = PLATFORM_SCHEMA

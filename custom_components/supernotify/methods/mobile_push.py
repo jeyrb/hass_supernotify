@@ -141,7 +141,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         hits = 0
         for mobile_target in envelope.targets:
             full_target = mobile_target if mobile_target.startswith("notify.") else f"notify.{mobile_target}"
-            if await self.call_action(envelope, full_target, action_data=action_data):
+            if await self.call_action(envelope, qualified_action=full_target, action_data=action_data):
                 hits += 1
             else:
                 simple_target = (

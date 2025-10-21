@@ -41,8 +41,8 @@ from . import (
     CONF_NOTIFY_ACTION,
     CONF_PERSON,
     CONF_SELECTION,
+    DELIVERY_CONFIG_SCHEMA,
     DELIVERY_SELECTION_IMPLICIT,
-    METHOD_DEFAULTS_SCHEMA,
     SCENARIO_DEFAULT,
     SCENARIO_TEMPLATE_ATTRS,
     SELECTION_DEFAULT,
@@ -204,7 +204,7 @@ class Context:
                     dc[CONF_NAME] = d  # for minimal tests
                 method = self.methods.get(dc[CONF_METHOD])
                 if method:
-                    for conf_key in METHOD_DEFAULTS_SCHEMA.schema:
+                    for conf_key in DELIVERY_CONFIG_SCHEMA.schema:
                         self.set_method_default(dc, conf_key.schema)
                 else:
                     _LOGGER.warning(f"SUPERNOTIFY Unknown method {method} for delivery {d}")

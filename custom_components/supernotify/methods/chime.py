@@ -126,7 +126,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 if domain is not None and service is not None:
                     action_data = self.prune_data(domain, action_data)
 
-                    if await self.call_action(envelope, f"{domain}.{service}", action_data=action_data):
+                    if await self.call_action(envelope, qualified_action=f"{domain}.{service}", action_data=action_data):
                         chimes += 1
                 else:
                     _LOGGER.debug("SUPERNOTIFY Chime skipping incomplete service for %s", chime_entity_config.entity_id)
