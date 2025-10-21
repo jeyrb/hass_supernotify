@@ -5,6 +5,7 @@ from types import MappingProxyType
 
 from homeassistant import config_entries
 from homeassistant.core import ServiceCall, SupportsResponse
+from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.util import slugify
 
 from custom_components.supernotify.configuration import Context
@@ -12,16 +13,16 @@ from custom_components.supernotify.configuration import Context
 _LOGGER = logging.getLogger(__name__)
 
 
-async def register_mobile_app(
+def register_mobile_app(
     context: Context,
-    person="person.test_user",
-    manufacturer="xUnit",
-    model="PyTest001",
-    device_name="phone01",
-    domain="test",
-    source="unit_test",
-    title="Test Device",
-):
+    person: str = "person.test_user",
+    manufacturer: str = "xUnit",
+    model: str = "PyTest001",
+    device_name: str = "phone01",
+    domain: str = "test",
+    source: str = "unit_test",
+    title: str = "Test Device",
+) -> DeviceEntry | None:
     config_entry = config_entries.ConfigEntry(
         domain=domain,
         data={},
@@ -38,8 +39,8 @@ async def register_mobile_app(
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking")
         return None
     try:
-        context.hass.config_entries._entries[config_entry.entry_id] = config_entry  # type: ignore
-        context.hass.config_entries._entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)  # type: ignore
+        context.hass.config_entries._entries[config_entry.entry_id] = config_entry
+        context.hass.config_entries._entries._domain_index.setdefault(config_entry.domain, []).append(config_entry)
     except Exception as e:
         _LOGGER.warning("Unable to mess with HASS config entries for mobile app faking: %s", e)
     context.hass.states.async_set(

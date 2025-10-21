@@ -2,9 +2,11 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.components import image
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from custom_components.supernotify import CONF_METHOD, CONF_PERSON
+from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -12,12 +14,12 @@ from custom_components.supernotify.envelope import Envelope
 class DummyDeliveryMethod(DeliveryMethod):
     method = "dummy"
 
-    def __init__(self, hass, context, deliveries=None):
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None) -> None:
         deliveries = deliveries or {"dummy": {CONF_METHOD: "dummy"}}
         super().__init__(hass, context, deliveries)
-        self.test_calls = []
+        self.test_calls: list[Envelope] = []
 
-    def validate_action(self, action):
+    def validate_action(self, action: str | None) -> bool:
         return action is None
 
     def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
@@ -36,7 +38,7 @@ class DummyDeliveryMethod(DeliveryMethod):
 class BrokenDeliveryMethod(DeliveryMethod):
     method = "broken"
 
-    def validate_action(self, action) -> bool:
+    def validate_action(self, action: str | None) -> bool:
         return True
 
     async def deliver(self, envelope: Envelope) -> bool:
@@ -46,10 +48,10 @@ class BrokenDeliveryMethod(DeliveryMethod):
 class MockImageEntity(image.ImageEntity):
     _attr_name = "Test"
 
-    def __init__(self, filename):
-        self.bytes = Path(filename).open("rb").read()
+    def __init__(self, filename: Path):
+        self.bytes = filename.open("rb").read()
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         self._attr_image_last_updated = dt_util.utcnow()
 
     async def async_image(self) -> bytes | None:

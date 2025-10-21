@@ -10,7 +10,7 @@ from .doubles_lib import DummyDeliveryMethod
 from .hass_setup_lib import register_mobile_app
 
 
-async def test_default_recipients(mock_hass) -> None:
+async def test_default_recipients(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
@@ -21,7 +21,7 @@ async def test_default_recipients(mock_hass) -> None:
     assert dummy.test_calls == [Envelope("dummy", uut, targets=["dummy.new_home_owner", "dummy.bidey_in"])]
 
 
-async def test_default_recipients_with_override(mock_hass) -> None:
+async def test_default_recipients_with_override(mock_hass) -> None:  # type: ignore
     context = Context(mock_hass, recipients=[{CONF_PERSON: "person.new_home_owner"}, {CONF_PERSON: "person.bidey_in"}])
     await context.initialize()
     dummy = DummyDeliveryMethod(mock_hass, context, {})
@@ -32,7 +32,7 @@ async def test_default_recipients_with_override(mock_hass) -> None:
     assert dummy.test_calls == [Envelope("dummy", uut, targets=["dummy.new_home_owner"])]
 
 
-async def test_delivery_override_method(mock_hass) -> None:
+async def test_delivery_override_method(mock_hass) -> None:  # type: ignore
     delivery_config = {
         "quiet_alert": {
             "method": "dummy",
@@ -83,7 +83,7 @@ async def test_autoresolve_mobile_devices_for_devices(
     uut._device_registry = device_registry
     uut._entity_registry = entity_registry
     await uut.initialize()
-    device = await register_mobile_app(uut, person="person.test_user", device_name="phone_bob", title="Bobs Phone")
+    device = register_mobile_app(uut, person="person.test_user", device_name="phone_bob", title="Bobs Phone")
     assert device is not None
     assert uut.mobile_devices_for_person("person.test_user") == [
         {
