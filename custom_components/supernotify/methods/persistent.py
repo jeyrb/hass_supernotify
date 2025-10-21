@@ -1,7 +1,9 @@
 import logging
 from typing import Any
 
-from custom_components.supernotify import ATTR_NOTIFICATION_ID, CONF_DEFAULT_ACTION, CONF_TARGETS_REQUIRED, METHOD_PERSISTENT
+from homeassistant.const import CONF_ACTION, CONF_DEFAULT
+
+from custom_components.supernotify import ATTR_NOTIFICATION_ID, CONF_TARGETS_REQUIRED, METHOD_PERSISTENT
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
@@ -13,7 +15,8 @@ class PersistentDeliveryMethod(DeliveryMethod):
     method = METHOD_PERSISTENT
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs[CONF_DEFAULT_ACTION] = ACTION
+        kwargs.setdefault(CONF_DEFAULT, {})
+        kwargs[CONF_DEFAULT].setdefault(CONF_ACTION, ACTION)
         kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
 

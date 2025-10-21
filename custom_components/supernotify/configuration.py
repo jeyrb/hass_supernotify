@@ -33,6 +33,7 @@ from . import (
     CONF_ARCHIVE_PATH,
     CONF_CAMERA,
     CONF_DATA,
+    CONF_DEVICE_DISCOVERY,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TRACKER,
     CONF_MANUFACTURER,
@@ -42,7 +43,7 @@ from . import (
     CONF_NOTIFY_ACTION,
     CONF_PERSON,
     CONF_SELECTION,
-    DELIVERY_CONFIG_SCHEMA,
+    CONF_TARGETS_REQUIRED,
     DELIVERY_SELECTION_IMPLICIT,
     SCENARIO_DEFAULT,
     SCENARIO_TEMPLATE_ATTRS,
@@ -72,7 +73,7 @@ class Context:
         media_path: str | None = None,
         archive_config: dict[str, str] | None = None,
         scenarios: dict[str, dict[str, Any]] | None = None,
-        method_defaults: dict[str, Any] | None = None,
+        method_configs: dict[str, Any] | None = None,
         cameras: list[dict[str, Any]] | None = None,
         method_types: list[type[DeliveryMethod]] | None = None,
     ) -> None:
@@ -136,7 +137,7 @@ class Context:
             self.archive_topic = None
         self.cameras: dict[str, Any] = {c[CONF_CAMERA]: c for c in cameras} if cameras else {}
         self.methods: dict[str, DeliveryMethod] = {}
-        self.method_defaults: dict[str, Any] = method_defaults or {}
+        self._method_configs: dict[str, Any] = method_configs or {}
         self.scenarios: dict[str, Scenario] = {}
         self.people: dict[str, dict[str, Any]] = {}
         self._config_scenarios: dict[str, Any] = scenarios or {}
@@ -193,6 +194,11 @@ class Context:
         default_deliveries = {}
         if self._deliveries:
             for d, dc in self._deliveries.items():
+                method = self.methods.get(dc[CONF_METHOD])
+                if method:
+                    for k, v in method.default.items():
+                        dc.setdefault(k, v)
+
                 if dc.get(CONF_ENABLED, True):
                     if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
                         self.fallback_on_error[d] = dc
@@ -203,10 +209,6 @@ class Context:
 
                 if not dc.get(CONF_NAME):
                     dc[CONF_NAME] = d  # for minimal tests
-                method = self.methods.get(dc[CONF_METHOD])
-                if method:
-                    for conf_key in DELIVERY_CONFIG_SCHEMA.schema:
-                        self.set_method_default(dc, conf_key.schema)
                 else:
                     _LOGGER.warning(f"SUPERNOTIFY Unknown method {method} for delivery {d}")
         return default_deliveries
@@ -256,20 +258,19 @@ class Context:
                 self.deliveries.update(self.methods[delivery_method.method].valid_deliveries)
         if delivery_method_classes and self.hass:
             for delivery_method_class in delivery_method_classes:
-                self.methods[delivery_method_class.method] = delivery_method_class(self.hass, self, self._deliveries)
+                method_config = self._method_configs.get(delivery_method_class.method, {})
+                self.methods[delivery_method_class.method] = delivery_method_class(
+                    self.hass,
+                    self,
+                    self._deliveries,
+                    default=method_config.get(CONF_DEFAULT, {}),
+                    device_discovery=method_config.get(CONF_DEVICE_DISCOVERY, []),
+                    targets_required=method_config.get(CONF_TARGETS_REQUIRED, False),
+                )
                 await self.methods[delivery_method_class.method].initialize()
                 self.deliveries.update(self.methods[delivery_method_class.method].valid_deliveries)
 
         _LOGGER.info("SUPERNOTIFY configured deliveries %s", "; ".join(self.deliveries.keys()))
-
-    def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
-        if attr not in delivery_config and CONF_METHOD in delivery_config:
-            method_default: dict[str, Any] = self.method_defaults.get(delivery_config[CONF_METHOD], {}).get(CONF_DEFAULT, {})
-            if method_default.get(attr):
-                delivery_config[attr] = method_default[attr]
-                _LOGGER.debug(
-                    "SUPERNOTIFY Defaulting delivery %s to %s %s", delivery_config[CONF_NAME], attr, delivery_config[attr]
-                )
 
     def delivery_method(self, delivery: str) -> DeliveryMethod:
         method_name = self.deliveries.get(delivery, {}).get(CONF_METHOD)

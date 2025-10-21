@@ -6,12 +6,11 @@ from homeassistant.components.group import expand_entity_ids
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import (  # ATTR_VARIABLES from script.const has import issues
     ATTR_ENTITY_ID,
-    CONF_DEFAULT,
     CONF_TARGET,
     CONF_VARIABLES,
 )
 
-from custom_components.supernotify import ATTR_DATA, ATTR_PRIORITY, CONF_DATA, CONF_OPTIONS, CONF_TARGETS_REQUIRED, METHOD_CHIME
+from custom_components.supernotify import ATTR_DATA, ATTR_PRIORITY, CONF_DATA, CONF_TARGETS_REQUIRED, METHOD_CHIME
 from custom_components.supernotify.common import ensure_list
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
@@ -81,13 +80,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
-        self.chime_aliases = (
-            self.context.method_defaults.get(self.method, {})
-            .get(CONF_DEFAULT, {})
-            .get(CONF_OPTIONS, {})
-            .get("chime_aliases", {})
-        )
-        self.chime_targets = self.context.method_defaults.get(self.method, {}).get(CONF_DEFAULT, {}).get(CONF_TARGET, [])
+        self.chime_aliases = self.default_options.get("chime_aliases", {})
+        self.chime_targets = self.default.get(CONF_TARGET, [])
 
     def validate_action(self, action: str | None) -> bool:
         return action is None

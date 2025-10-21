@@ -14,9 +14,9 @@ from custom_components.supernotify.envelope import Envelope
 class DummyDeliveryMethod(DeliveryMethod):
     method = "dummy"
 
-    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None) -> None:
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None, **kwargs: Any) -> None:
         deliveries = deliveries or {"dummy": {CONF_METHOD: "dummy"}}
-        super().__init__(hass, context, deliveries)
+        super().__init__(hass, context, deliveries, **kwargs)
         self.test_calls: list[Envelope] = []
 
     def validate_action(self, action: str | None) -> bool:

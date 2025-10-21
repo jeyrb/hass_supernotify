@@ -3,13 +3,16 @@ import re
 import urllib.parse
 from typing import Any
 
-from custom_components.supernotify import CONF_DEFAULT_ACTION, METHOD_MEDIA
+from homeassistant.const import CONF_ACTION, CONF_DEFAULT
+
+from custom_components.supernotify import CONF_TARGETS_REQUIRED, METHOD_MEDIA
 from custom_components.supernotify.delivery_method import DeliveryMethod
 from custom_components.supernotify.envelope import Envelope
 
 RE_VALID_MEDIA_PLAYER = r"media_player\.[A-Za-z0-9_]+"
 
 _LOGGER = logging.getLogger(__name__)
+ACTION = "media_player.play_media"
 
 
 class MediaPlayerImageDeliveryMethod(DeliveryMethod):
@@ -18,8 +21,9 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
     method = METHOD_MEDIA
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs[CONF_DEFAULT_ACTION] = "media_player.play_media"
-        kwargs["targets_required"] = False
+        kwargs.setdefault(CONF_DEFAULT, {})
+        kwargs[CONF_DEFAULT].setdefault(CONF_ACTION, ACTION)
+        kwargs[CONF_TARGETS_REQUIRED] = False
         super().__init__(*args, **kwargs)
 
     def select_target(self, target: str) -> bool:

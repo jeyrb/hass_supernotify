@@ -25,8 +25,8 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     method = METHOD_EMAIL
 
-    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None) -> None:
-        super().__init__(hass, context, deliveries)
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None, **kwargs: Any) -> None:
+        super().__init__(hass, context, deliveries, **kwargs)
         self.template_path: Path | None = None
         if self.context.template_path:
             self.template_path = self.context.template_path / "email"

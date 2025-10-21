@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import Mock
 
-from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_NAME, CONF_TARGET
+from homeassistant.const import CONF_ACTION, CONF_NAME, CONF_TARGET
 from homeassistant.core import HomeAssistant
 
 from custom_components.supernotify import (
@@ -32,7 +32,6 @@ DELIVERY: dict[str, Any] = {
 
 async def test_simple_create(hass: HomeAssistant) -> None:
     context = Mock(Context)
-    context.method_defaults = {}
     uut = GenericDeliveryMethod(hass, context, DELIVERY)
     await uut.initialize()
     assert uut.valid_deliveries == {d: dc for d, dc in DELIVERY.items() if dc[CONF_METHOD] == METHOD_GENERIC}
@@ -41,9 +40,8 @@ async def test_simple_create(hass: HomeAssistant) -> None:
 
 async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
     context = Mock(Context)
-    context.method_defaults = {METHOD_GENERIC: {CONF_DEFAULT: {CONF_ACTION: "notify.slackity"}}}
 
-    uut = GenericDeliveryMethod(hass, context, DELIVERY)
+    uut = GenericDeliveryMethod(hass, context, DELIVERY, default={CONF_ACTION: "notify.slackity"})
     await uut.initialize()
     assert uut.valid_deliveries == {d: dc for d, dc in DELIVERY.items() if dc[CONF_METHOD] == METHOD_GENERIC}
     assert uut.default_delivery == {CONF_ACTION: "notify.slackity"}
@@ -51,8 +49,8 @@ async def test_default_delivery_defaulted(hass: HomeAssistant) -> None:
 
 async def test_method_defaults_used_for_missing_service(hass: HomeAssistant) -> None:
     delivery = {"chatty": {CONF_METHOD: METHOD_GENERIC, CONF_TARGET: ["chan1", "chan2"]}}
-    context = Context(deliveries=delivery, method_defaults={METHOD_GENERIC: {CONF_DEFAULT: {CONF_ACTION: "notify.slackity"}}})
-    uut = GenericDeliveryMethod(hass, context, delivery)
+    context = Context(deliveries=delivery)
+    uut = GenericDeliveryMethod(hass, context, delivery, default={CONF_ACTION: "notify.slackity"})
     context.configure_for_tests(method_instances=[uut])
     await context.initialize()
 

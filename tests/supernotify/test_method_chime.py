@@ -14,7 +14,6 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
     # context = Context()
     context = Mock()
     context.deliveries = {METHOD_CHIME: {}}
-    context.method_defaults = {}
 
     device = Mock(identifiers={("alexa_devices", "ffffee8484848484")})
     device_registry = Mock()
@@ -90,33 +89,32 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
 async def test_deliver_alias(mock_hass) -> None:  # type: ignore
     """Test on_notify_chime"""
     delivery_config = {"chimes": {CONF_METHOD: METHOD_CHIME, CONF_DEFAULT: True, CONF_DATA: {"chime_tune": "doorbell"}}}
-    context = Context(
-        method_defaults={
-            "chime": {
-                "default": {
-                    "target": ["media_player.kitchen_alexa", "media_player.hall_echo", "ffff0000eeee1111dddd2222cccc3333"],
-                    "options": {
-                        "chime_aliases": {
-                            "doorbell": {
-                                "media_player_hall": {
-                                    "tune": "home/amzn_sfx_doorbell_chime_01",
-                                    "target": "media_player.hall_echo",
-                                },
-                                "media_player": "home/amzn_sfx_doorbell_chime_02",
-                                "alexa_devices": {"tune": "bell01"},
-                                "switch": {"target": "switch.chime_ding_dong"},
-                                "script": {
-                                    "target": "script.front_door_bell",
-                                    "data": {"variables": {"visitor_name": "Guest"}},
-                                },
-                            }
-                        }
-                    },
+    context = Context()
+    uut = ChimeDeliveryMethod(
+        mock_hass,
+        context,
+        delivery_config,
+        default={
+            "target": ["media_player.kitchen_alexa", "media_player.hall_echo", "ffff0000eeee1111dddd2222cccc3333"],
+            "options": {
+                "chime_aliases": {
+                    "doorbell": {
+                        "media_player_hall": {
+                            "tune": "home/amzn_sfx_doorbell_chime_01",
+                            "target": "media_player.hall_echo",
+                        },
+                        "media_player": "home/amzn_sfx_doorbell_chime_02",
+                        "alexa_devices": {"tune": "bell01"},
+                        "switch": {"target": "switch.chime_ding_dong"},
+                        "script": {
+                            "target": "script.front_door_bell",
+                            "data": {"variables": {"visitor_name": "Guest"}},
+                        },
+                    }
                 }
-            }
-        }
+            },
+        },
     )
-    uut = ChimeDeliveryMethod(mock_hass, context, delivery_config)
     await uut.initialize()
     context.configure_for_tests([uut])
     await context.initialize()

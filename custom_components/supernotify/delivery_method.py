@@ -52,15 +52,18 @@ class DeliveryMethod:
         hass: HomeAssistant,
         context: Context,
         deliveries: dict[str, Any] | None = None,
-        default_action: str | None = None,
-        default_options: dict[str, Any] | None = None,
+        default: dict[str, Any] | None = None,
         targets_required: bool = True,
+        device_discovery: list[str] | None = None,
     ) -> None:
         self.hass: HomeAssistant = hass
-        self.default_action: str | None = default_action
         self.context: Context = context
-        self.default_options: dict[str, Any] = default_options or {}
+        self.default: dict[str, Any] = default or {}
+        self.default_options: dict[str, Any] = self.default.get(CONF_OPTIONS) or {}
+        self.default_action: str | None = self.default.get(CONF_ACTION)
         self.targets_required: bool = targets_required
+        self.device_discovery: list[str] = device_discovery or []
+
         self.default_delivery: dict[str, Any] | None = None
         self.valid_deliveries: dict[str, dict[str, Any]] = {}
         self.method_deliveries: dict[str, dict[str, Any]] = (
@@ -104,7 +107,7 @@ class DeliveryMethod:
                 _LOGGER.debug("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
 
         if not self.default_delivery:
-            method_definition = self.context.method_defaults.get(self.method, {}).get(CONF_DEFAULT, {})
+            method_definition = self.default
             if method_definition:
                 _LOGGER.info("SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
