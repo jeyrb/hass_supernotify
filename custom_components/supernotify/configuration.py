@@ -200,6 +200,8 @@ class Context:
                 if method:
                     for k, v in method.default.items():
                         dc.setdefault(k, v)
+                else:
+                    _LOGGER.warning(f"SUPERNOTIFY Unknown method {dc[CONF_METHOD]} for delivery {d}")
 
                 if dc.get(CONF_ENABLED, True):
                     if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
@@ -211,8 +213,7 @@ class Context:
 
                 if not dc.get(CONF_NAME):
                     dc[CONF_NAME] = d  # for minimal tests
-                else:
-                    _LOGGER.warning(f"SUPERNOTIFY Unknown method {method} for delivery {d}")
+
         return default_deliveries
 
     def initialize_scenarios(self, default_deliveries: dict[str, Any], default_scenario: bool = False) -> None:
