@@ -1,7 +1,11 @@
 import logging
 from typing import Any
 
-from homeassistant.const import CONF_ACTION, CONF_TARGET  # ATTR_VARIABLES from script.const has import issues
+from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
+from homeassistant.const import (  # ATTR_VARIABLES from script.const has import issues
+    ATTR_ENTITY_ID,
+    CONF_ACTION,
+)
 
 from custom_components.supernotify import CONF_DATA, CONF_TARGETS_REQUIRED, METHOD_GENERIC
 from custom_components.supernotify.delivery_method import DeliveryMethod
@@ -29,15 +33,18 @@ class GenericDeliveryMethod(DeliveryMethod):
         data = envelope.data or {}
         targets = envelope.targets or []
         config = self.delivery_config(envelope.delivery_name)
+        target_data: dict[str, Any] = {ATTR_ENTITY_ID: targets} if targets else {}
 
         qualified_action = config.get(CONF_ACTION)
         if qualified_action and qualified_action.startswith("notify."):
             action_data = envelope.core_action_data()
-            if targets is not None:
-                action_data[CONF_TARGET] = targets
             if data is not None:
                 action_data[CONF_DATA] = data
+            if qualified_action == "notify.send_message":
+                allowed_keys: list[str] = [ATTR_MESSAGE, ATTR_TITLE, ATTR_ENTITY_ID]
+                action_data = {k: v for k, v in action_data.items() if k in allowed_keys}
+
         else:
             action_data = data
 
-        return await self.call_action(envelope, qualified_action, action_data=action_data)
+        return await self.call_action(envelope, qualified_action, action_data=action_data, target_data=target_data)

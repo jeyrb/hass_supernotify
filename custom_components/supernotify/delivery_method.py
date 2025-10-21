@@ -104,7 +104,7 @@ class DeliveryMethod:
                 _LOGGER.debug("SUPERNOTIFY Multiple default deliveries, skipping %s", d)
 
         if not self.default_delivery:
-            method_definition = self.context.method_defaults.get(self.method)
+            method_definition = self.context.method_defaults.get(self.method, {}).get(CONF_DEFAULT, {})
             if method_definition:
                 _LOGGER.info("SUPERNOTIFY Building default delivery for %s from method %s", self.method, method_definition)
                 self.default_delivery = method_definition
@@ -240,7 +240,7 @@ class DeliveryMethod:
             envelope.failed_calls.append(
                 CallRecord(time.time() - start_time, domain, service, action_data, target_data, exception=str(e))
             )
-            _LOGGER.error("SUPERNOTIFY Failed to notify via %s, data=%s : %s", self.method, action_data, e)
+            _LOGGER.error("SUPERNOTIFY Failed to notify %s via %s, data=%s : %s", self.method, qualified_action, action_data, e)
             envelope.errored += 1
             envelope.delivery_error = format_exception(e)
             return False

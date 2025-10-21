@@ -6,6 +6,7 @@ from homeassistant.components.group import expand_entity_ids
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import (  # ATTR_VARIABLES from script.const has import issues
     ATTR_ENTITY_ID,
+    CONF_DEFAULT,
     CONF_TARGET,
     CONF_VARIABLES,
 )
@@ -80,8 +81,13 @@ class ChimeDeliveryMethod(DeliveryMethod):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault(CONF_TARGETS_REQUIRED, False)
         super().__init__(*args, **kwargs)
-        self.chime_aliases = self.context.method_defaults.get(self.method, {}).get(CONF_OPTIONS, {}).get("chime_aliases", {})
-        self.chime_targets = self.context.method_defaults.get(self.method, {}).get(CONF_TARGET, [])
+        self.chime_aliases = (
+            self.context.method_defaults.get(self.method, {})
+            .get(CONF_DEFAULT, {})
+            .get(CONF_OPTIONS, {})
+            .get("chime_aliases", {})
+        )
+        self.chime_targets = self.context.method_defaults.get(self.method, {}).get(CONF_DEFAULT, {}).get(CONF_TARGET, [])
 
     def validate_action(self, action: str | None) -> bool:
         return action is None

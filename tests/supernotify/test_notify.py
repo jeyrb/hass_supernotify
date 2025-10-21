@@ -63,8 +63,8 @@ RECIPIENTS: list[dict] = [
 ]
 
 METHOD_DEFAULTS: dict[str, dict] = {
-    METHOD_GENERIC: {CONF_ACTION: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]},
-    METHOD_EMAIL: {CONF_OPTIONS: {"jpeg_opts": {"progressive": True}}},
+    METHOD_GENERIC: {"default": {CONF_ACTION: "notify.slackity", CONF_ENTITY_ID: ["entity.1", "entity.2"]}},
+    METHOD_EMAIL: {"default": {CONF_OPTIONS: {"jpeg_opts": {"progressive": True}}}},
     "dummy": {CONF_TARGETS_REQUIRED: False},
 }
 
@@ -75,7 +75,7 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
         deliveries=DELIVERY,
         scenarios=SCENARIOS,
         recipients=RECIPIENTS,
-        method_defaults=METHOD_DEFAULTS,
+        method_configs=METHOD_DEFAULTS,
         dupe_check={CONF_DUPE_POLICY: ATTR_DUPE_POLICY_NONE},
     )
     await uut.initialize()
@@ -103,7 +103,7 @@ async def test_send_message_with_scenario_mismatch(mock_hass: Mock) -> None:
 
 
 async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> None:
-    uut = SuperNotificationAction(mock_hass, deliveries=DELIVERY, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
+    uut = SuperNotificationAction(mock_hass, deliveries=DELIVERY, method_configs=METHOD_DEFAULTS, recipients=RECIPIENTS)
     dummy = DummyDeliveryMethod(mock_hass, uut.context, {})
     uut.context.configure_for_tests(method_instances=[dummy])
     await uut.initialize()
@@ -124,7 +124,7 @@ async def test_recipient_delivery_data_override(mock_hass: HomeAssistant) -> Non
 
 async def test_broken_delivery(mock_hass: HomeAssistant) -> None:
     delivery_config = {"broken": {CONF_METHOD: "broken"}}
-    uut = SuperNotificationAction(mock_hass, deliveries=delivery_config, method_defaults=METHOD_DEFAULTS, recipients=RECIPIENTS)
+    uut = SuperNotificationAction(mock_hass, deliveries=delivery_config, method_configs=METHOD_DEFAULTS, recipients=RECIPIENTS)
     broken = BrokenDeliveryMethod(mock_hass, uut.context, delivery_config)
     uut.context.configure_for_tests(method_instances=[broken])
     await uut.initialize()
@@ -157,12 +157,12 @@ async def test_fallback_delivery(mock_hass: HomeAssistant) -> None:
             "generic": {CONF_METHOD: METHOD_GENERIC, CONF_SELECTION: SELECTION_FALLBACK, CONF_ACTION: "notify.dummy"},
             "push": {CONF_METHOD: METHOD_MOBILE_PUSH, CONF_ACTION: "notify.push", CONF_PRIORITY: "critical"},
         },
-        method_defaults=METHOD_DEFAULTS,
+        method_configs=METHOD_DEFAULTS,
     )
     await uut.initialize()
     await uut.async_send_message("just a test", data={"priority": "low"})
     mock_hass.services.async_call.assert_called_once_with(  # type: ignore
-        "notify", "dummy", service_data={"message": "just a test", "target": [], "data": {}}
+        "notify", "dummy", service_data={"message": "just a test", "data": {}}
     )
 
 

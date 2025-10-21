@@ -128,7 +128,7 @@ async def async_get_service(
         mobile_actions=config[CONF_ACTION_GROUPS],
         scenarios=config[CONF_SCENARIOS],
         links=config[CONF_LINKS],
-        method_defaults=config[CONF_METHODS],
+        method_configs=config[CONF_METHODS],
         cameras=config[CONF_CAMERAS],
         dupe_check=config[CONF_DUPE_CHECK],
     )
@@ -248,7 +248,7 @@ class SuperNotificationAction(BaseNotificationService):
         mobile_actions: dict[str, Any] | None = None,
         scenarios: dict[str, dict[str, Any]] | None = None,
         links: list[str] | None = None,
-        method_defaults: dict[str, Any] | None = None,
+        method_configs: dict[str, Any] | None = None,
         cameras: list[dict[str, Any]] | None = None,
         dupe_check: dict[str, Any] | None = None,
     ) -> None:
@@ -268,7 +268,7 @@ class SuperNotificationAction(BaseNotificationService):
             media_path,
             archive,
             scenarios,
-            method_defaults or {},
+            method_configs or {},
             cameras,
             METHODS,
         )

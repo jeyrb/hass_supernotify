@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.const import (
     ATTR_STATE,
+    CONF_DEFAULT,
     CONF_DEVICE_ID,
     CONF_ENABLED,
     CONF_METHOD,
@@ -263,7 +264,7 @@ class Context:
 
     def set_method_default(self, delivery_config: dict[str, Any], attr: str) -> None:
         if attr not in delivery_config and CONF_METHOD in delivery_config:
-            method_default: dict[str, Any] = self.method_defaults.get(delivery_config[CONF_METHOD], {})
+            method_default: dict[str, Any] = self.method_defaults.get(delivery_config[CONF_METHOD], {}).get(CONF_DEFAULT, {})
             if method_default.get(attr):
                 delivery_config[attr] = method_default[attr]
                 _LOGGER.debug(

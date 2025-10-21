@@ -22,7 +22,7 @@ SIMPLE_CONFIG = {
     "name": DOMAIN,
     "platform": DOMAIN,
     "delivery": {
-        "testing": {"method": "generic", "action": "notify.notify"},
+        "testing": {"method": "generic", "action": "notify.send_message"},
         "chime_person": {"method": "chime", "selection": "scenario", "data": {"chime_tune": "person"}},
     },
     "archive": {"enabled": True},
@@ -33,8 +33,12 @@ SIMPLE_CONFIG = {
     "recipients": [{"person": "person.house_owner", "email": "test@testing.com", "phone_number": "+4497177848484"}],
     "methods": {
         "chime": {
-            "target": ["media_player.lobby", "switch.doorbell"],
-            "options": {"chime_aliases": {"person": {"media_player": "bell_02", "switch": {"entity_id": "switch.chime_ding"}}}},
+            "default": {
+                "target": ["media_player.lobby", "switch.doorbell"],
+                "options": {
+                    "chime_aliases": {"person": {"media_player": "bell_02", "switch": {"entity_id": "switch.chime_ding"}}}
+                },
+            }
         }
     },
 }

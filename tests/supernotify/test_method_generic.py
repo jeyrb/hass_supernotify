@@ -1,5 +1,5 @@
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TARGET, ATTR_TITLE
-from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_METHOD, CONF_NAME
+from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TITLE
+from homeassistant.const import ATTR_ENTITY_ID, CONF_ACTION, CONF_DEFAULT, CONF_METHOD, CONF_NAME
 
 from custom_components.supernotify import CONF_DATA, CONF_DELIVERY, METHOD_GENERIC
 from custom_components.supernotify.configuration import Context
@@ -40,11 +40,9 @@ async def test_deliver(mock_hass) -> None:  # type: ignore
     mock_hass.services.async_call.assert_called_with(
         "notify",
         "teleportation",
-        service_data={
-            ATTR_TITLE: "testing",
-            ATTR_MESSAGE: "hello there",
-            ATTR_DATA: {"cuteness": "very"},
-            ATTR_TARGET: ["weird_generic_1", "weird_generic_2"],
+        service_data={ATTR_TITLE: "testing", ATTR_MESSAGE: "hello there", ATTR_DATA: {"cuteness": "very"}},
+        target={
+            ATTR_ENTITY_ID: ["weird_generic_1", "weird_generic_2"],
         },
     )
 
@@ -72,4 +70,9 @@ async def test_not_notify_deliver(mock_hass) -> None:  # type: ignore
             targets=["weird_generic_1", "weird_generic_2"],
         )
     )
-    mock_hass.services.async_call.assert_called_with("mqtt", "publish", service_data={"topic": "testing/123", "payload": "boo"})
+    mock_hass.services.async_call.assert_called_with(
+        "mqtt",
+        "publish",
+        service_data={"topic": "testing/123", "payload": "boo"},
+        target={"entity_id": ["weird_generic_1", "weird_generic_2"]},
+    )

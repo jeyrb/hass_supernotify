@@ -33,10 +33,10 @@ class EmailDeliveryMethod(DeliveryMethod):
             if not self.template_path.exists():
                 _LOGGER.warning("SUPERNOTIFY Email templates not available at %s", self.template_path)
                 self.template_path = None
-        if self.template_path is None:
-            _LOGGER.warning("SUPERNOTIFY Email templates not available")
+            else:
+                _LOGGER.debug("SUPERNOTIFY Loading email templates from %s", self.template_path)
         else:
-            _LOGGER.debug("SUPERNOTIFY Loading email templates from %s", self.template_path)
+            _LOGGER.warning("SUPERNOTIFY Email templates not available - no configured path")
 
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_EMAIL, target) is not None
