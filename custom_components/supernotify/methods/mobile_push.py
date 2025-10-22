@@ -45,7 +45,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
     def validate_action(self, action: str | None) -> bool:
         return action is None
 
-    def recipient_target(self, recipient: dict) -> list[str]:
+    def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
         if CONF_PERSON in recipient:
             services: list[str] = [md.get(CONF_NOTIFY_ACTION) for md in recipient.get(CONF_MOBILE_DEVICES, [])]
             return list(filter(None, services))

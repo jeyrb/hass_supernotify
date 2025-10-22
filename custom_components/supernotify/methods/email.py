@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 class EmailDeliveryMethod(DeliveryMethod):
     method = METHOD_EMAIL
 
-    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict | None = None, **kwargs: Any) -> None:
+    def __init__(self, hass: HomeAssistant, context: Context, deliveries: dict[str, Any] | None = None, **kwargs: Any) -> None:
         super().__init__(hass, context, deliveries, **kwargs)
         self.template_path: Path | None = None
         if self.context.template_path:
@@ -41,7 +41,7 @@ class EmailDeliveryMethod(DeliveryMethod):
     def select_target(self, target: str) -> bool:
         return re.fullmatch(RE_VALID_EMAIL, target) is not None
 
-    def recipient_target(self, recipient: dict) -> list[str]:
+    def recipient_target(self, recipient: dict[str, Any]) -> list[str]:
         email = recipient.get(CONF_EMAIL)
         return [email] if email else []
 
