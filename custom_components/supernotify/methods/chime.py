@@ -89,8 +89,8 @@ class ChimeDeliveryMethod(DeliveryMethod):
         # support optional auto discovery
         kwargs.setdefault(CONF_DEVICE_DOMAIN, DEVICE_DOMAINS)
         super().__init__(*args, **kwargs)
-        self.chime_aliases = self.default_options.get("chime_aliases", {})
-        self.chime_targets = self.default.get(CONF_TARGET, [])
+        self.chime_aliases: dict[str, Any] = self.default_options.get("chime_aliases", {})
+        self.chime_targets: list[str] = self.default.get(CONF_TARGET, [])
 
     def validate_action(self, action: str | None) -> bool:
         return action is None
@@ -245,7 +245,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
             for domain, alias_config in self.chime_aliases.get(tune_or_alias, {}).items():
                 if isinstance(alias_config, str):
                     tune = alias_config
-                    alias_config = {}
+                    alias_config = {"tune": tune}
                 else:
                     tune = alias_config.get("tune", tune_or_alias)
 
@@ -256,11 +256,11 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
                 # pass through variables or data if present
                 if target is not None:
-                    entity_configs.update({t: ChimeTargetConfig(target=t, **alias_config) for t in ensure_list(target)})
+                    entity_configs.update({t: ChimeTargetConfig(target=t, **alias_config) for t in ensure_list(target)})  # type: ignore
                 elif domain in DEVICE_DOMAINS:
                     # bulk apply to all known target devices of this domain
                     bulk_apply = {
-                        dev: ChimeTargetConfig(target=dev, **alias_config)
+                        dev: ChimeTargetConfig(target=dev, **alias_config)  # type: ignore
                         for dev in self.chime_targets
                         if ChimeTargetConfig.is_device(dev)
                         and dev not in entity_configs  # don't overwrite existing specific targets
