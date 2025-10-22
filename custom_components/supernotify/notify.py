@@ -50,7 +50,7 @@ from . import (
 )
 from . import SUPERNOTIFY_SCHEMA as PLATFORM_SCHEMA
 from .configuration import Context
-from .methods.alexa import AlexaDeliveryMethod
+from .methods.alexa_devices import AlexaDevicesDeliveryMethod
 from .methods.alexa_media_player import AlexaMediaPlayerDeliveryMethod
 from .methods.chime import ChimeDeliveryMethod
 from .methods.email import EmailDeliveryMethod
@@ -68,7 +68,7 @@ SNOOZE_TIME = 60 * 60  # TODO: move to configuration
 METHODS: list[type[DeliveryMethod]] = [
     EmailDeliveryMethod,
     SMSDeliveryMethod,
-    AlexaDeliveryMethod,
+    AlexaDevicesDeliveryMethod,
     AlexaMediaPlayerDeliveryMethod,
     MobilePushDeliveryMethod,
     MediaPlayerImageDeliveryMethod,

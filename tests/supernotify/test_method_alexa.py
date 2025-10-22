@@ -3,11 +3,11 @@ from homeassistant.const import CONF_ACTION, CONF_DEFAULT, CONF_METHOD
 from custom_components.supernotify import METHOD_ALEXA
 from custom_components.supernotify.configuration import Context
 from custom_components.supernotify.envelope import Envelope
-from custom_components.supernotify.methods.alexa import AlexaDeliveryMethod
+from custom_components.supernotify.methods.alexa_devices import AlexaDevicesDeliveryMethod
 from custom_components.supernotify.notification import Notification
 
 DELIVERY = {
-    "alexa": {CONF_METHOD: METHOD_ALEXA, CONF_ACTION: "notify.send_message"},
+    "alexa_devices": {CONF_METHOD: METHOD_ALEXA, CONF_ACTION: "notify.send_message"},
 }
 
 
@@ -15,7 +15,7 @@ async def test_notify_alexa(mock_hass) -> None:  # type: ignore
     """Test on_notify_alexa."""
     context = Context()
     delivery_config = {"default": {CONF_METHOD: METHOD_ALEXA, CONF_DEFAULT: True}}
-    uut = AlexaDeliveryMethod(mock_hass, context, delivery_config)
+    uut = AlexaDevicesDeliveryMethod(mock_hass, context, delivery_config)
     context.configure_for_tests([uut])
     await context.initialize()
     await uut.initialize()
@@ -35,7 +35,7 @@ async def test_notify_alexa(mock_hass) -> None:  # type: ignore
 
 def test_alexa_method_selects_targets(mock_hass, superconfig) -> None:  # type: ignore
     """Test on_notify_alexa."""
-    uut = AlexaDeliveryMethod(mock_hass, superconfig, {"announce": {CONF_METHOD: METHOD_ALEXA}})
+    uut = AlexaDevicesDeliveryMethod(mock_hass, superconfig, {"announce": {CONF_METHOD: METHOD_ALEXA}})
     assert uut.select_target("switch.alexa_1") is False
     assert uut.select_target("media_player.hall_1") is False
     assert uut.select_target("notify.bedroom_echo_announce") is True

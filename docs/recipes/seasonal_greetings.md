@@ -11,6 +11,7 @@ scenarios:
         conditions:
           - "{{ (12,24) <= (now().month, now().day) <= (12,31) }}"
           - "{{ (1,1) <= (now().month, now().day) <= (1,1) }}"
+      delivery:
        alexa:
             data:
               message_template: '{{notification_message}}<break time="1s"><say-as interpret-as="interjection">bah humbug</say-as>'
@@ -33,6 +34,7 @@ scenarios:
         conditions:
           - "{{ (5,23) == (now().month, now().day) }}"
           - "{{ (11,9) == (now().month, now().day) }}"
+      delivery:
        alexa:
             data:
               message_template: '{{notification_message}}<break time="1s"><say-as interpret-as="interjection">hip hip hooray</say-as>'

@@ -46,7 +46,7 @@ DELIVERY: dict[str, dict] = {
     "dummy": {CONF_METHOD: "dummy"},
 }
 SCENARIOS: dict[str, dict] = {
-    SCENARIO_DEFAULT: {CONF_DELIVERY: {"alexa": {}, "chime": {}, "text": {}, "email": {}, "chat": {}}},
+    SCENARIO_DEFAULT: {CONF_DELIVERY: {"alexa_devices": {}, "chime": {}, "text": {}, "email": {}, "chat": {}}},
     "scenario1": {CONF_DELIVERY: {"persistent": {}}},
     "scenario2": {CONF_DELIVERY: {"persistent": {}}},
 }

@@ -104,7 +104,7 @@ async def test_deliver_alias(mock_hass) -> None:  # type: ignore
                             "target": "media_player.hall_echo",
                         },
                         "media_player": "home/amzn_sfx_doorbell_chime_02",
-                        "alexa_devices": {"tune": "bell01"},
+                        "alexa_devices": "bell01",
                         "switch": {"target": "switch.chime_ding_dong"},
                         "script": {
                             "target": "script.front_door_bell",

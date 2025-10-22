@@ -43,12 +43,12 @@ class AlexaMediaPlayerDeliveryMethod(DeliveryMethod):
         return re.fullmatch(RE_VALID_ALEXA, target) is not None
 
     async def deliver(self, envelope: Envelope) -> bool:
-        _LOGGER.debug("SUPERNOTIFY notify_alexa: %s", envelope.message)
+        _LOGGER.debug("SUPERNOTIFY notify_alexa_media %s", envelope.message)
 
         media_players = envelope.targets or []
 
         if not media_players:
-            _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
+            _LOGGER.debug("SUPERNOTIFY skipping alexa media player, no targets")
             return False
 
         action_data: dict[str, Any] = {"message": envelope.message, ATTR_DATA: {"type": "announce"}, ATTR_TARGET: media_players}

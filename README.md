@@ -262,7 +262,7 @@ methods:
 
               red_alert:
                 # non-dict defaults to a dict with a single key `tune`
-                alexa: scifi/amzn_sfx_scifi_alarm_04
+                alexa_devices: scifi/amzn_sfx_scifi_alarm_04
                 siren: emergency
 ```
 

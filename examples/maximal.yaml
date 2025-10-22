@@ -40,7 +40,7 @@ notify:
           - critical
           - high
       alexa_announce:
-        method: alexa
+        method: alexa_devices
         occupancy: any_in
       mobile_push:
         method: mobile_push
@@ -149,7 +149,7 @@ notify:
             - media_player.studio
           options:
             title_handling: combine_message
-      alexa:
+      alexa_devices:
         default:
           target:
             - notify.kitchen_echo_announce
@@ -183,7 +183,7 @@ notify:
                 siren:
                   tune: emergency
               known_vehicle:
-                media_player: amzn_sfx_trumpet_bugle_04
+                alexa_devices: amzn_sfx_trumpet_bugle_04
                 switch:
                   target: switch.chime_sax
               unknown_vehicle:

@@ -245,12 +245,12 @@ class ChimeDeliveryMethod(DeliveryMethod):
             for domain, alias_config in self.chime_aliases.get(tune_or_alias, {}).items():
                 if isinstance(alias_config, str):
                     tune = alias_config
-                    alias_config = {"tune": tune}
+                    alias_config = {}
                 else:
                     tune = alias_config.get("tune", tune_or_alias)
 
+                alias_config["tune"] = tune
                 alias_config.setdefault("domain", domain)
-                alias_config.setdefault("tune", tune)
                 alias_config.setdefault("data", {})
                 target = alias_config.pop("target", None)
 
@@ -269,7 +269,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
                 else:
                     # bulk apply to all known target entities of this domain
                     bulk_apply = {
-                        ent: ChimeTargetConfig(target=ent, **alias_config)
+                        ent: ChimeTargetConfig(target=ent, **alias_config)  # type: ignore
                         for ent in self.chime_targets
                         if ent.startswith(f"{alias_config['domain']}.")
                         and ent not in entity_configs  # don't overwrite existing specific targets

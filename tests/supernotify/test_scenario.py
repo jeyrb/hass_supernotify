@@ -144,7 +144,7 @@ async def test_scenario_templating(hass: HomeAssistant) -> None:
     context = Context(
         hass,
         scenarios=config["scenarios"],
-        deliveries={"email": {CONF_METHOD: "email"}, "alexa": {CONF_METHOD: "alexa"}},
+        deliveries={"smtp": {CONF_METHOD: "email"}, "alexa": {CONF_METHOD: "alexa_devices"}},
         method_types=METHODS,
     )
     await context.initialize()
@@ -152,14 +152,14 @@ async def test_scenario_templating(hass: HomeAssistant) -> None:
         context, message="Hello from Home", title="Home Notification", action_data={"apply_scenarios": ["softly_softly"]}
     )
     await uut.initialize()
-    assert uut.message("email") == "Hello from Home"
-    assert uut.title("email") == "Home Notification"
+    assert uut.message("smtp") == "Hello from Home"
+    assert uut.title("smtp") == "Home Notification"
     assert uut.message("alexa") == '<amazon:effect name="whispered">Hello from Home</amazon:effect>'
     assert uut.title("alexa") == ""
 
     uut = Notification(context, message="Please Sir", action_data={"apply_scenarios": ["softly_softly", "emotional"]})
     await uut.initialize()
-    assert uut.message("email") == "Please Sir"
+    assert uut.message("smtp") == "Please Sir"
     assert (
         uut.message("alexa")
         == '<amazon:emotion name="excited" intensity="medium"><amazon:effect name="whispered">Please Sir</amazon:effect></amazon:emotion>'  # noqa: E501

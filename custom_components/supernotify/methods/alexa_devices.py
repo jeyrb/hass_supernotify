@@ -22,8 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 ACTION = "notify.send_message"
 
 
-class AlexaDeliveryMethod(DeliveryMethod):
-    """Notify via Home Assistant's built-in Alexa integration
+class AlexaDevicesDeliveryMethod(DeliveryMethod):
+    """Notify via Home Assistant's built-in Alexa Devices integration
 
     options:
         message_usage: standard | use_title | combine_title
@@ -48,12 +48,12 @@ class AlexaDeliveryMethod(DeliveryMethod):
         )
 
     async def deliver(self, envelope: Envelope) -> bool:
-        _LOGGER.debug("SUPERNOTIFY notify_alexa: %s", envelope.message)
+        _LOGGER.debug("SUPERNOTIFY notify_alexa_devices: %s", envelope.message)
 
         targets = envelope.targets or []
 
         if not targets:
-            _LOGGER.debug("SUPERNOTIFY skipping alexa, no targets")
+            _LOGGER.debug("SUPERNOTIFY skipping alexa devices, no targets")
             return False
 
         action_data: dict[str, Any] = {ATTR_MESSAGE: envelope.message or ""}
