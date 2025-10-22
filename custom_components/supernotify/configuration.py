@@ -295,11 +295,13 @@ class Context:
             all_devs += 1
             if not dev.disabled:
                 enabled_devs += 1
-                for domain, domain_id in dev.identifiers:
-                    if domain == discover_domain:
-                        _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s:%s", dev.name, domain, domain_id)
+                for identifier in dev.identifiers:
+                    if identifier and len(identifier) > 1 and identifier[0] == discover_domain:
+                        _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s", dev.name, identifier)
                         devices.append(dev)
                         found_devs += 1
+                    elif identifier and len(identifier) != 2:
+                        _LOGGER.warning("SUPERNOTIFY Unexpected device %s identifier: %s", dev.name, identifier)  # type: ignore
         _LOGGER.info(
             f"SUPERNOTIFY {discover_domain} device discovery, all={all_devs}, enabled={enabled_devs}, found={found_devs}"
         )
