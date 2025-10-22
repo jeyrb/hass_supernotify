@@ -6,7 +6,6 @@ from homeassistant.components.group import expand_entity_ids
 from homeassistant.components.notify.const import ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.const import (  # ATTR_VARIABLES from script.const has import issues
     ATTR_ENTITY_ID,
-    CONF_TARGET,
     CONF_VARIABLES,
 )
 
@@ -89,8 +88,10 @@ class ChimeDeliveryMethod(DeliveryMethod):
         # support optional auto discovery
         kwargs.setdefault(CONF_DEVICE_DOMAIN, DEVICE_DOMAINS)
         super().__init__(*args, **kwargs)
-        self.chime_aliases: dict[str, Any] = self.default_options.get("chime_aliases", {})
-        self.chime_targets: list[str] = self.default.get(CONF_TARGET, [])
+
+    @property
+    def chime_aliases(self) -> dict[str, Any]:
+        return self.default_options.get("chime_aliases") or {}
 
     def validate_action(self, action: str | None) -> bool:
         return action is None
@@ -240,7 +241,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return domain, action, action_data
 
     def resolve_tune(self, tune_or_alias: str | None) -> dict[str, ChimeTargetConfig]:
-        entity_configs: dict[str, ChimeTargetConfig] = {}
+        target_configs: dict[str, ChimeTargetConfig] = {}
         if tune_or_alias is not None:
             for domain, alias_config in self.chime_aliases.get(tune_or_alias, {}).items():
                 if isinstance(alias_config, str):
@@ -256,24 +257,24 @@ class ChimeDeliveryMethod(DeliveryMethod):
 
                 # pass through variables or data if present
                 if target is not None:
-                    entity_configs.update({t: ChimeTargetConfig(target=t, **alias_config) for t in ensure_list(target)})  # type: ignore
+                    target_configs.update({t: ChimeTargetConfig(target=t, **alias_config) for t in ensure_list(target)})  # type: ignore
                 elif domain in DEVICE_DOMAINS:
                     # bulk apply to all known target devices of this domain
                     bulk_apply = {
                         dev: ChimeTargetConfig(target=dev, **alias_config)  # type: ignore
-                        for dev in self.chime_targets
+                        for dev in self.targets
                         if ChimeTargetConfig.is_device(dev)
-                        and dev not in entity_configs  # don't overwrite existing specific targets
+                        and dev not in target_configs  # don't overwrite existing specific targets
                     }
-                    entity_configs.update(bulk_apply)
+                    target_configs.update(bulk_apply)
                 else:
                     # bulk apply to all known target entities of this domain
                     bulk_apply = {
                         ent: ChimeTargetConfig(target=ent, **alias_config)  # type: ignore
-                        for ent in self.chime_targets
+                        for ent in self.targets
                         if ent.startswith(f"{alias_config['domain']}.")
-                        and ent not in entity_configs  # don't overwrite existing specific targets
+                        and ent not in target_configs  # don't overwrite existing specific targets
                     }
-                    entity_configs.update(bulk_apply)
-
-        return entity_configs
+                    target_configs.update(bulk_apply)
+        _LOGGER.debug("SUPERNOTIFY method_chime: Resolved tune %s to %s", tune_or_alias, target_configs)
+        return target_configs

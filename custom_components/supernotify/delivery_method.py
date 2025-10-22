@@ -92,6 +92,10 @@ class DeliveryMethod:
 
                 _LOGGER.info(f"SUPERNOTIFY device discovery for {domain} found {discovered} devices, added {added} new ones")
 
+    @property
+    def targets(self) -> list[str]:
+        return self.default.get(CONF_TARGET) or []
+
     def validate_action(self, action: str | None) -> bool:
         """Override in subclass if delivery method has fixed action or doesn't require one"""
         return action is None or action.startswith("notify.")
