@@ -134,6 +134,9 @@ async def async_get_service(
     )
     await service.initialize()
 
+    def supplemental_action_refresh_entities(_call: ServiceCall) -> None:
+        return service.expose_entities()
+
     def supplemental_action_enquire_deliveries_by_scenario(_call: ServiceCall) -> dict[str, Any]:
         return service.enquire_deliveries_by_scenario()
 
@@ -228,6 +231,12 @@ async def async_get_service(
         "purge_archive",
         supplemental_action_purge_archive,
         supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "refresh_entities",
+        supplemental_action_refresh_entities,
+        supports_response=SupportsResponse.NONE,
     )
 
     return service

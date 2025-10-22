@@ -10,6 +10,7 @@ enquire_active_scenarios:
         boolean:
 enquire_occupancy:
 enquire_snoozes:
+refresh_entities:
 clear_snoozes:
 purge_archive:
   fields:
