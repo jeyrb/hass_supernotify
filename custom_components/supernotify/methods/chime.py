@@ -96,7 +96,7 @@ class ChimeDeliveryMethod(DeliveryMethod):
         return action is None
 
     def select_target(self, target: str) -> bool:
-        return re.fullmatch(RE_VALID_CHIME, target) is not None
+        return re.fullmatch(RE_VALID_CHIME, target) is not None or ChimeTargetConfig.is_device(target)
 
     async def deliver(self, envelope: Envelope) -> bool:
         config = self.delivery_config(envelope.delivery_name)
