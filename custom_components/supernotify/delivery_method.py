@@ -79,10 +79,10 @@ class DeliveryMethod:
             raise OSError("No delivery method configured")
         self.valid_deliveries = await self.validate_deliveries()
         if self.device_discovery:
-            discovered: int = 0
-            added: int = 0
+            self.default.setdefault(CONF_TARGET, [])
             for domain in self.device_domain:
-                self.default.setdefault(CONF_TARGET, [])
+                discovered: int = 0
+                added: int = 0
                 for d in self.context.discover_devices(domain):
                     discovered += 1
                     if d.id not in self.default[CONF_TARGET]:
@@ -90,7 +90,7 @@ class DeliveryMethod:
                         self.default[CONF_TARGET].append(d.id)
                         added += 1
 
-            _LOGGER.info(f"SUPERNOTIFY device discovery for {self.method} found {discovered} devices, added {added} new ones")
+                _LOGGER.info(f"SUPERNOTIFY device discovery for {domain} found {discovered} devices, added {added} new ones")
 
     def validate_action(self, action: str | None) -> bool:
         """Override in subclass if delivery method has fixed action or doesn't require one"""

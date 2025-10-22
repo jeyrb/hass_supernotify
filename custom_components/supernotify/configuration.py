@@ -287,13 +287,22 @@ class Context:
         devices: list[DeviceEntry] = []
         dev_reg: DeviceRegistry | None = self.device_registry()
         if dev_reg is None:
+            _LOGGER.warning(f"SUPERNOTIFY Unable to discover devices for {discover_domain} - no device registry found")
             return []
+
+        all_devs = enabled_devs = found_devs = 0
         for dev in dev_reg.devices.values():
+            all_devs += 1
             if not dev.disabled:
+                enabled_devs += 1
                 for domain, domain_id in dev.identifiers:
                     if domain == discover_domain:
                         _LOGGER.debug("SUPERNOTIFY discovered device %s for identifier %s:%s", dev.name, domain, domain_id)
                         devices.append(dev)
+                        found_devs += 1
+        _LOGGER.info(
+            f"SUPERNOTIFY {discover_domain} device discovery, all={all_devs}, enabled={enabled_devs}, found={found_devs}"
+        )
         return devices
 
     def setup_people(self, recipients: list[dict[str, Any]] | tuple[dict[str, Any]]) -> dict[str, dict[str, Any]]:
