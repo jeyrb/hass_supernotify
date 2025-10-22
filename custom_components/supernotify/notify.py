@@ -369,9 +369,9 @@ class SuperNotificationAction(BaseNotificationService):
                     self.sent += 1
                     self.hass.states.async_set(f"{DOMAIN}.sent", str(self.sent))
                 elif notification.errored:
-                    _LOGGER.warning("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
+                    _LOGGER.error("SUPERNOTIFY Failed to deliver %s, error count %s", notification.id, notification.errored)
                 else:
-                    _LOGGER.info("SUPERNOTIFY No delivery selected for  %s", notification.id)
+                    _LOGGER.warning("SUPERNOTIFY No delivery selected for  %s", notification.id)
 
         except Exception as err:
             # fault barrier of last resort, integration failures should be caught within envelope delivery

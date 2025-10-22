@@ -74,7 +74,7 @@ class MobilePushDeliveryMethod(DeliveryMethod):
         category = data.get(ATTR_ACTION_CATEGORY, "general")
         action_groups = envelope.action_groups
 
-        _LOGGER.info("SUPERNOTIFY notify_mobile: %s -> %s", envelope.title, envelope.targets)
+        _LOGGER.debug("SUPERNOTIFY notify_mobile: %s -> %s", envelope.title, envelope.targets)
 
         media = envelope.media or {}
         camera_entity_id = media.get(ATTR_MEDIA_CAMERA_ENTITY_ID)

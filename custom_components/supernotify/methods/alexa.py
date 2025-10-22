@@ -48,7 +48,7 @@ class AlexaDeliveryMethod(DeliveryMethod):
         )
 
     async def deliver(self, envelope: Envelope) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_alexa: %s", envelope.message)
+        _LOGGER.debug("SUPERNOTIFY notify_alexa: %s", envelope.message)
 
         targets = envelope.targets or []
 

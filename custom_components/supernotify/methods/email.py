@@ -46,7 +46,7 @@ class EmailDeliveryMethod(DeliveryMethod):
         return [email] if email else []
 
     async def deliver(self, envelope: Envelope) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_email: %s %s", envelope.delivery_name, envelope.targets)
+        _LOGGER.debug("SUPERNOTIFY notify_email: %s %s", envelope.delivery_name, envelope.targets)
 
         data: dict[str, Any] = envelope.data or {}
         config = self.delivery_config(envelope.delivery_name)

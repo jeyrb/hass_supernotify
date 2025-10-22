@@ -33,7 +33,7 @@ class MediaPlayerImageDeliveryMethod(DeliveryMethod):
         return action is None or action == "media_player.play_media"
 
     async def deliver(self, envelope: Envelope) -> bool:
-        _LOGGER.info("SUPERNOTIFY notify_media: %s", envelope.data)
+        _LOGGER.debug("SUPERNOTIFY notify_media: %s", envelope.data)
 
         data: dict[str, Any] = envelope.data or {}
         media_players: list[str] = envelope.targets or []
