@@ -1,4 +1,5 @@
 {
+    "title":"Supernotify",
     "services": {
         "reload": {
             "name": "[%key:common::action::reload%]",
