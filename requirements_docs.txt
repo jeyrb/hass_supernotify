@@ -6,6 +6,6 @@ mkdocs-material
 mkdocs-autorefs
 mkdocs-coverage
 mkdocs
-jsonschema-markdown
+json-schema-for-humans
 mkdocs-gen-files
 voluptuous-openapi>=0.2.0
