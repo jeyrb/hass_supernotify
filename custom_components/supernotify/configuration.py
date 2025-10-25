@@ -90,12 +90,12 @@ class Context:
             try:
                 self.hass_internal_url = get_url(hass, prefer_external=False)
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY could not get internal hass url: %s", e)
                 self.hass_internal_url = f"http://{socket.gethostname()}"
+                _LOGGER.warning("SUPERNOTIFY could not get internal hass url, defaulting to %s: %s", self.hass_internal_url, e)
             try:
                 self.hass_external_url = get_url(hass, prefer_external=True)
             except Exception as e:
-                _LOGGER.warning("SUPERNOTIFY could not get external hass url: %s", e)
+                _LOGGER.warning("SUPERNOTIFY could not get external hass url, defaulting to internal url: %s", e)
                 self.hass_external_url = self.hass_internal_url
         else:
             self.hass_internal_url = ""
@@ -182,6 +182,7 @@ class Context:
                 self.media_path.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 _LOGGER.warning("SUPERNOTIFY media path %s cannot be created: %s", self.media_path, e)
+                self.raise_issue("media_path", "media_path", {"path": str(self.media_path), "error": str(e)})
                 self.media_path = None
         if self.media_path is not None:
             _LOGGER.info("SUPERNOTIFY abs media path: %s", self.media_path.absolute())
@@ -232,6 +233,7 @@ class Context:
                         issue_key="delivery_unknown_method",
                         issue_map={"delivery": d, "method": dc[CONF_METHOD]},
                     )
+                    dc[CONF_ENABLED] = False
                 if dc.get(CONF_ENABLED, True):
                     if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
                         self.fallback_on_error[d] = dc
@@ -272,9 +274,7 @@ class Context:
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
         if default_scenario:
             for d, dc in self.deliveries.items():
-                if dc.get(CONF_METHOD) not in self.methods:
-                    _LOGGER.warning("SUPERNOTIFY Ignoring delivery %s without known method %s", d, dc.get(CONF_METHOD))
-                elif d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
+                if dc[CONF_ENABLED] and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
                     self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
     async def _register_delivery_methods(
@@ -364,7 +364,7 @@ class Context:
                     else:
                         person_config[ATTR_STATE] = tracker.state
                 except Exception as e:
-                    _LOGGER.warning("Unable to determine occupied status for %s: %s", person, e)
+                    _LOGGER.warning("SUPERNOTIFY Unable to determine occupied status for %s: %s", person, e)
                 results.append(person_config)
         return results
 

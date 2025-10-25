@@ -42,6 +42,10 @@
         "delivery_unknown_method":{
             "title":"Unknown Method for Delivery",
             "description":"Delivery configuration {delivery} refers to a method {method} that is not provided by SuperNotify"
+        },
+        "media_path":{
+            "title":"Media Path Cannot be Used",
+            "description":"A path ({path}) has been provided for holding media such as camera snapshots during notifications but cannot be used (error: {error})"
         }
     }
 }
