@@ -78,6 +78,7 @@ deliveries pick out the attributes they need. This is helpful either if you don'
 fine tuning delivery configurations, or using existing notification blueprints, such as the popular
 [Frigate Camera Notification Blueprints](https://github.com/SgtBatten/HA_blueprints/tree/main/Frigate%20Camera%20Notifications).
 
+
 ### Templated
 ```yaml
   - action: notify.supernotifier
@@ -89,6 +90,8 @@ fine tuning delivery configurations, or using existing notification blueprints, 
         data:
             priority: {% if {{ state_attr('sensor.tank', 'depth') }}<10 }critical{% else %}medium {% endif %}
 ```
+
+ See the [Recipes](recipes/) for more ideas.
 
 ## Delivery Methods
 

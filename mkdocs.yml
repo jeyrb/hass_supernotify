@@ -16,6 +16,7 @@ theme:
 plugins:
   - search
   - autorefs
+  - pagetree
   - minify:
       minify_html: true
   - coverage:
