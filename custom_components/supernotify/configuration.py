@@ -274,7 +274,7 @@ class Context:
         self.delivery_by_scenario[SCENARIO_DEFAULT] = list(default_deliveries.keys())
         if default_scenario:
             for d, dc in self.deliveries.items():
-                if dc[CONF_ENABLED] and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
+                if dc.get(CONF_ENABLED, True) and d not in self.delivery_by_scenario[SCENARIO_DEFAULT]:
                     self.delivery_by_scenario[SCENARIO_DEFAULT].append(d)
 
     async def _register_delivery_methods(
@@ -330,7 +330,8 @@ class Context:
                         devices.append(dev)
                         found_devs += 1
                     elif identifier and len(identifier) != 2:
-                        _LOGGER.warning("SUPERNOTIFY Unexpected device %s identifier: %s", dev.name, identifier)  # type: ignore
+                        # HomeKit has triples for identifiers, other domains may behave similarly
+                        _LOGGER.debug("SUPERNOTIFY Unexpected device %s identifier: %s", dev.name, identifier)  # type: ignore
         _LOGGER.info(
             f"SUPERNOTIFY {discover_domain} device discovery, all={all_devs}, enabled={enabled_devs}, found={found_devs}"
         )
