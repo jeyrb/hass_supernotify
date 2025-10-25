@@ -14,7 +14,7 @@ Try out the calls to the supernotifier action with this interactive validator.
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' }});
 require(['vs/editor/editor.main'], function() {
     const Ajv = window.ajv2020;
-
+    const jsyaml = require('js-yaml');
     const editor = monaco.editor.create(document.getElementById('yaml-editor'), {
         value: `# Your example YAML here
 data:

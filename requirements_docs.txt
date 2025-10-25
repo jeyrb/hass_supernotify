@@ -8,3 +8,4 @@ mkdocs-coverage
 mkdocs
 jsonschema-markdown
 mkdocs-gen-files
+voluptuous-openapi>=0.2.0

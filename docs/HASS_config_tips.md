@@ -55,38 +55,6 @@ Here is an example working config for a Heiman HS2WD-E plugin Zigbee siren
 
 ```
 
-### Richer email notifications
-
-``` yaml
- action:
-    action: notify.supernotifier
-    data_template:
-      title: "Home Assistant Restart"
-      message: "Home Assistant has started up."
-      data:
-        message_html: |
-          <table>
-            <tr>
-              <th>Component</th><th>Installed Version</th><th>Latest Version</th>
-            </tr>
-            <tr>
-              <td>Core</td>
-              <td>{{ states.update.home_assistant_supervisor_update.attributes['installed_version']}}</td>
-              <td>{{ states.update.home_assistant_supervisor_update.attributes['latest_version']}}</td>
-            </tr>
-            <tr>
-              <td>Supervisor</td>
-              <td>{{ states.update.home_assistant_core_update.attributes['installed_version']}}</td>
-              <td>{{ states.update.home_assistant_core_update.attributes['latest_version']}}</td>
-              </tr>
-            <tr>
-              <td>OS</td>
-              <td>{{ states.update.home_assistant_operating_system_update.attributes['installed_version']}}</td>
-              <td>{{ states.update.home_assistant_operating_system_update.attributes['latest_version']}}</td>
-            </tr>
-          <table>
-```
-
 ### Other Ideas
 
 See the `maximal.yaml` example configuration in the `examples` directory of this repo
