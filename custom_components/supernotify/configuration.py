@@ -16,6 +16,7 @@ from homeassistant.const import (
     STATE_NOT_HOME,
 )
 from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.config_validation import boolean
 from homeassistant.helpers.network import get_url
 from homeassistant.util import slugify
@@ -46,6 +47,7 @@ from . import (
     CONF_SELECTION,
     CONF_TARGETS_REQUIRED,
     DELIVERY_SELECTION_IMPLICIT,
+    DOMAIN,
     SCENARIO_DEFAULT,
     SCENARIO_TEMPLATE_ATTRS,
     SELECTION_DEFAULT,
@@ -165,7 +167,9 @@ class Context:
         if self._config_scenarios and self.hass:
             for scenario_name, scenario_definition in self._config_scenarios.items():
                 scenario = Scenario(scenario_name, scenario_definition, self.hass)
-                if await scenario.validate():
+                if await scenario.validate(
+                    valid_deliveries=list(self.deliveries), valid_action_groups=list(self.mobile_actions)
+                ):
                     self.scenarios[scenario_name] = scenario
 
         if self.template_path and not self.template_path.exists():
@@ -192,6 +196,27 @@ class Context:
         self._create_default_scenario = create_default_scenario
         self._method_instances = method_instances
 
+    def raise_issue(
+        self,
+        issue_id: str,
+        issue_key: str,
+        issue_map: dict[str, str],
+        severity: ir.IssueSeverity = ir.IssueSeverity.WARNING,
+        learn_more_url: str = "https://jeyrb.github.io/hass_supernotify",
+    ) -> None:
+        if not self.hass:
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            translation_key=issue_key,
+            translation_placeholders=issue_map,
+            severity=severity,
+            learn_more_url=learn_more_url,
+        )
+
     def initialize_deliveries(self) -> dict[str, Any]:
         default_deliveries = {}
         if self._deliveries:
@@ -202,7 +227,11 @@ class Context:
                         dc.setdefault(k, v)
                 else:
                     _LOGGER.warning(f"SUPERNOTIFY Unknown method {dc[CONF_METHOD]} for delivery {d}")
-
+                    self.raise_issue(
+                        f"delivery_{d}_unknown_method{dc[CONF_METHOD]}",
+                        issue_key="delivery_unknown_method",
+                        issue_map={"delivery": d, "method": dc[CONF_METHOD]},
+                    )
                 if dc.get(CONF_ENABLED, True):
                     if SELECTION_FALLBACK_ON_ERROR in dc.get(CONF_SELECTION, [SELECTION_DEFAULT]):
                         self.fallback_on_error[d] = dc
@@ -280,7 +309,7 @@ class Context:
         method_name = self.deliveries.get(delivery, {}).get(CONF_METHOD)
         method: DeliveryMethod | None = self.methods.get(method_name)
         if not method:
-            raise ValueError(f"SUPERNOTIFY No method for delivery {delivery}")
+            raise ValueError(f"SUPERNOTIFY No method {method_name} for delivery {delivery}")
         return method
 
     def discover_devices(self, discover_domain: str) -> list[DeviceEntry]:

@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from typing import Any
 
+import voluptuous as vol
 from homeassistant.components.trace import async_setup, async_store_trace  # type: ignore[attr-defined]
 from homeassistant.components.trace.const import DATA_TRACE
 from homeassistant.components.trace.models import ActionTrace
@@ -13,11 +14,20 @@ from homeassistant.const import (
 )
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import condition
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.trace import trace_get, trace_path
 from homeassistant.helpers.typing import ConfigType
 from voluptuous import Invalid
 
-from . import ATTR_DEFAULT, CONF_ACTION_GROUP_NAMES, CONF_DELIVERY, CONF_DELIVERY_SELECTION, CONF_MEDIA, ConditionVariables
+from . import (
+    ATTR_DEFAULT,
+    CONF_ACTION_GROUP_NAMES,
+    CONF_DELIVERY,
+    CONF_DELIVERY_SELECTION,
+    CONF_MEDIA,
+    DOMAIN,
+    ConditionVariables,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,17 +46,73 @@ class Scenario:
         self.last_trace: ActionTrace | None = None
         self.condition_func = None
 
-    async def validate(self) -> bool:
+    async def validate(self, valid_deliveries: list[str] | None = None, valid_action_groups: list[str] | None = None) -> bool:
         """Validate Home Assistant conditiion definition at initiation"""
         if self.condition:
+            error: str | None = None
             try:
-                cond = await condition.async_validate_condition_config(self.hass, self.condition)
+                cond: ConfigType = await condition.async_validate_condition_config(self.hass, self.condition)
                 if await condition.async_from_config(self.hass, cond) is None:
                     _LOGGER.warning("SUPERNOTIFY Disabling scenario %s with failed condition %s", self.name, self.condition)
-                    return False
+                    error = "Unable to build condition from definition"
+            except vol.Invalid as vi:
+                _LOGGER.error(
+                    f"SUPERNOTIFY Condition definition for scenario {self.name} fails Home Assistant schema check {vi}"
+                )
+                error = f"Schema error {vi}"
             except Exception as e:
                 _LOGGER.error("SUPERNOTIFY Disabling scenario %s with error validating %s: %s", self.name, self.condition, e)
+                error = f"Unknown error {e}"
+            if error is not None:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    f"scenario_{self.name}_condition",
+                    is_fixable=False,
+                    translation_key="scenario_condition",
+                    translation_placeholders={"scenario": self.name, "error": error},
+                    severity=ir.IssueSeverity.ERROR,
+                    learn_more_url="https://jeyrb.github.io/hass_supernotify/#scenarios",
+                )
                 return False
+
+        if valid_deliveries is not None:
+            invalid_deliveries: list[str] = []
+            for delivery_name in self.delivery:
+                if delivery_name not in valid_deliveries:
+                    _LOGGER.error(f"SUPERNOTIFY Unknown delivery {delivery_name} removed from scenario {self.name}")
+                    invalid_deliveries.append(delivery_name)
+                    ir.async_create_issue(
+                        self.hass,
+                        DOMAIN,
+                        f"scenario_{self.name}_delivery_{delivery_name}",
+                        is_fixable=False,
+                        translation_key="scenario_delivery",
+                        translation_placeholders={"scenario": self.name, "delivery": delivery_name},
+                        severity=ir.IssueSeverity.WARNING,
+                        learn_more_url="https://jeyrb.github.io/hass_supernotify/#scenarios",
+                    )
+            for delivery_name in invalid_deliveries:
+                del self.delivery[delivery_name]
+
+        if valid_action_groups is not None:
+            invalid_action_groups: list[str] = []
+            for action_group_name in self.action_groups:
+                if action_group_name not in valid_action_groups:
+                    _LOGGER.error(f"SUPERNOTIFY Unknown delivery {action_group_name} removed from scenario {self.name}")
+                    invalid_action_groups.append(action_group_name)
+                    ir.async_create_issue(
+                        self.hass,
+                        DOMAIN,
+                        f"scenario_{self.name}_action_group_{action_group_name}",
+                        is_fixable=False,
+                        translation_key="scenario_delivery",
+                        translation_placeholders={"scenario": self.name, "action_group": action_group_name},
+                        severity=ir.IssueSeverity.WARNING,
+                        learn_more_url="https://jeyrb.github.io/hass_supernotify/#scenarios",
+                    )
+            for action_group_name in invalid_action_groups:
+                self.action_groups.remove(action_group_name)
         return True
 
     def attributes(self, include_condition: bool = True, include_trace: bool = False) -> dict[str, Any]:

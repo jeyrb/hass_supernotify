@@ -25,5 +25,23 @@
                 }
             }
         }
+    },
+    "issues":{
+        "scenario_delivery":{
+            "title":"Invalid Delivery for Scenario",
+            "description":"Scenario definition {scenario} refers to a delivery {delivery} that doesn't exist in supernotify configuration"
+        },
+         "scenario_action_group":{
+            "title":"Invalid Mobile Action Group for Scenario",
+            "description":"Scenario definition {scenario} refers to a delivery {action_group} that doesn't exist in supernotify configuration"
+        },
+        "scenario_condition":{
+            "title":"Invalid Condition for Scenario",
+            "description":"Scenario definition {scenario} contains a condition that cannor be evaluated by Home Assistant"
+        },
+        "delivery_unknown_method":{
+            "title":"Unknown Method for Delivery",
+            "description":"Delivery configuration {delivery} refers to a method {method} that is not provided by SuperNotify"
+        }
     }
 }

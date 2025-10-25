@@ -2,12 +2,14 @@ import logging
 
 from homeassistant.const import CONF_ALIAS, CONF_CONDITION
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from pytest_unordered import unordered
 
 from custom_components.supernotify import (
     ATTR_SCENARIOS_APPLY,
     ATTR_SCENARIOS_CONSTRAIN,
     CONF_METHOD,
+    DOMAIN,
     PRIORITY_CRITICAL,
     PRIORITY_MEDIUM,
     SCENARIO_SCHEMA,
@@ -36,6 +38,27 @@ async def test_simple_trace(hass: HomeAssistant) -> None:
     assert not uut.default
     assert await uut.validate()
     assert not await uut.trace()
+
+
+async def test_validate(hass: HomeAssistant) -> None:
+    issue_registry = ir.async_get(hass)
+    uut = Scenario("testing", {"delivery": {"good": {}, "bad": {}, "ok": {}}, "action_groups": ["lights", "snoozes"]}, hass)
+    await uut.validate(valid_deliveries=["good", "ok"], valid_action_groups=["snoozes"])
+    assert "bad" not in uut.delivery
+    assert "good" in uut.delivery
+    assert "ok" in uut.delivery
+
+    issue = issue_registry.async_get_issue(DOMAIN, "scenario_testing_delivery_bad")
+    assert issue is not None
+    assert issue.severity == ir.IssueSeverity.WARNING
+    assert not issue.is_fixable
+
+    assert "lights" not in uut.action_groups
+    assert "snoozes" in uut.action_groups
+    issue = issue_registry.async_get_issue(DOMAIN, "scenario_testing_action_group_lights")
+    assert issue is not None
+    assert issue.severity == ir.IssueSeverity.WARNING
+    assert not issue.is_fixable
 
 
 async def test_conditional_create(hass: HomeAssistant) -> None:

@@ -16,6 +16,7 @@ from homeassistant.const import (
 from homeassistant.core import EventBus, HomeAssistant, ServiceRegistry, StateMachine, SupportsResponse, callback
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_registry import EntityRegistry
+from homeassistant.helpers.issue_registry import IssueRegistry
 from pytest_httpserver import HTTPServer
 
 from custom_components.supernotify import (
@@ -58,6 +59,7 @@ def mock_hass() -> HomeAssistant:
     hass.data = {}
     hass.data["device_registry"] = Mock(spec=DeviceRegistry)
     hass.data["entity_registry"] = Mock(spec=EntityRegistry)
+    hass.data["issue_registry"] = Mock(spec=IssueRegistry)
     hass.config_entries._entries = {}
     hass.config_entries._domain_index = {}
     return hass
