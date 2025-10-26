@@ -1,6 +1,4 @@
-[![Rhizomatics Open Source](https://avatars.githubusercontent.com/u/162821163?s=96&v=4)](https://github.com/rhizomatics)
-
-# SuperNotifier
+# Supernotify
 
 Easy multi-channel rich notifications.
 
@@ -9,4 +7,4 @@ complex scenarios, including multi-channel notifications, conditional notificati
 
 ## Moved
 
-This private component has now been published with a public open source licence at [https://jeyrb.github.io/hass_supernotify/](https://jeyrb.github.io/hass_supernotify/) and a new documentatio site at [https://supernotify.rhizomatics.org.uk](https://supernotify.rhizomatics.org.uk)
+This private component has now been published with a public open source licence at [https://github.com/rhizomatics/supernotify](https://github.com/rhizomatics/supernotify) and a new documentation site at [https://supernotify.rhizomatics.org.uk](https://supernotify.rhizomatics.org.uk)
